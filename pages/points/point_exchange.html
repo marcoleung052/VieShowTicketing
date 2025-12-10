@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>點數兌換中心 - Vieshow Ticketing</title>
+    
+    <!-- 引入 Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'vieshow-red': '#e50914',
+                        'vieshow-gold': '#f7a83d',
+                        'vieshow-bg': '#fefefe', 
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 font-sans min-h-screen flex flex-col">
+    
+    <!-- Header 導航 (模擬) -->
+    <!-- <header class="bg-gray-800 text-white shadow-md">
+        <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <a href="../../index.html" class="text-xl font-bold hover:text-vieshow-red transition duration-300">Vieshow 影城</a>
+            <div class="space-x-4 flex items-center">
+                <a href="../member/member_home.html" class="text-sm font-medium hover:text-vieshow-gold transition duration-300">👤 會員中心</a>
+                <button id="signOutButton" class="bg-vieshow-red px-3 py-1 rounded-full text-white text-sm font-semibold hover:bg-red-700 transition duration-300">
+                    登出
+                </button>
+            </div>
+        </nav>
+    </header> -->
+
+    <header class="bg-gray-800 text-white shadow-md">
+        <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <a href="../../index.html" class="text-xl font-bold hover:text-vieshow-red transition duration-300">Vieshow 影城</a>
+            <div id="headerNavRight" class="space-x-4 flex items-center">
+                </div>
+        </nav>
+    </header>
+
+    <div class="container mx-auto px-4 py-10 flex-grow max-w-4xl">
+        
+        <div class="bg-vieshow-bg p-6 sm:p-8 rounded-xl shadow-2xl border-t-4 border-vieshow-gold">
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-2 flex items-center justify-center">
+                🎁 點數兌換中心
+            </h2>
+            <p class="text-center text-gray-500 mb-8">使用您的 iShow 點數兌換精選商品及優惠券。</p>
+
+            <!-- 點數資訊與兌換記錄連結 -->
+            <div class="flex flex-col sm:flex-row justify-between items-center bg-gray-50 p-4 rounded-lg border border-gray-200 mb-8 shadow-inner">
+                <div class="text-center sm:text-left mb-3 sm:mb-0">
+                    <p class="text-lg font-medium text-gray-700">您的當前可用點數:</p>
+                    <p class="text-3xl font-extrabold text-vieshow-red mt-1" id="currentPoints">1,350 點</p>
+                </div>
+                <!-- 修正：連結到 point_history.html (假設在同一目錄 pages/points 下) -->
+                <a href="point_history.html" class="text-vieshow-red hover:text-vieshow-gold font-semibold transition duration-150 text-sm">
+                    查看我的兌換記錄 &rarr;
+                </a>
+            </div>
+
+            <!-- 兌換商品清單 (Product List) -->
+            <h3 class="text-2xl font-bold text-gray-700 mb-6 border-b pb-2">精選兌換品項</h3>
+            
+            <div id="productGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                <!-- 商品卡片範例 1: 爆米花套餐 -->
+                <div class="exchange-card bg-white rounded-xl shadow-lg hover:shadow-xl transition duration-300 overflow-hidden border border-gray-100" data-id="popcorn" data-cost="500">
+                    <div class="p-4 sm:p-6">
+                        <h4 class="text-xl font-bold text-gray-800 mb-2">🍿 經典大爆米花套餐</h4>
+                        <p class="text-gray-500 text-sm mb-4">一份大爆米花與兩杯中杯飲料，觀影必備！</p>
+                        <div class="text-center bg-vieshow-red text-white py-2 rounded-lg font-extrabold text-2xl mb-4">
+                            500 點
+                        </div>
+                        <button class="exchange-button w-full bg-vieshow-gold text-gray-900 py-2 rounded-lg font-bold hover:bg-yellow-600 transition duration-150">
+                            立即兌換
+                        </button>
+                        <p class="text-xs text-center text-gray-400 mt-2">點擊兌換將生成兌換條碼</p>
+                    </div>
+                </div>
+
+                <!-- 商品卡片範例 2: 中杯飲料 -->
+                <div class="exchange-card bg-white rounded-xl shadow-lg hover:shadow-xl transition duration-300 overflow-hidden border border-gray-100" data-id="drink" data-cost="200">
+                    <div class="p-4 sm:p-6">
+                        <h4 class="text-xl font-bold text-gray-800 mb-2">🥤 任選中杯飲料</h4>
+                        <p class="text-gray-500 text-sm mb-4">可兌換一杯中杯可樂或氣水。</p>
+                        <div class="text-center bg-vieshow-red text-white py-2 rounded-lg font-extrabold text-2xl mb-4">
+                            200 點
+                        </div>
+                        <button class="exchange-button w-full bg-vieshow-gold text-gray-900 py-2 rounded-lg font-bold hover:bg-yellow-600 transition duration-150">
+                            立即兌換
+                        </button>
+                        <p class="text-xs text-center text-gray-400 mt-2">點擊兌換將生成兌換條碼</p>
+                    </div>
+                </div>
+                
+                <!-- 商品卡片範例 3: 50元抵用券 (點數不足模擬) -->
+                <div class="exchange-card bg-white rounded-xl shadow-lg transition duration-300 overflow-hidden border border-gray-100 opacity-60" data-id="coupon" data-cost="1500">
+                    <div class="p-4 sm:p-6">
+                        <h4 class="text-xl font-bold text-gray-800 mb-2">🏷️ 50元電影抵用券</h4>
+                        <p class="text-gray-500 text-sm mb-4">單筆購票折抵 50 元，使用期限三個月。</p>
+                        <div class="text-center bg-vieshow-red text-white py-2 rounded-lg font-extrabold text-2xl mb-4">
+                            1,500 點
+                        </div>
+                        <button class="exchange-button w-full bg-gray-400 text-gray-900 py-2 rounded-lg font-bold cursor-not-allowed" disabled>
+                            點數不足
+                        </button>
+                        <p class="text-xs text-center text-gray-400 mt-2">需 1,500 點，目前不足</p>
+                    </div>
+                </div>
+
+            </div>
+            
+            <!-- 兌換確認彈窗 (Modal) -->
+            <div id="exchangeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50" onclick="closeModal(event)">
+                <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 transform transition-all duration-300 scale-95" onclick="event.stopPropagation()">
+                    <h3 class="text-2xl font-bold text-vieshow-red mb-4">兌換確認</h3>
+                    <p class="text-lg text-gray-700 mb-2">您即將使用 <span id="modalCost" class="font-extrabold text-vieshow-red"></span> 點兌換：</p>
+                    <p id="modalProduct" class="text-xl font-semibold text-gray-900 border-b pb-3 mb-4"></p>
+                    
+                    <div id="modalMessage" class="hidden p-3 my-4 rounded-lg font-medium text-sm text-center"></div>
+
+                    <p class="text-sm text-gray-500 mb-6">兌換成功後，點數將立即扣除，兌換碼將存於您的「我的兌換記錄」。</p>
+
+                    <div class="flex justify-end space-x-3">
+                        <button id="cancelButton" class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150 font-medium">
+                            取消
+                        </button>
+                        <button id="confirmButton" class="px-6 py-2 text-white bg-vieshow-red rounded-lg hover:bg-red-700 transition duration-150 font-bold">
+                            確認兌換
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- JavaScript 邏輯 -->
+    <script>
+        // 1. 頁面路徑常數定義
+        // ----------------------------------------------------
+        const LOGIN_PAGE_URL = '../auth/login.html';
+        const MEMBER_HOME_URL = '../member/member_home.html';
+        const INDEX_PAGE_URL = '../../index.html';
+
+        // ----------------------------------------------------
+        // 2. 核心函數：登入/登出狀態渲染
+        // ----------------------------------------------------
+
+        function renderLoggedOutState() {
+            const headerNavRight = document.getElementById('headerNavRight');
+            if (!headerNavRight) return;
+            headerNavRight.innerHTML = `
+                <a href="${LOGIN_PAGE_URL}" class="hover:text-vieshow-gold transition duration-300">登入</a>
+                <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>
+            `;
+        }
+
+        function renderLoggedInState() {
+            const headerNavRight = document.getElementById('headerNavRight');
+            if (!headerNavRight) return;
+
+            headerNavRight.innerHTML = `
+                <a href="#" id="signOutLink" class="hover:text-vieshow-gold transition duration-300">登出</a>
+                <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>
+            `;
+            
+            document.getElementById('signOutLink')?.addEventListener('click', handleSignOut);
+        }
+
+        /**
+         * 【***修正區塊 1/2***】處理登出邏輯，將動作延遲到 customAlert 的 callback 中。
+         */
+        function handleSignOut(e) {
+            e.preventDefault();
+            
+            // 由於清除 token 和跳轉必須在用戶按「確認」後才執行
+            const signOutCallback = () => {
+                // 1. 清除登入狀態
+                localStorage.removeItem('auth_token');
+
+                // 2. 延遲導向首頁
+                setTimeout(() => {
+                    window.location.href = INDEX_PAGE_URL;
+                }, 2000);
+
+                // 立即更新 UI 狀態
+                renderUI(); 
+            };
+
+            // 顯示登出訊息，並將包含清除 token 和跳轉的函數作為 callback 傳入
+            customAlert('您已成功登出。即將導向首頁...', signOutCallback); 
+        }
+
+        function renderUI() {
+            const token = localStorage.getItem('auth_token');
+
+            if (token) {
+                renderLoggedInState(); 
+            } else {
+                renderLoggedOutState(); 
+            }
+        }
+
+
+        // ----------------------------------------------------
+        // 3. 【***修正區塊 2/2***】統一的自定義 Alert 函數 (新增 callback 支援)
+        // ----------------------------------------------------
+
+        /**
+         * 自定義 Modal 警告框，並接受一個點擊確認後執行的 callback 函數。
+         * @param {string} message - 顯示的訊息。
+         * @param {function} [callback] - 用戶點擊「確認」後要執行的函數 (可選)。
+         */
+        function customAlert(message, callback) { 
+            const existingModal = document.getElementById('custom-alert-modal');
+            if (existingModal) existingModal.remove();
+
+            // 處理點擊「確認」的邏輯
+            const handleConfirm = () => {
+                document.getElementById('custom-alert-modal').remove();
+                // 只有在用戶點擊確認後，才執行傳入的 callback 函數
+                if (callback && typeof callback === 'function') {
+                    callback(); 
+                }
+            };
+
+            // 將 handleConfirm 函數註冊到全域，確保 HTML onclick 可以找到它
+            window.customAlertConfirm = handleConfirm;
+
+
+            const modalHtml = `
+                <div id="custom-alert-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
+                    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform scale-100 transition-all duration-300">
+                        <div class="text-xl font-bold text-gray-900 mb-3 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-vieshow-red mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            系統提示
+                        </div>
+                        <p class="text-gray-700 mb-5">${message}</p>
+                        <div class="flex justify-end">
+                            <button onclick="window.customAlertConfirm()" 
+                                    class="bg-vieshow-red hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-vieshow-red focus:ring-offset-2">
+                                確認
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        // 覆寫瀏覽器內建的 alert，統一使用 customAlert
+        window.alert = customAlert;
+
+        // 初始渲染 UI 狀態
+        // ----------------------------------------------------
+
+        document.addEventListener('DOMContentLoaded', () => {            
+            // 渲染導覽列 UI
+            renderUI();
+        });
+
+        const currentPointsDisplay = document.getElementById('currentPoints');
+        const exchangeButtons = document.querySelectorAll('.exchange-button');
+        const exchangeModal = document.getElementById('exchangeModal');
+        const modalProduct = document.getElementById('modalProduct');
+        const modalCost = document.getElementById('modalCost');
+        const modalMessage = document.getElementById('modalMessage');
+        const confirmButton = document.getElementById('confirmButton');
+        const cancelButton = document.getElementById('cancelButton');
+        
+        // 模擬會員當前點數
+        let currentPoints = 20000; 
+        currentPointsDisplay.textContent = `${currentPoints.toLocaleString()} 點`;
+
+        let selectedItem = null; // 儲存當前點擊的商品資料
+
+        // --- 訊息處理函數 (用於彈窗內) ---
+        function showModalMessage(text, type) {
+            modalMessage.textContent = text;
+            modalMessage.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
+            
+            if (type === 'success') {
+                modalMessage.classList.add('bg-green-100', 'text-green-800');
+            } else if (type === 'error') {
+                modalMessage.classList.add('bg-red-100', 'text-red-800');
+            }
+            modalMessage.classList.remove('hidden');
+        }
+
+        /**
+         * 重設 Modal 內的按鈕狀態回初始值（確認兌換/取消）
+         */
+        function resetModalButtons() {
+            // 確保只有在非處理中狀態才重設
+            if (confirmButton.textContent === '處理中...') return; 
+            
+            // 重設確認按鈕樣式和文字
+            confirmButton.textContent = '確認兌換';
+            confirmButton.disabled = false;
+            confirmButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+            confirmButton.classList.add('bg-vieshow-red', 'hover:bg-red-700');
+            
+            // 重設取消按鈕樣式和文字
+            cancelButton.textContent = '取消';
+            cancelButton.classList.add('bg-gray-200', 'hover:bg-gray-300', 'text-gray-700');
+            cancelButton.classList.remove('bg-vieshow-gold', 'hover:bg-yellow-600', 'text-gray-900');
+            cancelButton.removeEventListener('click', closeSuccessModal); // 移除臨時的成功關閉事件
+            cancelButton.addEventListener('click', closeCancelModal); // 綁回初始取消事件
+        }
+
+        /**
+         * 關閉 Modal 並重設按鈕狀態 (用於取消或背景點擊)
+         */
+        function closeCancelModal() {
+            exchangeModal.classList.add('hidden');
+            exchangeModal.classList.remove('flex');
+            selectedItem = null;
+            resetModalButtons(); 
+        }
+
+        /**
+         * 關閉 Modal 並重設按鈕狀態 (用於成功後點擊「完成」)
+         */
+        function closeSuccessModal() {
+            exchangeModal.classList.add('hidden');
+            exchangeModal.classList.remove('flex');
+            selectedItem = null;
+            resetModalButtons(); 
+        }
+
+
+        // --- 開啟彈窗 ---
+        function openModal(productName, cost, id) {
+            selectedItem = { productName, cost, id };
+            
+            modalProduct.textContent = productName;
+            modalCost.textContent = cost.toLocaleString();
+            modalMessage.classList.add('hidden'); // 清除舊訊息
+            
+            // 確保打開時是初始狀態
+            resetModalButtons(); 
+
+            exchangeModal.classList.add('flex');
+            exchangeModal.classList.remove('hidden');
+        }
+
+        // --- 關閉彈窗 (給外層點擊用) ---
+        function closeModal(event) {
+            // 確保只有點擊背景才關閉，點擊內容不關閉
+            if (event.target === exchangeModal) { 
+                closeCancelModal();
+            }
+        }
+        
+        // 將關閉事件綁定到取消按鈕 (初始綁定)
+        cancelButton.addEventListener('click', closeCancelModal);
+
+        // --- 處理兌換按鈕點擊事件 ---
+        exchangeButtons.forEach(button => {
+            const card = button.closest('.exchange-card');
+            const cost = parseInt(card.dataset.cost);
+            const id = card.dataset.id;
+            const productName = card.querySelector('h4').textContent.trim();
+            
+            if (cost > currentPoints) {
+                return; 
+            }
+
+            button.addEventListener('click', () => {
+                openModal(productName, cost, id);
+            });
+        });
+
+        // --- 確認兌換邏輯 ---
+        confirmButton.addEventListener('click', () => {
+            if (!selectedItem || confirmButton.disabled) return;
+
+            const { productName, cost, id } = selectedItem;
+
+            if (currentPoints < cost) {
+                showModalMessage('點數不足，無法完成兌換。', 'error');
+                return;
+            }
+            
+            // 模擬 API 呼叫進行兌換
+            confirmButton.disabled = true;
+            confirmButton.textContent = '處理中...';
+            confirmButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+            confirmButton.classList.remove('bg-vieshow-red', 'hover:bg-red-700');
+
+            setTimeout(() => {
+                // 假設兌換成功
+                currentPoints -= cost;
+                
+                // 更新 UI 點數顯示
+                currentPointsDisplay.textContent = `${currentPoints.toLocaleString()} 點`;
+
+                // 顯示成功訊息
+                showModalMessage(`✅ 成功兌換 ${productName}！已扣除 ${cost} 點。`, 'success');
+                
+                // *** 修正點 1：將確認按鈕鎖定為已兌換 ***
+                confirmButton.textContent = '已兌換';
+                confirmButton.disabled = true;
+                confirmButton.classList.remove('bg-gray-400');
+                confirmButton.classList.add('bg-green-600');
+                
+                // *** 修正點 2：將取消按鈕變為「完成」按鈕 ***
+                cancelButton.textContent = '完成';
+                cancelButton.classList.remove('bg-gray-200', 'hover:bg-gray-300', 'text-gray-700');
+                cancelButton.classList.add('bg-vieshow-gold', 'hover:bg-yellow-600', 'text-gray-900');
+                
+                // 移除原有的 closeCancelModal 監聽器，並新增 closeSuccessModal 監聽器
+                cancelButton.removeEventListener('click', closeCancelModal); 
+                cancelButton.addEventListener('click', closeSuccessModal); 
+
+                // 更新商品清單中的按鈕狀態
+                updateExchangeButtonsState();
+
+            }, 2000);
+        });
+
+        // --- 更新商品清單中按鈕狀態 (用於兌換後) ---
+        function updateExchangeButtonsState() {
+            document.querySelectorAll('.exchange-card').forEach(card => {
+                const button = card.querySelector('.exchange-button');
+                const cost = parseInt(card.dataset.cost);
+
+                if (cost > currentPoints) {
+                    // 點數不足
+                    card.classList.add('opacity-60');
+                    button.disabled = true;
+                    button.textContent = '點數不足';
+                    // 確保點數不足時，按鈕是灰色背景、黑色文字
+                    button.classList.add('bg-gray-400', 'cursor-not-allowed', 'text-gray-900'); 
+                    button.classList.remove('bg-vieshow-gold', 'hover:bg-yellow-600', 'text-white');
+                    card.querySelector('.text-xs').textContent = `需 ${cost.toLocaleString()} 點，目前不足`;
+                } else {
+                    // 點數足夠
+                    card.classList.remove('opacity-60');
+                    button.disabled = false;
+                    button.textContent = '立即兌換';
+                    // 確保點數足夠時，按鈕是金色背景、黑色文字
+                    button.classList.remove('bg-gray-400', 'cursor-not-allowed', 'text-white'); 
+                    button.classList.add('bg-vieshow-gold', 'hover:bg-yellow-600', 'text-gray-900');
+                    card.querySelector('.text-xs').textContent = '點擊兌換將生成兌換條碼';
+                }
+            });
+        }
+        
+        // 初始化時檢查所有商品的兌換狀態
+        document.addEventListener('DOMContentLoaded', updateExchangeButtonsState);
+    </script>
+    
+    <!-- Footer 內容 (模擬共用 footer) -->
+    <footer class="bg-gray-800 text-white p-4 mt-auto text-center text-sm">
+        <p class="text-gray-400">&copy; 2025 Vieshow Ticketing System.</p>
+    </footer>
+
+</body>
+</html>
