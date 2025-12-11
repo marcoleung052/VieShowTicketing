@@ -8,7 +8,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script>
-        // Tailwind 配置，確保顏色和字體與專案一致
         tailwind.config = {
             theme: {
                 extend: {
@@ -23,50 +22,52 @@
                 }
             }
         }
+
+        // 自定義 Alert
+        function customAlert(message, callback) { 
+            const existingModal = document.getElementById('custom-alert-modal');
+            if (existingModal) existingModal.remove();
+            const handleConfirm = () => {
+                document.getElementById('custom-alert-modal').remove();
+                if (callback && typeof callback === 'function') { callback(); }
+            };
+            window.customAlertConfirm = handleConfirm;
+            const modalHtml = `
+                <div id="custom-alert-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
+                    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform scale-100 transition-all duration-300">
+                        <div class="text-xl font-bold text-gray-900 mb-3 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-vieshow-red mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>系統提示
+                        </div>
+                        <p class="text-gray-700 mb-5">${message}</p>
+                        <div class="flex justify-end">
+                            <button onclick="window.customAlertConfirm()" class="bg-vieshow-red hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-vieshow-red focus:ring-offset-2">確認</button>
+                        </div>
+                    </div>
+                </div>`;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+        window.alert = customAlert;
     </script>
 
     <style>
-        /* 步驟指示器 */
-        .step-indicator { display:flex; align-items:center; justify-content:center; margin-bottom:2rem; }
-        .step-circle { width:40px; height:40px; border-radius:9999px; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; transition:all .2s ease; }
-        .step-line { height:8px; width:64px; background:#D1D5DB; transition:background .2s ease,width .2s ease; margin:0 8px; border-radius:4px; }
-        .step-active { background:#e50914; }
-        .step-completed { background:#f7a83d; }
-        .step-pending { background:#D1D5DB; }
-
-        /* 下一步按鈕 */
-        .next-step-button { width:100%; background:#e50914; color:#fff; font-weight:700; padding:0.75rem 1rem; border-radius:0.75rem; transition:all .2s ease; box-shadow:0 8px 20px rgba(0,0,0,0.12); font-size:1.125rem; border:none; cursor:pointer; }
-        .next-step-button:hover { transform:scale(1.02); background:#c40b10; }
-        .next-step-button:active { transform:scale(0.98); }
-        .next-step-button:disabled { opacity:0.5; cursor:not-allowed; box-shadow:none; }
+        .step-indicator { display: flex; align-items: center; justify-content: center; margin-bottom: 2rem; }
+        .step-circle { width: 40px; height: 40px; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; transition: all 200ms ease; }
+        .step-line { height: 8px; width: 64px; background: #D1D5DB; transition: background 200ms ease, width 200ms ease; margin: 0 8px; border-radius: 4px; }
+        .step-active { background: #e50914; }
+        .step-completed { background: #f7a83d; }
+        .step-pending { background: #D1D5DB; }
+        .next-step-button { width: 100%; background: #e50914; color: #fff; font-weight: 700; padding: 0.75rem 1rem; border-radius: 0.75rem; transition: all 200ms ease; box-shadow: 0 8px 20px rgba(0,0,0,0.12); font-size: 1.125rem; border: none; cursor: pointer; }
+        .next-step-button:hover { transform: scale(1.02); background: #c40b10; }
     </style>
-
 </head>
 <body class="antialiased bg-gray-100 font-sans min-h-screen flex flex-col">
 
 <header class="bg-gray-800 text-white shadow-md">
     <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
         <a href="../../index.html" class="text-xl font-bold hover:text-vieshow-red transition duration-300">Vieshow 影城</a>
-        <div id="headerNavRight" class="space-x-4">
-        </div>
+        <div id="headerNavRight" class="space-x-4"></div>
     </nav>
 </header>
-
-<div id="loginOverlay" class="hidden fixed inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50">
-    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md text-center">
-        <h2 class="text-2xl font-bold mb-4 text-gray-900 flex items-center justify-center">
-            <svg class="w-6 h-6 mr-2 text-vieshow-red" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-            請先登入才能進行訂票
-        </h2>
-        <p class="text-gray-600 mb-6">
-            請點擊下方按鈕前往登入頁面，以便繼續您的訂票流程。
-        </p>
-        <a href="javascript:void(0)" id="loginRedirectButton" 
-            class="bg-vieshow-red hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-vieshow-red focus:ring-offset-2">
-            前往登入
-        </a>
-    </div>
-</div>
 
 <main class="container mx-auto px-4 py-8 flex-grow max-w-4xl">
     
@@ -92,14 +93,10 @@
 
         <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
             <div class="flex items-center">
-                <svg class="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                </svg>
+                <svg class="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
                 <span class="font-semibold text-yellow-800">重要提醒</span>
             </div>
-            <p class="text-sm text-yellow-700 mt-1">
-                訂單建立後即 <span class="font-bold">無法修改座位</span>，請務必確認所有資訊正確無誤。
-            </p>
+            <p class="text-sm text-yellow-700 mt-1">訂單建立後即 <span class="font-bold">無法修改座位</span>，請務必確認所有資訊正確無誤。</p>
         </div>
 
         <div class="mb-8">
@@ -112,36 +109,18 @@
                     <div>
                         <h4 class="font-semibold text-gray-700 mb-2">🎬 電影資訊</h4>
                         <div class="space-y-2 text-sm">
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">影城：</span>
-                                <span class="font-medium" id="cinemaName">載入中...</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">電影：</span>
-                                <span class="font-medium" id="movieTitle">載入中...</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">場次：</span>
-                                <span class="font-medium" id="showtimeDetails">載入中...</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">座位：</span>
-                                <span class="font-medium text-vieshow-red" id="selectedSeatsList">載入中...</span>
-                            </div>
+                            <div class="flex justify-between"><span class="text-gray-600">影城：</span><span class="font-medium" id="cinemaName">載入中...</span></div>
+                            <div class="flex justify-between"><span class="text-gray-600">電影：</span><span class="font-medium" id="movieTitle">載入中...</span></div>
+                            <div class="flex justify-between"><span class="text-gray-600">場次：</span><span class="font-medium" id="showtimeDetails">載入中...</span></div>
+                            <div class="flex justify-between"><span class="text-gray-600">座位：</span><span class="font-medium text-vieshow-red" id="selectedSeatsList">載入中...</span></div>
                         </div>
                     </div>
                     
                     <div>
                         <h4 class="font-semibold text-gray-700 mb-2">🎫 票務類型</h4>
                         <div class="space-y-2 text-sm">
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">購票類型：</span>
-                                <span class="font-medium" id="ticketTypeDisplay">載入中...</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">總張數：</span>
-                                <span class="font-medium" id="totalTicketsDisplay">0 張</span>
-                            </div>
+                            <div class="flex justify-between"><span class="text-gray-600">購票類型：</span><span class="font-medium" id="ticketTypeDisplay">載入中...</span></div>
+                            <div class="flex justify-between"><span class="text-gray-600">總張數：</span><span class="font-medium" id="totalTicketsDisplay">0 張</span></div>
                         </div>
                     </div>
                 </div>
@@ -167,19 +146,12 @@
             <h3 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2 flex items-center">
                 <span class="mr-2">📝</span> 訂單備註 (選填)
             </h3>
-            
-            <textarea id="orderNotes" 
-                      placeholder="如有特殊需求或備註事項，請在此填寫..."
-                      class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vieshow-gold focus:border-vieshow-gold resize-none"
-                      rows="3"></textarea>
+            <textarea id="orderNotes" placeholder="如有特殊需求或備註事項，請在此填寫..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vieshow-gold resize-none" rows="3"></textarea>
         </div>
 
         <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
-            <a href="booking_flow_3.html" class="flex-1 text-center bg-gray-500 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-xl transition duration-300 shadow-lg text-base transform hover:scale-[1.02] active:scale-[0.98]">
-                <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg> 
-                重新選擇座位
+            <a href="booking_flow_3.html" class="flex-1 text-center bg-gray-500 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-xl transition duration-300 shadow-lg text-base">
+                <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg> 重新選擇座位
             </a>
             <button id="confirmOrderButton" class="next-step-button flex-1">
                 確認訂單並付款
@@ -188,273 +160,96 @@
     </div>
 </main>
 
-<script>
-    // 導覽列與登入/登出邏輯
-    const INDEX_PAGE_URL = '../../index.html'; 
-    const LOGIN_PAGE_URL = '../auth/login.html';
-    const MEMBER_HOME_URL = '../member/member_home.html';
-
-    function customAlert(message, callback) { 
-        const existingModal = document.getElementById('custom-alert-modal');
-        if (existingModal) existingModal.remove();
-        const handleConfirm = () => {
-            document.getElementById('custom-alert-modal').remove();
-            if (callback && typeof callback === 'function') {
-                callback(); 
-            }
-        };
-        window.customAlertConfirm = handleConfirm;
-        const modalHtml = `
-            <div id="custom-alert-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
-                <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform scale-100 transition-all duration-300">
-                    <div class="text-xl font-bold text-gray-900 mb-3 flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-vieshow-red mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                        </svg>
-                        系統提示
-                    </div>
-                    <p class="text-gray-700 mb-5">${message}</p>
-                    <div class="flex justify-end">
-                        <button onclick="window.customAlertConfirm()" 
-                                class="bg-vieshow-red hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-vieshow-red focus:ring-offset-2">
-                            確認
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-    }
-    window.alert = customAlert;
-
-    function renderLoggedOutState() {
-        const headerNavRight = document.getElementById('headerNavRight');
-        if (!headerNavRight) return;
-        const currentUrl = encodeURIComponent(window.location.href);
-        const loginRedirectUrl = `${LOGIN_PAGE_URL}?redirect=${currentUrl}`;
-        headerNavRight.innerHTML = `
-            <a href="${loginRedirectUrl}" class="hover:text-vieshow-gold transition duration-300">登入</a>
-            <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>
-        `;
-    }
-
-    function renderLoggedInState() {
-        const headerNavRight = document.getElementById('headerNavRight');
-        if (!headerNavRight) return;
-        headerNavRight.innerHTML = `
-            <a href="#" id="signOutLink" class="hover:text-vieshow-gold transition duration-300">登出</a>
-            <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>
-        `;
-        document.getElementById('signOutLink')?.addEventListener('click', handleSignOut);
-    }
-
-    function handleSignOut(e) {
-        e.preventDefault();
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('isLoggedIn');
-        alert('您已成功登出。即將導向首頁...', () => {
-            setTimeout(() => {
-                window.location.href = INDEX_PAGE_URL;
-            }, 2000);
-        }); 
-        renderUI();
-    }
-
-    function renderUI() {
-        const token = localStorage.getItem('auth_token');
-        if (token) {
-            renderLoggedInState(); 
-        } else {
-            renderLoggedOutState();
-        }
-    }
-
-    function setupLoginRedirectLink() {
-        const loginButton = document.getElementById('loginRedirectButton');
-        
-        if (loginButton) {
-            const pathname = window.location.pathname;
-            let relativeToRootPath = (pathname.startsWith('/') ? pathname.substring(1) : pathname) + window.location.search; 
-            const encodedPath = encodeURIComponent(relativeToRootPath);
-            const LOGIN_PAGE_URL_FIXED = '../auth/login.html'; 
-            loginButton.href = `${LOGIN_PAGE_URL_FIXED}?redirect=${encodedPath}`;
-        }
-    }
-
-    const loginOverlay = document.getElementById('loginOverlay');
-    const mainContent = document.querySelector('main'); 
-
-    function checkLoginStatus() {
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-            if (loginOverlay) loginOverlay.classList.remove('hidden');
-            if (mainContent) mainContent.classList.add('hidden');
-            return false;
-        }
-        if (loginOverlay) loginOverlay.classList.add('hidden');
-        if (mainContent) mainContent.classList.remove('hidden');
-        return true;
-    }
-
-
-    // 確保這些變數已經在 script 頂部定義 (您原有程式碼已有)
-    const cinemaNameDisplay = document.getElementById("cinemaName");
-    const movieTitleDisplay = document.getElementById("movieTitle");
-    const showtimeDetailDisplay = document.getElementById("showtimeDetails");
-    const selectedSeatsList = document.getElementById("selectedSeatsList");
-    const ticketsSummary = document.getElementById("ticketsSummary");
-    const foodSummary = document.getElementById("foodSummary");
-    const totalPriceDisplay = document.getElementById("totalPriceDisplay");
-    const ticketTypeDisplay = document.getElementById("ticketTypeDisplay");
-    const totalTicketsDisplay = document.getElementById("totalTicketsDisplay");
-    const confirmOrderButton = document.getElementById('confirmOrderButton');
-    const orderNotes = document.getElementById('orderNotes');
-
-    let currentBooking = {};
-
-    // ⭐ 新增：價格計算函式
-    function calculateTotals() {
-        let totalTicketPrice = 0;
-        const tickets = currentBooking.tickets || {};
-        
-        // 1. 計算票券總價 (供 Step 5 顯示)
-        Object.values(tickets).forEach(t => {
-            const price = Number(t.price || 0);
-            const qty = Number(t.qty || 0);
-            totalTicketPrice += (price * qty);
-        });
-        currentBooking.totalTicketPrice = totalTicketPrice; // <-- 新增此欄位
-
-        let totalComboPrice = 0;
-        const combos = currentBooking.combos || {};
-        
-        // 2. 計算餐點總價 (供 Step 5 顯示)
-        Object.values(combos).forEach(c => {
-            if (c.qty > 0) {
-                const price = Number(c.price || 0);
-                const qty = Number(c.qty || 0);
-                totalComboPrice += (price * qty);
-            }
-        });
-        currentBooking.totalComboPrice = totalComboPrice; // <-- 新增此欄位
-
-        // 3. 計算最終總價 (供 Step 4/5 顯示)
-        currentBooking.totalPrice = totalTicketPrice + totalComboPrice;
-    }
-
-
-    // ⭐ 修改：載入訂單資料函式
-    function loadOrderData() {
-        // 確保登入狀態，如果未登入，則不執行後續邏輯
-        if (!checkLoginStatus()) {
-            return;
-        }
-
-        const storedData = localStorage.getItem('currentBooking');
-        if (storedData) {
-            try {
-                currentBooking = JSON.parse(storedData);
-            } catch (e) {
-                console.error('解析訂單資料失敗:', e);
-                currentBooking = {};
-                window.location.href = "booking_flow_1.html";
-                return;
-            }
-        } else {
-            window.location.href = "booking_flow_1.html";
-            return;
-        }
-
-        // 關鍵修正：載入資料後，立即計算所有總價
-        calculateTotals(); 
-
-        // 1. 顯示訂單詳情 (省略部分不變的程式碼...)
-        cinemaNameDisplay.textContent = currentBooking.cinema?.name || currentBooking.cinemaName || "未選擇";
-        movieTitleDisplay.textContent = currentBooking.movie?.title || currentBooking.movieTitle || "未選擇";
-        
-        if (currentBooking.showtime) {
-            const showtime = currentBooking.showtime;
-            showtimeDetailDisplay.textContent = `${showtime.date} ${showtime.time} ${showtime.theater} (${showtime.type})`;
-        } else {
-            showtimeDetailDisplay.textContent = currentBooking.showtimeDetail || "未選擇";
-        }
-
-        selectedSeatsList.textContent = currentBooking.selectedSeats ? 
-            currentBooking.selectedSeats.join('、') : "未選擇";
-
-        const isGroup = currentBooking.isGroupBooking || currentBooking.ticketType === 'group';
-        ticketTypeDisplay.textContent = isGroup ? '團體購票' : '一般購票';
-
-        const totalTickets = currentBooking.totalTicketQty || 0;
-        totalTicketsDisplay.textContent = `${totalTickets} 張`;
-
-        // 票種摘要
-        const tickets = currentBooking.tickets || {};
-        const ticketEntries = Object.values(tickets);
-        if (ticketEntries.length > 0) {
-            ticketsSummary.innerHTML = ticketEntries.map(t => `
-                <div class="flex justify-between mb-1">
-                    <span>${t.name} x ${t.qty}</span>
-                    <span>NT$ ${(t.price * t.qty).toLocaleString('en-US')}</span>
-                </div>
-            `).join('');
-        } else {
-            ticketsSummary.textContent = "無票種選擇";
-        }
-
-        // 餐點摘要
-        const combos = currentBooking.combos || {};
-        const comboEntries = Object.values(combos);
-        if (comboEntries.length > 0 && comboEntries.some(c => c.qty > 0)) {
-            foodSummary.innerHTML = comboEntries.filter(c => c.qty > 0).map(c => `
-                <div class="flex justify-between mb-1">
-                    <span>${c.name} x ${c.qty}</span>
-                    <span>NT$ ${(c.price * c.qty).toLocaleString('en-US')}</span>
-                </div>
-            `).join('');
-        } else {
-            foodSummary.textContent = "無餐點加購";
-        }
-
-        // 總金額：此處使用剛剛計算出的 currentBooking.totalPrice
-        totalPriceDisplay.textContent = currentBooking.totalPrice ? 
-            currentBooking.totalPrice.toLocaleString('en-US') : "0";
-    }
-
-
-    // 確認訂單 (保持前次建議的修改)
-    confirmOrderButton.addEventListener('click', function() {
-        if (orderNotes.value.trim()) {
-            currentBooking.orderNotes = orderNotes.value.trim();
-        } else {
-            delete currentBooking.orderNotes;
-        }
-        
-        // 再次確保在儲存前價格是最新的
-        calculateTotals();
-        
-        currentBooking.orderId = 'VS' + Date.now().toString().slice(-8);
-        currentBooking.createdAt = new Date().toISOString();
-        
-        localStorage.setItem('currentBooking', JSON.stringify(currentBooking));
-        
-        console.log("✅ Step4 訂單確認完成並儲存備註：", currentBooking);
-        
-        // 前往 Step5 (付款頁面)
-        window.location.href = 'booking_flow_5.html';
-    });
-
-    // 頁面載入時執行
-    window.onload = function() {
-        renderUI();
-        setupLoginRedirectLink();
-        loadOrderData(); // loadOrderData 內部會呼叫 checkLoginStatus()
-    };
-</script>
-
-<footer class="bg-vieshow-dark text-white text-center py-4 mt-8 shadow-inner">
+<footer class="bg-gray-800 text-white text-center py-4 mt-8 shadow-inner">
     <p>&copy; 2025 Vieshow Ticketing System</p>
 </footer>
 
+<script>
+    const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api';
+    const LOGIN_PAGE_URL = '../auth/login.html';
+    const MEMBER_HOME_URL = '../member/member_home.html';
+    const INDEX_PAGE_URL = '../../index.html';
+
+    let currentBooking = {};
+
+    // --- 登入檢查 ---
+    function renderUI() {
+        const token = localStorage.getItem('auth_token');
+        const navRight = document.getElementById('headerNavRight');
+        if (token) {
+            navRight.innerHTML = `<a href="#" id="signOutLink" class="hover:text-vieshow-gold">登出</a> <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold ml-4">會員中心</a>`;
+            document.getElementById('signOutLink').addEventListener('click', (e) => {
+                e.preventDefault(); localStorage.removeItem('auth_token'); alert('已登出', () => window.location.href = INDEX_PAGE_URL);
+            });
+        } else {
+            navRight.innerHTML = `<a href="${LOGIN_PAGE_URL}" class="hover:text-vieshow-gold">登入</a>`;
+        }
+    }
+
+    function checkLoginStatus() {
+        if (!localStorage.getItem('auth_token')) {
+            alert('請先登入', () => window.location.href = LOGIN_PAGE_URL);
+            return false;
+        }
+        return true;
+    }
+
+    // --- 資料載入 ---
+    function loadOrderData() {
+        const storedData = localStorage.getItem('currentBooking');
+        if (!storedData) {
+            alert('無訂票資料，請重新選擇', () => window.location.href = 'booking_flow_1.html');
+            return;
+        }
+        currentBooking = JSON.parse(storedData);
+
+        // 顯示基本資訊
+        document.getElementById("cinemaName").textContent = currentBooking.cinema?.name || "未選擇";
+        document.getElementById("movieTitle").textContent = currentBooking.movie?.title || "未選擇";
+        
+        if (currentBooking.showtime) {
+            const st = currentBooking.showtime;
+            document.getElementById("showtimeDetails").textContent = `${st.date} ${st.time} ${st.theater} (${st.type})`;
+        }
+
+        document.getElementById("selectedSeatsList").textContent = currentBooking.selectedSeats ? currentBooking.selectedSeats.join('、') : "未選擇";
+        document.getElementById("ticketTypeDisplay").textContent = currentBooking.ticketType === 'group' ? '團體購票' : '一般購票';
+        document.getElementById("totalTicketsDisplay").textContent = `${currentBooking.totalTicketQty || 0} 張`;
+
+        // 票種明細
+        const tickets = currentBooking.tickets || {};
+        const ticketEntries = Object.values(tickets).filter(t => t.qty > 0);
+        document.getElementById("ticketsSummary").innerHTML = ticketEntries.length ? 
+            ticketEntries.map(t => `<div class="flex justify-between mb-1"><span>${t.name} x ${t.qty}</span><span>NT$ ${(t.price * t.qty).toLocaleString()}</span></div>`).join('') : "無";
+
+        // 餐點明細
+        const combos = currentBooking.combos || {};
+        const comboEntries = Object.values(combos).filter(c => c.qty > 0);
+        document.getElementById("foodSummary").innerHTML = comboEntries.length ? 
+            comboEntries.map(c => `<div class="flex justify-between mb-1"><span>${c.name} x ${c.qty}</span><span>NT$ ${(Math.round(c.price * 0.8) * c.qty).toLocaleString()}</span></div>`).join('') : "無餐點";
+
+        // 總金額
+        document.getElementById("totalPriceDisplay").textContent = (currentBooking.totalPrice || 0).toLocaleString();
+    }
+
+    // --- 提交 ---
+    document.getElementById('confirmOrderButton').addEventListener('click', function() {
+        const notes = document.getElementById('orderNotes').value.trim();
+        if (notes) currentBooking.orderNotes = notes;
+        
+        // 產生臨時訂單 ID (真正 ID 會由後端生成)
+        currentBooking.tempOrderId = 'VS' + Date.now().toString().slice(-8);
+        
+        localStorage.setItem('currentBooking', JSON.stringify(currentBooking));
+        window.location.href = 'booking_flow_5.html';
+    });
+
+    window.onload = function() {
+        renderUI();
+        if (checkLoginStatus()) {
+            loadOrderData();
+        }
+    };
+</script>
 </body>
 </html>
