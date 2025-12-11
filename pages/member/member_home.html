@@ -174,11 +174,14 @@
         function forceLogout(msg) {
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user');
+            // 清除快取
+            sessionStorage.removeItem('memberDataCache');
             alert(msg, () => { window.location.href = LOGIN_PAGE_URL; });
         }
         
         async function fetchAndRenderMemberData(userId) {
             try {
+                // 【關鍵修改 1】每次載入都去後端抓最新資料，並更新 Cache
                 const response = await fetch(`${API_BASE_URL}/member/profile?id=${userId}`);
                 if (!response.ok) {
                     if (response.status === 404) throw new Error('找不到此會員');
@@ -187,27 +190,10 @@
                 
                 const memberData = await response.json();
                 
-                document.getElementById('memberName').textContent = memberData.name;
-                document.getElementById('memberGreetingName').textContent = memberData.name;
-                document.getElementById('profile_name').textContent = memberData.name;
-                document.getElementById('profile_email').textContent = memberData.email;
-                document.getElementById('profile_phone').textContent = memberData.phone;
-                document.getElementById('profile_dob').textContent = memberData.dob;
-                document.getElementById('profile_points').textContent = memberData.points;
-                document.getElementById('profile_member_id').textContent = memberData.memberId;
-                
-                // 【修改點 2】強制使用 memberId 生成條碼 (不使用 cardId)
-                const barcodeValue = memberData.memberId || '0000000000';
-                
-                JsBarcode("#member-barcode", barcodeValue, {
-                    format: "CODE128", 
-                    lineColor: "#000",
-                    width: 2,
-                    height: 50,
-                    displayValue: true, 
-                    fontSize: 16,
-                    fontOptions: "bold"
-                });
+                // 【關鍵修改 2】將抓到的最新資料存入 SessionStorage
+                sessionStorage.setItem('memberDataCache', JSON.stringify(memberData));
+
+                renderPage(memberData);
 
             } catch (error) {
                 console.error("API Error:", error);
@@ -215,11 +201,35 @@
             }
         }
 
+        // 獨立出的渲染函式
+        function renderPage(memberData) {
+            document.getElementById('memberName').textContent = memberData.name;
+            document.getElementById('memberGreetingName').textContent = memberData.name;
+            document.getElementById('profile_name').textContent = memberData.name;
+            document.getElementById('profile_email').textContent = memberData.email;
+            document.getElementById('profile_phone').textContent = memberData.phone;
+            document.getElementById('profile_dob').textContent = memberData.dob;
+            document.getElementById('profile_points').textContent = memberData.points;
+            document.getElementById('profile_member_id').textContent = memberData.memberId;
+            
+            const barcodeValue = memberData.memberId || '0000000000';
+            JsBarcode("#member-barcode", barcodeValue, {
+                format: "CODE128", 
+                lineColor: "#000",
+                width: 2,
+                height: 50,
+                displayValue: true, 
+                fontSize: 16,
+                fontOptions: "bold"
+            });
+        }
+
         document.getElementById('signOutButton').addEventListener('click', function(e) {
             e.preventDefault(); 
             this.disabled = true; this.textContent = '登出中...';
             localStorage.removeItem('auth_token'); 
             localStorage.removeItem('user'); 
+            sessionStorage.removeItem('memberDataCache'); // 登出時清除快取
             showNotification('✅ 登出成功！即將導向首頁...', false);
             setTimeout(() => { window.location.href = INDEX_PAGE_URL; }, 2000);
         });
@@ -233,6 +243,8 @@
         document.addEventListener('DOMContentLoaded', async () => {
             const user = checkLoginStatus();
             if (user) {
+                // 這裡我們還是要 fetch，因為首頁需要確保資料最新
+                // 如果是從別頁回來，這裡會更新 Cache
                 await fetchAndRenderMemberData(user.id);
             }
         });
