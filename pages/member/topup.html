@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>點數儲值 - Vieshow Ticketing</title>
     
-    <!-- 引入 Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script>
@@ -44,18 +43,6 @@
 </head>
 <body class="bg-gray-100 font-sans min-h-screen flex flex-col">
     
-    <!-- Header 導航 (模擬) -->
-    <!-- <header class="bg-gray-800 text-white shadow-md">
-        <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
-            <a href="../../index.html" class="text-xl font-bold hover:text-vieshow-red transition duration-300">Vieshow 影城</a>
-            <div class="space-x-4 flex items-center">
-                <a href="member_home.html" class="text-sm font-medium hover:text-vieshow-gold transition duration-300">👤 會員中心</a>
-                <button id="signOutButton" class="bg-vieshow-red px-3 py-1 rounded-full text-white text-sm font-semibold hover:bg-red-700 transition duration-300">
-                    登出
-                </button>
-            </div>
-        </nav>
-    </header> -->
     <header class="bg-gray-800 text-white shadow-md">
         <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
             <a href="../../index.html" class="text-xl font-bold hover:text-vieshow-red transition duration-300">Vieshow 影城</a>
@@ -72,23 +59,19 @@
             </h2>
             <p class="text-center text-gray-500 mb-8">選擇您的儲值金額，即可獲得 iShow 點數。</p>
 
-            <!-- 當前餘額區塊 (Current Balance) -->
             <div class="bg-red-50 p-4 rounded-lg border border-red-200 mb-8 flex justify-between items-center">
                 <p class="text-lg font-medium text-gray-700">您的當前點數餘額:</p>
-                <p class="text-2xl font-extrabold text-vieshow-red" id="currentBalance">250 點</p>
+                <p class="text-2xl font-extrabold text-vieshow-red" id="currentBalance">載入中...</p>
             </div>
 
-            <!-- 訊息顯示區塊 -->
             <div id="messageContainer" class="hidden p-3 mb-6 rounded-lg font-medium text-sm text-center" role="alert"></div>
 
-            <form id="topupForm" action="../../Controllers/Member_Controller.php?action=topup_process" method="POST" class="space-y-8">
+            <form id="topupForm" class="space-y-8">
                 
-                <!-- 1. 選擇儲值方案 -->
                 <div>
                     <h3 class="text-xl font-semibold text-gray-700 mb-4">選擇儲值方案</h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         
-                        <!-- 方案 1: 500 元 -->
                         <div class="option-card border-gray-200 rounded-xl p-4 text-center bg-white" data-amount="500" data-points="500">
                             <input type="radio" name="amount" value="500" id="opt500" class="hidden" required>
                             <label for="opt500" class="block">
@@ -99,7 +82,6 @@
                             </label>
                         </div>
 
-                        <!-- 方案 2: 1000 元 (加贈 100 點) -->
                         <div class="option-card border-gray-200 rounded-xl p-4 text-center bg-white" data-amount="1000" data-points="1100">
                             <input type="radio" name="amount" value="1000" id="opt1000" class="hidden">
                             <label for="opt1000" class="block">
@@ -110,7 +92,6 @@
                             </label>
                         </div>
                         
-                        <!-- 方案 3: 2000 元 (加贈 300 點) -->
                         <div class="option-card border-gray-200 rounded-xl p-4 text-center bg-white" data-amount="2000" data-points="2300">
                             <input type="radio" name="amount" value="2000" id="opt2000" class="hidden">
                             <label for="opt2000" class="block">
@@ -124,7 +105,6 @@
                     </div>
                 </div>
 
-                <!-- 2. 選擇付款方式 (使用 Select 下拉選單) -->
                 <div>
                     <h3 class="text-xl font-semibold text-gray-700 mb-4">選擇付款方式</h3>
                     <select id="paymentMethod" name="paymentMethod" required
@@ -136,7 +116,6 @@
                     </select>
                 </div>
 
-                <!-- 3. 提交按鈕 -->
                 <button type="submit" id="topupButton" class="w-full bg-gray-400 text-white py-3 rounded-lg font-bold text-xl transition duration-200 shadow-lg cursor-not-allowed" disabled>
                     請先選擇儲值方案
                 </button>
@@ -145,18 +124,15 @@
         </div>
     </div>
 
-    <!-- JavaScript 邏輯 -->
     <script>
-        // 1. 頁面路徑常數定義
-        // ----------------------------------------------------
+        // 1. 設定後端 API 網址
+        const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api';
+
         const LOGIN_PAGE_URL = '../auth/login.html';
         const MEMBER_HOME_URL = 'member_home.html';
         const INDEX_PAGE_URL = '../../index.html';
 
-        // ----------------------------------------------------
-        // 2. 核心函數：登入/登出狀態渲染
-        // ----------------------------------------------------
-
+        // 2. 導覽列與登入狀態渲染
         function renderLoggedOutState() {
             const headerNavRight = document.getElementById('headerNavRight');
             if (!headerNavRight) return;
@@ -178,101 +154,26 @@
             document.getElementById('signOutLink')?.addEventListener('click', handleSignOut);
         }
 
-        /**
-         * 【***修正區塊 1/2***】處理登出邏輯，將動作延遲到 customAlert 的 callback 中。
-         */
         function handleSignOut(e) {
             e.preventDefault();
-            
-            // 由於清除 token 和跳轉必須在用戶按「確認」後才執行
-            const signOutCallback = () => {
-                // 1. 清除登入狀態
-                localStorage.removeItem('auth_token');
-
-                // 2. 延遲導向首頁
-                setTimeout(() => {
-                    window.location.href = INDEX_PAGE_URL;
-                }, 2000);
-
-                // 立即更新 UI 狀態
-                renderUI(); 
-            };
-
-            // 顯示登出訊息，並將包含清除 token 和跳轉的函數作為 callback 傳入
-            customAlert('您已成功登出。即將導向首頁...', signOutCallback); 
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            alert('您已成功登出。即將導向首頁...', () => {
+                window.location.href = INDEX_PAGE_URL;
+            }); 
         }
 
         function renderUI() {
             const token = localStorage.getItem('auth_token');
-
             if (token) {
                 renderLoggedInState(); 
             } else {
-                renderLoggedOutState(); 
+                renderLoggedOutState();
             }
         }
 
-
-        // ----------------------------------------------------
-        // 3. 【***修正區塊 2/2***】統一的自定義 Alert 函數 (新增 callback 支援)
-        // ----------------------------------------------------
-
-        /**
-         * 自定義 Modal 警告框，並接受一個點擊確認後執行的 callback 函數。
-         * @param {string} message - 顯示的訊息。
-         * @param {function} [callback] - 用戶點擊「確認」後要執行的函數 (可選)。
-         */
-        function customAlert(message, callback) { 
-            const existingModal = document.getElementById('custom-alert-modal');
-            if (existingModal) existingModal.remove();
-
-            // 處理點擊「確認」的邏輯
-            const handleConfirm = () => {
-                document.getElementById('custom-alert-modal').remove();
-                // 只有在用戶點擊確認後，才執行傳入的 callback 函數
-                if (callback && typeof callback === 'function') {
-                    callback(); 
-                }
-            };
-
-            // 將 handleConfirm 函數註冊到全域，確保 HTML onclick 可以找到它
-            window.customAlertConfirm = handleConfirm;
-
-
-            const modalHtml = `
-                <div id="custom-alert-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
-                    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform scale-100 transition-all duration-300">
-                        <div class="text-xl font-bold text-gray-900 mb-3 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-vieshow-red mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                            </svg>
-                            系統提示
-                        </div>
-                        <p class="text-gray-700 mb-5">${message}</p>
-                        <div class="flex justify-end">
-                            <button onclick="window.customAlertConfirm()" 
-                                    class="bg-vieshow-red hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-vieshow-red focus:ring-offset-2">
-                                確認
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-        }
-
-        // 覆寫瀏覽器內建的 alert，統一使用 customAlert
-        window.alert = customAlert;
-
-        // 初始渲染 UI 狀態
-        // ----------------------------------------------------
-
-        document.addEventListener('DOMContentLoaded', () => {
-            // 渲染導覽列 UI
-            renderUI();
-        });
+        // 3. 頁面初始化
         const optionCards = document.querySelectorAll('.option-card');
-        const radioButtons = document.querySelectorAll('input[name="amount"]');
         const paymentMethodSelect = document.getElementById('paymentMethod');
         const topupButton = document.getElementById('topupButton');
         const form = document.getElementById('topupForm');
@@ -281,37 +182,56 @@
         
         let selectedAmount = 0;
         let selectedPoints = 0;
-        let currentBalance = 250; // 模擬當前點數
+        let user = null;
 
-        // 初始化顯示
-        currentBalanceDisplay.textContent = `${currentBalance.toLocaleString()} 點`;
+        document.addEventListener('DOMContentLoaded', async () => {
+            renderUI();
+            
+            user = JSON.parse(localStorage.getItem('user'));
+            const token = localStorage.getItem('auth_token');
 
-        // --- 訊息處理函數 ---
+            if (!token || !user) {
+                alert('請先登入以進行儲值', () => {
+                    window.location.href = `${LOGIN_PAGE_URL}?redirect=${encodeURIComponent(window.location.href)}`;
+                });
+                return;
+            }
+
+            // 讀取當前點數
+            await fetchUserPoints(user.id);
+            
+            updateTopupState();
+        });
+
+        async function fetchUserPoints(memberId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/member/profile?id=${memberId}`);
+                if (!response.ok) throw new Error('無法取得會員資料');
+                
+                const data = await response.json();
+                currentBalanceDisplay.textContent = `${data.points.toLocaleString()} 點`;
+
+            } catch (error) {
+                console.error('API Error:', error);
+                currentBalanceDisplay.textContent = '讀取失敗';
+            }
+        }
+
         function showFormMessage(text, type) {
             messageContainer.textContent = text;
             messageContainer.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
-            
-            if (type === 'success') {
-                messageContainer.classList.add('bg-green-100', 'text-green-800');
-            } else if (type === 'error') {
-                messageContainer.classList.add('bg-red-100', 'text-red-800');
-            }
-
+            if (type === 'success') messageContainer.classList.add('bg-green-100', 'text-green-800');
+            else if (type === 'error') messageContainer.classList.add('bg-red-100', 'text-red-800');
             messageContainer.classList.remove('hidden');
-            setTimeout(() => {
-                messageContainer.classList.add('hidden');
-            }, 5000);
+            setTimeout(() => { messageContainer.classList.add('hidden'); }, 5000);
         }
 
-        // 新增一個模擬生成交易編號的函數
         function generateTransactionId() {
-            // 簡單地生成一個基於時間戳和隨機數的唯一 ID
             const timestamp = Date.now().toString(36).toUpperCase();
             const random = Math.random().toString(36).substring(2, 6).toUpperCase();
             return `VS${timestamp}${random}`;
         }
 
-        // --- 更新按鈕狀態及顯示金額 ---
         function updateTopupState() {
             const isAmountSelected = selectedAmount > 0;
             const isPaymentSelected = paymentMethodSelect.value !== '';
@@ -334,17 +254,13 @@
             }
         }
 
-        // --- 方案卡片/Radio 點擊事件 ---
         optionCards.forEach(card => {
             card.addEventListener('click', () => {
                 const amount = parseInt(card.dataset.amount);
                 const points = parseInt(card.dataset.points);
-                
-                // 模擬點擊內部的 radio button
                 const radio = document.getElementById(`opt${amount}`);
                 if (radio) radio.checked = true;
 
-                // 更新選中的狀態
                 optionCards.forEach(c => c.classList.remove('selected'));
                 card.classList.add('selected');
 
@@ -354,105 +270,103 @@
             });
         });
         
-        // --- 付款方式變更事件 ---
         paymentMethodSelect.addEventListener('change', updateTopupState);
 
-        // --- 表單提交事件 (模擬付款流程) ---
-        // --- 表單提交事件 (模擬付款流程) ---
-        form.addEventListener('submit', function(e) {
-            e.preventDefault(); // 阻止表單實際提交
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault(); 
             
-            // 檢查按鈕是否可用
-            if (topupButton.disabled) {
-                showFormMessage('請完成所有選擇。', 'error');
-                return;
-            }
+            if (topupButton.disabled) return;
             
             const paymentMethod = paymentMethodSelect.options[paymentMethodSelect.selectedIndex].text;
-            const paymentValue = paymentMethodSelect.value;
-            
-            // **新增：生成交易編號**
             const transactionId = generateTransactionId(); 
 
-            // 禁用按鈕並開始模擬流程
             topupButton.disabled = true;
             topupButton.textContent = `導向 ${paymentMethod} 付款頁面...`;
             topupButton.classList.add('opacity-75');
 
-            // 模擬導向金流頁面及等待 3 秒
-            setTimeout(() => {
-                
-                // 1. 如果是 ATM 轉帳 (需要等待付款的交易頁面)
-                if (paymentValue === 'atm') {
-                    
-                    // 模擬導向待付款交易頁面
-                    const atmMessage = 
-                        `📌 **待付款交易頁面**\n\n` + 
-                        `**交易編號 (Transaction ID):** ${transactionId}\n` + 
-                        `**儲值金額:** NT$ ${selectedAmount.toLocaleString()}\n` +
-                        `**付款方式:** ATM 轉帳\n` + 
-                        `請於 24 小時內轉帳至指定虛擬帳號（此為模擬資訊）：\n` + 
-                        `銀行代碼: 822 (中國信託)\n` + 
-                        `虛擬帳號: 9987654321098765\n\n` + 
-                        `轉帳完成後，點數將於 30 分鐘內入帳。`;
-                    
-                    // 由於這是前端頁面，我們使用 alert 彈窗來「模擬」跳轉頁面，並顯示交易編號
-                    alert(atmMessage);
+            // 模擬導向並呼叫 API
+            setTimeout(async () => {
+                try {
+                    // 呼叫後端儲值 API
+                    const response = await fetch(`${API_BASE_URL}/member/topup`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            memberId: user.id,
+                            points: selectedPoints
+                        })
+                    });
 
-                    showFormMessage(`⚠️ 交易編號 **${transactionId}** 已生成，請至您的銀行完成 **ATM 轉帳**。`, 'error');
+                    const result = await response.json();
 
-                    // 【新增】更新餘額顯示
-                    currentBalance += selectedPoints;
-                    currentBalanceDisplay.textContent = `${currentBalance.toLocaleString()} 點`;
-
-                    // 重設表單狀態 (但不更新點數餘額，因為尚未付款)
-                    selectedAmount = 0;
-                    selectedPoints = 0;
-                    optionCards.forEach(card => card.classList.remove('selected'));
-                    paymentMethodSelect.value = '';
-                    
-                    topupButton.classList.remove('opacity-75');
-                    form.reset(); 
-                    updateTopupState(); // 重設為初始狀態
-
-                } else {
-                    // 2. 信用卡/Line Pay (模擬即時付款成功)
-                    
-                    // 更新餘額顯示
-                    currentBalance += selectedPoints;
-                    currentBalanceDisplay.textContent = `${currentBalance.toLocaleString()} 點`;
-                    
-                    const successMessage = 
-                        `🥳 **儲值成功！**\n` + 
-                        `已為您儲值 NT$ ${selectedAmount.toLocaleString()} 元，並獲得 ${selectedPoints.toLocaleString()} 點。\n\n` +
-                        `**交易編號 (Transaction ID):** ${transactionId}`;
-                    
-                    showFormMessage(
-                        `🥳 儲值成功！交易編號: **${transactionId}**。已為您儲值 ${selectedPoints.toLocaleString()} 點。`, 
-                        'success'
-                    );
-                    
-                    // 重設表單狀態
-                    selectedAmount = 0;
-                    selectedPoints = 0;
-                    optionCards.forEach(card => card.classList.remove('selected'));
-                    paymentMethodSelect.value = '';
-                    
-                    topupButton.classList.remove('opacity-75');
-                    form.reset(); 
-                    updateTopupState(); // 重設為初始狀態
+                    if (response.ok) {
+                        currentBalanceDisplay.textContent = `${result.balance.toLocaleString()} 點`;
+                        
+                        showFormMessage(
+                            `🥳 儲值成功！交易編號: **${transactionId}**。已為您儲值 ${selectedPoints.toLocaleString()} 點。`, 
+                            'success'
+                        );
+                        
+                        // 重設表單
+                        selectedAmount = 0;
+                        selectedPoints = 0;
+                        optionCards.forEach(card => card.classList.remove('selected'));
+                        paymentMethodSelect.value = '';
+                        topupButton.classList.remove('opacity-75');
+                        form.reset(); 
+                        updateTopupState();
+                    } else {
+                        showFormMessage('儲值失敗，請稍後再試', 'error');
+                        topupButton.disabled = false;
+                        updateTopupState();
+                    }
+                } catch (error) {
+                    console.error('API Error:', error);
+                    showFormMessage('連線伺服器失敗', 'error');
+                    topupButton.disabled = false;
+                    updateTopupState();
                 }
-            }, 3000); // 3 秒模擬等待
+            }, 2000); 
         });
-
-        // 請確保在文件的 <script> 標籤內加入 generateTransactionId 函數
-        // 以及將 form.addEventListener('submit', ...) 替換為上面修改後的版本。
         
-        // 初始化檢查
-        document.addEventListener('DOMContentLoaded', updateTopupState);
+        // 自定義 Alert
+        function alert(message, callback) { 
+            const existingModal = document.getElementById('custom-alert-modal');
+            if (existingModal) existingModal.remove();
+
+            const handleConfirm = () => {
+                document.getElementById('custom-alert-modal').remove();
+                if (callback && typeof callback === 'function') {
+                    callback(); 
+                }
+            };
+
+            window.customAlertConfirm = handleConfirm;
+
+            const modalHtml = `
+                <div id="custom-alert-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
+                    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform scale-100 transition-all duration-300">
+                        <div class="text-xl font-bold text-gray-900 mb-3 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-vieshow-red mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            系統提示
+                        </div>
+                        <p class="text-gray-700 mb-5">${message}</p>
+                        <div class="flex justify-end">
+                            <button onclick="window.customAlertConfirm()" 
+                                    class="bg-vieshow-red hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-vieshow-red focus:ring-offset-2">
+                                確認
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+        window.alert = alert;
     </script>
     
-    <!-- Footer 內容 (模擬共用 footer) -->
     <footer class="bg-gray-800 text-white p-4 mt-auto text-center text-sm">
         <p class="text-gray-400">&copy; 2025 Vieshow Ticketing System.</p>
     </footer>
