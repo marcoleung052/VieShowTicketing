@@ -510,20 +510,41 @@
             }
         }
 
+        let currentRefundAmount = 0; // 金額
+        let currentRefundQty = 0;    // 【新增】張數
+
+        // 2. 修改 calculateRefund 函式
+        // 當您調整數量時，即時更新全域變數
         window.calculateRefund = function() {
-            let total = 0;
-            let count = 0;
-            document.querySelectorAll('#modificationModalContent input[type="number"]').forEach(input => {
+            let totalMoney = 0;
+            let totalTickets = 0;
+
+            // 計算票券
+            document.querySelectorAll('#ticketAdjustments input[type="number"]').forEach(input => {
                 const qty = parseInt(input.value) || 0;
                 const price = parseInt(input.dataset.price) || 0;
-                total += qty * price;
-                count += qty;
+                
+                totalMoney += qty * price;
+                totalTickets += qty;
             });
-            currentRefund = total;
-            document.getElementById('expectedRefundAmount').textContent = total.toLocaleString();
+
+            // 計算餐點 (餐點不算在退票張數 refundQty 裡，只算金額)
+            document.querySelectorAll('#comboAdjustments input[type="number"]').forEach(input => {
+                const qty = parseInt(input.value) || 0;
+                const price = parseInt(input.dataset.price) || 0;
+                totalMoney += qty * price;
+            });
+
+            // 更新全域變數
+            currentRefundAmount = totalMoney;
+            currentRefundQty = totalTickets;
+
+            // 更新畫面顯示
+            document.getElementById('expectedRefundAmount').textContent = totalMoney.toLocaleString();
             
+            // 控制按鈕狀態：只要金額 > 0 或 票數 > 0 就可以下一步
             const btn = document.getElementById('nextStepBtn');
-            if (count > 0) {
+            if (totalMoney > 0 || totalTickets > 0) {
                 btn.disabled = false;
                 btn.classList.remove('bg-gray-400', 'cursor-not-allowed');
                 btn.classList.add('bg-vieshow-red', 'hover:bg-red-700');
@@ -563,7 +584,7 @@
         }
 
        window.submitRefundApplication = async function() {
-            // 1. 驗證銀行資訊
+            // 驗證銀行資訊
             const bankCode = document.getElementById('bankCode').value;
             const bankAccount = document.getElementById('bankAccount').value;
             const accountName = document.getElementById('accountName').value;
@@ -577,52 +598,35 @@
                 return;
             }
 
-            // 2. 取得退票數量
-            let totalRefundQty = 0;
-            document.querySelectorAll('#ticketAdjustments input[data-type="ticket"]').forEach(input => {
-                totalRefundQty += parseInt(input.value) || 0;
-            });
-
-            if (totalRefundQty <= 0) {
+            // 【關鍵修改】直接使用 currentRefundQty 變數檢查
+            if (currentRefundQty <= 0) {
                 alert("請至少選擇一張票進行退票");
                 return;
             }
 
             const user = JSON.parse(localStorage.getItem('user'));
-            const btn = document.querySelector('#step2 button:last-child'); // 確認按鈕
+            const btn = document.querySelector('#step2 button:last-child');
             
-            // 鎖定按鈕
             btn.disabled = true;
             btn.textContent = "處理中...";
 
             try {
-                console.log("正在發送請求...", {
-                    orderId: currentBookingDetail.id,
-                    refundQty: totalRefundQty
-                });
-
+                // 發送 API 請求
                 const response = await fetch(`${API_BASE_URL}/booking/modify`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         orderId: currentBookingDetail.id,
                         memberId: user ? user.id : null,
-                        refundQty: totalRefundQty
+                        refundQty: currentRefundQty // 直接傳送變數值
                     })
                 });
 
-                // 檢查 HTTP 狀態碼
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error("Server Error:", errorText);
-                    throw new Error(`伺服器錯誤 (${response.status})`);
-                }
-
                 const result = await response.json();
 
-                if (result.status === "success") {
+                if (response.ok) {
                     // 成功
-                    document.getElementById('finalRefundAmount').textContent = currentRefund.toLocaleString();
+                    document.getElementById('finalRefundAmount').textContent = currentRefundAmount.toLocaleString();
                     document.getElementById('step2').classList.add('hidden');
                     document.getElementById('step3').classList.remove('hidden');
                     
@@ -633,7 +637,7 @@
 
             } catch (error) {
                 console.error("Client Error:", error);
-                alert(`系統錯誤: ${error.message}`);
+                alert(`連線錯誤，請稍後再試`);
             } finally {
                 btn.disabled = false;
                 btn.textContent = "確認送出退票申請";
@@ -677,6 +681,7 @@
     </script>
 </body>
 </html>
+
 
 
 
