@@ -15,9 +15,6 @@
                     colors: {
                         'vieshow-red': '#e50914',
                         'vieshow-gold': '#f7a83d',
-                        'btn-primary': '#4f46e5',
-                        'btn-hover': '#4338ca',
-                        'btn-danger': '#ef4444',
                     },
                     fontFamily: {
                         sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
@@ -28,12 +25,52 @@
     </script>
 
     <style>
-        .btn-action { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem 1rem; height: 100%; border-radius: 0.5rem; font-weight: 700; transition: all 0.2s ease-in-out; text-align: center; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid transparent; }
-        .btn-action span.icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
-        .btn-action:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-        .btn-logout-action { display: flex; align-items: center; justify-content: center; padding: 1.5rem 1rem; border-radius: 0.5rem; font-weight: 700; transition: all 0.2s ease-in-out; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-        .btn-logout-action:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        /* 卡片基礎樣式 */
+        .menu-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 120px; /* 固定高度，讓卡片看起來整齊 */
+            border-radius: 0.75rem; /* rounded-xl */
+            font-weight: 700;
+            font-size: 1.125rem; /* text-lg */
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
         
+        .menu-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15);
+        }
+
+        /* 白底樣式 (一般按鈕) */
+        .card-white {
+            background-color: white;
+            color: #374151; /* text-gray-700 */
+            border: 1px solid #e5e7eb; /* border-gray-200 */
+        }
+        .card-white:hover {
+            border-color: #d1d5db;
+            background-color: #f9fafb;
+        }
+
+        /* 紅底樣式 (強調按鈕) */
+        .card-red {
+            background-color: #e50914; /* vieshow-red */
+            color: white;
+            border: 1px solid #e50914;
+        }
+        .card-red:hover {
+            background-color: #b91c1c; /* darker red */
+        }
+
+        /* icon 大小 */
+        .card-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
         @keyframes fadeInDown { from { opacity: 0; transform: translate(-50%, -20px); } to { opacity: 1; transform: translate(-50%, 0); } }
         @keyframes fadeOutUp { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, -20px); } }
         .animate-fade-in-down { animation: fadeInDown 0.5s ease-out forwards; }
@@ -53,7 +90,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 font-sans min-h-screen flex flex-col">
+<body class="bg-gray-100 font-sans min-h-screen flex flex-col">
 
     <header class="bg-gray-800 text-white shadow-md">
         <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -66,66 +103,91 @@
 
     <div class="container mx-auto px-4 py-10 flex-grow max-w-6xl">
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
-            <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-vieshow-gold member-details-container">
-                <h1 class="text-3xl font-extrabold text-gray-800 mb-4 flex items-center">
-                    <span class="mr-2">👤</span> 會員中心首頁 
-                    <span class="text-base font-normal ml-3 text-gray-500">(Hi, <span id="memberGreetingName"></span>)</span>
-                </h1>
+            <div class="lg:col-span-1">
+                <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-vieshow-gold sticky top-4">
+                    <h1 class="text-2xl font-extrabold text-gray-800 mb-6 flex items-center border-b pb-4">
+                        <span class="mr-2">👤</span> 會員中心
+                    </h1>
 
-                <div class="space-y-3 text-lg text-gray-700">
-                    <h2 class="text-xl font-bold border-b pb-1 mb-2 text-vieshow-red">會員資料:</h2>
-                    
-                    <p><span class="font-semibold text-gray-600 w-20 inline-block">姓名:</span> <span id="profile_name" class="font-bold"></span></p>
-                    <p><span class="font-semibold text-gray-600 w-20 inline-block">Email:</span> <span id="profile_email"></span></p>
-                    <p><span class="font-semibold text-gray-600 w-20 inline-block">電話:</span> <span id="profile_phone"></span></p>
-                    <p><span class="font-semibold text-gray-600 w-20 inline-block">生日:</span> <span id="profile_dob"></span></p>
-                    <p>
-                        <span class="font-semibold text-gray-600 w-20 inline-block">回饋點數:</span> 
-                        <span id="profile_points" class="text-vieshow-gold font-bold text-xl"></span> <span class="ml-1 text-sm text-gray-500">點</span>
-                    </p>
-                    <p>
-                        <span class="font-semibold text-gray-600 w-20 inline-block">會員編號:</span> 
-                        <span id="profile_member_id" class="font-mono tracking-widest"></span>
-                    </p>
-                    
-                    <div class="pt-4">
-                        <h3 class="font-semibold mb-1 text-gray-600">會員條碼 (對應會員編號):</h3>
-                        <div id="barcodeContainer" class="barcode-container">
-                            <svg id="member-barcode" class="w-full h-auto"></svg>
+                    <div class="space-y-4 text-gray-700">
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase">姓名 Name</p>
+                            <p id="profile_name" class="font-bold text-lg">Loading...</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase">電子郵件 Email</p>
+                            <p id="profile_email" class="font-medium break-all">Loading...</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase">電話 Phone</p>
+                            <p id="profile_phone" class="font-medium">Loading...</p>
+                        </div>
+                        
+                        <div class="bg-red-50 p-4 rounded-lg border border-red-100 mt-4">
+                            <p class="text-xs text-red-600 font-bold uppercase">目前點數 Points</p>
+                            <div class="flex justify-between items-end">
+                                <p class="text-3xl font-extrabold text-vieshow-red" id="profile_points">0</p>
+                                <span class="text-sm text-gray-500 mb-1">點</span>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 mt-2 border-t">
+                            <p class="text-xs text-gray-500 uppercase mb-2 text-center">會員條碼 Member Code</p>
+                            <div id="barcodeContainer" class="barcode-container">
+                                <svg id="member-barcode" class="w-full h-auto"></svg>
+                            </div>
+                            <p id="profile_member_id" class="text-center font-mono text-sm mt-1 text-gray-400 tracking-wider"></p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div>
-                <h2 class="text-2xl font-bold text-gray-700 mb-4 border-l-4 border-vieshow-red pl-3">快速功能導覽</h2>
+            <div class="lg:col-span-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    
+                    <a href="../../index.html" class="menu-card card-white">
+                        <span class="card-icon">🏠</span>
+                        <span>首頁</span>
+                    </a>
 
-                <div class="member-actions grid grid-cols-2 gap-4">
-                    <a href="../../index.html" class="btn-action bg-white text-gray-700 border-gray-300 hover:bg-gray-100">
-                        <span class="icon">🏠</span> 首頁
+                    <a href="../booking/booking_flow_1.html" class="menu-card card-red">
+                        <span class="card-icon">🎫</span>
+                        <span>立即訂票</span>
                     </a>
-                    <a href="../booking/booking_flow_1.html" class="btn-action bg-vieshow-red text-white hover:bg-red-700">
-                        <span class="icon">🎫</span> 立即訂票
+
+                    <a href="../booking/booking_history.html" class="menu-card card-white">
+                        <span class="card-icon">🧾</span>
+                        <span>訂票紀錄</span>
                     </a>
-                    <a href="../booking/booking_history.html" class="btn-action bg-white text-gray-700 border-gray-300 hover:bg-gray-100">
-                        <span class="icon">🧾</span> 訂票紀錄
+
+                    <a href="../points/point_history.html" class="menu-card card-white">
+                        <span class="card-icon">📜</span>
+                        <span>點數紀錄</span>
                     </a>
-                    <a href="../points/point_exchange.html" class="btn-action bg-white text-gray-700 border-gray-300 hover:bg-gray-100">
-                        <span class="icon">🪙</span> 點數兌換
+
+                    <a href="../points/point_exchange.html" class="menu-card card-white">
+                        <span class="card-icon">🪙</span>
+                        <span>點數兌換</span>
                     </a>
-                    <a href="./topup.html" class="btn-action bg-white text-gray-700 border-gray-300 hover:bg-gray-100">
-                        <span class="icon">💳</span> 點數儲值
+
+                    <a href="./topup.html" class="menu-card card-white">
+                        <span class="card-icon">💳</span>
+                        <span>點數儲值</span>
                     </a>
-                    <a href="./member_profile.html" class="btn-action bg-white text-gray-700 border-gray-300 hover:bg-gray-100">
-                        <span class="icon">⚙️</span> 會員資料修改
+
+                    <a href="./member_profile.html" class="menu-card card-white">
+                        <span class="card-icon">⚙️</span>
+                        <span>會員資料修改</span>
                     </a>
+
+                    <button id="signOutButton" class="menu-card card-red w-full">
+                        <span class="card-icon">➡️</span>
+                        <span>登出</span>
+                    </button>
+
                 </div>
-                
-                <button id="signOutButton" class="btn-logout-action bg-btn-danger text-white hover:bg-red-600 mt-6 w-full"> 
-                    <span class="mr-2 text-xl">➡️</span> 登出
-                </button>
             </div>
         </div>
     </div>
@@ -174,14 +236,25 @@
         function forceLogout(msg) {
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user');
-            // 清除快取
             sessionStorage.removeItem('memberDataCache');
             alert(msg, () => { window.location.href = LOGIN_PAGE_URL; });
         }
         
         async function fetchAndRenderMemberData(userId) {
+            // 優先檢查 Session Storage 快取
+            const cachedDataStr = sessionStorage.getItem('memberDataCache');
+            if (cachedDataStr) {
+                try {
+                    const cachedData = JSON.parse(cachedDataStr);
+                    if (cachedData.memberId === userId || cachedData.cardId === userId) {
+                        console.log("⚡ 使用快取會員資料");
+                        renderPage(cachedData);
+                        return;
+                    }
+                } catch(e) {}
+            }
+
             try {
-                // 【關鍵修改 1】每次載入都去後端抓最新資料，並更新 Cache
                 const response = await fetch(`${API_BASE_URL}/member/profile?id=${userId}`);
                 if (!response.ok) {
                     if (response.status === 404) throw new Error('找不到此會員');
@@ -190,7 +263,7 @@
                 
                 const memberData = await response.json();
                 
-                // 【關鍵修改 2】將抓到的最新資料存入 SessionStorage
+                // 更新快取
                 sessionStorage.setItem('memberDataCache', JSON.stringify(memberData));
 
                 renderPage(memberData);
@@ -201,35 +274,36 @@
             }
         }
 
-        // 獨立出的渲染函式
         function renderPage(memberData) {
             document.getElementById('memberName').textContent = memberData.name;
-            document.getElementById('memberGreetingName').textContent = memberData.name;
+            // document.getElementById('memberGreetingName').textContent = memberData.name; // 移除，版面調整
             document.getElementById('profile_name').textContent = memberData.name;
             document.getElementById('profile_email').textContent = memberData.email;
             document.getElementById('profile_phone').textContent = memberData.phone;
-            document.getElementById('profile_dob').textContent = memberData.dob;
-            document.getElementById('profile_points').textContent = memberData.points;
+            // document.getElementById('profile_dob').textContent = memberData.dob; // 版面精簡，可不顯示生日
+            document.getElementById('profile_points').textContent = memberData.points.toLocaleString();
             document.getElementById('profile_member_id').textContent = memberData.memberId;
             
             const barcodeValue = memberData.memberId || '0000000000';
+            
             JsBarcode("#member-barcode", barcodeValue, {
                 format: "CODE128", 
                 lineColor: "#000",
                 width: 2,
                 height: 50,
                 displayValue: true, 
-                fontSize: 16,
-                fontOptions: "bold"
+                fontSize: 14,
+                fontOptions: "bold",
+                margin: 0
             });
         }
 
         document.getElementById('signOutButton').addEventListener('click', function(e) {
             e.preventDefault(); 
-            this.disabled = true; this.textContent = '登出中...';
+            this.disabled = true; this.innerHTML = '<span class="mr-2">...</span> 登出中';
             localStorage.removeItem('auth_token'); 
             localStorage.removeItem('user'); 
-            sessionStorage.removeItem('memberDataCache'); // 登出時清除快取
+            sessionStorage.removeItem('memberDataCache'); 
             showNotification('✅ 登出成功！即將導向首頁...', false);
             setTimeout(() => { window.location.href = INDEX_PAGE_URL; }, 2000);
         });
@@ -243,8 +317,6 @@
         document.addEventListener('DOMContentLoaded', async () => {
             const user = checkLoginStatus();
             if (user) {
-                // 這裡我們還是要 fetch，因為首頁需要確保資料最新
-                // 如果是從別頁回來，這裡會更新 Cache
                 await fetchAndRenderMemberData(user.id);
             }
         });
