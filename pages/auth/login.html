@@ -225,9 +225,9 @@
             }, 1500); // 延遲 1.5 秒
         }
         // **********************************************
-        const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api'; // 請替換
+
         // --- 處理表單提交 (核心登入邏輯) ---
-        document.getElementById('loginForm').addEventListener('submit', async function(event) {
+        document.getElementById('loginForm').addEventListener('submit', function(event) {
             event.preventDefault(); 
             
             const form = event.target;
@@ -251,40 +251,44 @@
             showNotification('正在驗證帳號資訊...', false);
             
             // 2. 模擬後端 API 請求
-            try {
-                const response = await fetch(`${API_BASE_URL}/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ account, password })
-                });
-        
-                const result = await response.json();
-        
-                if (response.ok) {
-                    // 登入成功：儲存 Token 與使用者資料
-                    localStorage.setItem('auth_token', result.token);
-                    localStorage.setItem('user', JSON.stringify(result.user));
-                    
-                    showNotification('✅ 登入成功！即將跳轉...', false);
-                    
-                    // 檢查是否有 redirect 參數 (保持您原有的跳轉邏輯)
-                    const params = new URLSearchParams(window.location.search);
-                    const redirectUrl = params.get('redirect') ? decodeURIComponent(params.get('redirect')) : '../../index.html';
-                    
-                    setTimeout(() => { window.location.href = redirectUrl; }, 1500);
+            setTimeout(() => {
+                
+                let errorMessage = '';
+
+                // 模擬成功條件：帳號 test@vieshow.com, 密碼 123456
+                const isSuccessful = (account === 'test@vieshow.com' && password === '123456');
+
+                if (isSuccessful) {
+                    // 模擬登入成功
+                    localStorage.setItem('auth_token', 'mock_vieshow_token_xyz123'); // 儲存模擬 token
+                    // 為相容舊有頁面檢查（例如 booking 頁面使用 isLoggedIn 判斷），同步設定 isLoggedIn
+                    localStorage.setItem('isLoggedIn', 'true');
+                    // 儲存簡單 user 資訊以供其他頁面顯示
+                    localStorage.setItem('user', JSON.stringify({ name: account }));
+
+                    // *** [修正] 呼叫新的跳轉處理函數 ***
+                    handleLoginSuccessRedirect();
+
                 } else {
-                    // 登入失敗
-                    showNotification(`❌ ${result.message}`, true);
-                    refreshCaptcha();
+                    // 模擬登入失敗
+                    if (account === 'test@vieshow.com') {
+                        // 帳號正確，但密碼錯誤
+                        errorMessage = '❌ **登入失敗：** 密碼錯誤，請確認您的密碼是否正確！';
+                    } else {
+                        // 帳號不存在或帳號錯誤
+                        errorMessage = '❌ **登入失敗：** 帳號不存在或密碼錯誤，請確認您的帳號密碼是否正確！';
+                    }
+
+                    showNotification(errorMessage, true);
+                    refreshCaptcha(); // 登入失敗，強制刷新驗證碼
+
+                    // 重新啟用按鈕
                     loginButton.disabled = false;
                     loginButton.textContent = '登入';
+                    loginButton.classList.remove('opacity-75', 'cursor-not-allowed');
                 }
-            } catch (error) {
-                console.error('API Error:', error);
-                showNotification('❌ 連線伺服器失敗，請稍後再試', true);
-                loginButton.disabled = false;
-                loginButton.textContent = '登入';
-            }
+
+            }, 2000); // 模擬 2 秒網路延遲
         });
 
         // --- 初始化事件綁定 (已修正) ---
@@ -310,5 +314,4 @@
     </footer>
 
 </body>
-
 </html>
