@@ -8,7 +8,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script>
-        // Tailwind 配置，確保顏色和字體與專案一致
         tailwind.config = {
             theme: {
                 extend: {
@@ -25,7 +24,6 @@
     </script>
 
     <style>
-        /* 新增通知動畫 */
         @keyframes fadeInDown {
             from { opacity: 0; transform: translate(-50%, -20px); }
             to { opacity: 1; transform: translate(-50%, 0); }
@@ -37,26 +35,25 @@
         .animate-fade-in-down { animation: fadeInDown 0.5s ease-out forwards; }
         .animate-fade-out-up { animation: fadeOutUp 0.5s ease-in forwards; }
 
-        /* 驗證碼文字樣式，模擬圖片效果 */
         .captcha-text {
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: #f3f4f6; /* bg-gray-100 */
+            background-color: #f3f4f6; 
             font-size: 24px;
             font-weight: bold;
             letter-spacing: 5px;
             padding: 5px 10px;
-            border: 1px solid #d1d5db; /* border-gray-300 */
+            border: 1px solid #d1d5db; 
             border-radius: 0.5rem;
             cursor: pointer;
-            width: 120px; /* 模擬圖片寬度 */
-            height: 40px; /* 模擬圖片高度 */
-            color: #1f2937; /* text-gray-800 */
-            user-select: none; /* 防止選中文字 */
-            text-decoration: line-through; /* 模擬干擾線 */
+            width: 120px; 
+            height: 40px; 
+            color: #1f2937; 
+            user-select: none; 
+            text-decoration: line-through; 
             font-family: monospace;
-            transform: rotate(-1deg); /* 輕微旋轉，更像 CAPTCHA */
+            transform: rotate(-1deg); 
         }
     </style>
 </head>
@@ -75,7 +72,7 @@
                 會員登入
             </h2>
 
-            <form id="loginForm" action="#" method="POST" class="space-y-5">
+            <form id="loginForm" class="space-y-5">
 
                 <div>
                     <label for="loginAccount" class="block text-sm font-medium text-gray-700 mb-1">帳號/電子郵件:</label>
@@ -121,66 +118,29 @@
                 </p>
             </form>
         </div>
-        
-        <!-- <div id="loggedInMessage" class="max-w-lg mx-auto bg-green-50 p-10 sm:p-12 rounded-xl shadow-2xl border-t-8 border-green-500 hidden text-center">
-            <svg class="mx-auto h-16 w-16 text-green-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h2 class="text-3xl font-extrabold text-green-700 mb-2">您已登入！</h2>
-            <p class="text-lg text-gray-700 mb-6">您目前已是會員，無法重複登入。</p>
-            <button id="goToMemberCenter" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 shadow-md">
-                前往會員中心 &rarr;
-            </button>
-        </div> -->
     </div>
 
     <script>
-        const API_BASE_URL = 'https://your-fastapi-backend.com/api/v1'; 
-        let currentCaptcha = ''; // 用於儲存當前模擬的驗證碼，用於前端比對
+        // 設定後端 API 網址 (請確認您的網址)
+        const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api';
         
-        // *** [新增/修正] 為了跳轉邏輯新增的常數 ***
-        // 預設跳轉頁面 (當沒有指定 redirect 時)
+        let currentCaptcha = ''; 
         const DEFAULT_REDIRECT_URL = '../../index.html';
-        // 會員中心路徑 (用於已登入訊息的按鈕和預設跳轉)
-        const MEMBER_HOME_URL = '../member/member_home.html';
-        // **********************************************
-
-        // --- 1. 檢查是否已登入 (新增邏輯) ---
-        // function checkLoginStatus() {
-        //     // 檢查 localStorage 中是否有模擬的登入 token
-        //     const token = localStorage.getItem('auth_token');
-        //     const loginCard = document.getElementById('loginCard');
-        //     const loggedInMessage = document.getElementById('loggedInMessage');
-
-        //     if (token) {
-        //         // 如果已登入，隱藏登入表單，顯示已登入訊息
-        //         loginCard.classList.add('hidden');
-        //         loggedInMessage.classList.remove('hidden');
-        //     } else {
-        //         // 如果未登入，顯示登入表單
-        //         loginCard.classList.remove('hidden');
-        //         loggedInMessage.classList.add('hidden');
-        //     }
-        // }
-
-        // --- 2. 顯示模擬通知 (動畫效果) ---
+        
+        // --- 顯示通知 ---
         function showNotification(message, isError = false) {
-            // ... (保持不變)
             const notification = document.createElement('div');
-            notification.innerHTML = message; // 使用 innerHTML 允許簡單的標籤，例如粗體
+            notification.innerHTML = message;
             const bgColor = isError ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
-            
             notification.className = `fixed top-0 left-1/2 -translate-x-1/2 mt-4 px-6 py-3 rounded-lg shadow-xl z-50 transition duration-300 transform ${bgColor} animate-fade-in-down`;
-            
             document.body.appendChild(notification);
-            
             setTimeout(() => {
                 notification.classList.replace('animate-fade-in-down', 'animate-fade-out-up');
-                setTimeout(() => notification.remove(), 500); // 讓淡出動畫完成
+                setTimeout(() => notification.remove(), 500);
             }, 3000);
         }
 
-        // --- 3. 驗證碼相關邏輯 (修正顯示問題並加入模擬比對) ---
+        // --- 驗證碼邏輯 ---
         function generateCaptcha() {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
             let captcha = '';
@@ -194,52 +154,44 @@
             currentCaptcha = generateCaptcha();
             const captchaDiv = document.getElementById('captchaImage');
             captchaDiv.textContent = currentCaptcha;
-            // 清空驗證碼輸入框
             document.getElementById('captchaCode').value = '';
-            console.log('當前模擬驗證碼:', currentCaptcha);
         }
         
-        // *** [新增] 處理登入成功後的頁面跳轉邏輯 ***
+        // --- 登入成功跳轉 ---
         function handleLoginSuccessRedirect() {
-            // 1. 取得 URL 中的 redirect 參數
             const params = new URLSearchParams(window.location.search);
             const redirectUrl = params.get('redirect');
-            
-            // 2. 決定目標網址
-            let targetUrl = DEFAULT_REDIRECT_URL; // 預設跳轉到會員中心
+            let targetUrl = DEFAULT_REDIRECT_URL;
 
             if (redirectUrl) {
-                // 如果有 redirect 參數，則使用該網址 (需要解碼)
-                targetUrl = decodeURIComponent(redirectUrl);
-                console.log("偵測到回調網址:", targetUrl);
-            } else {
-                console.log("未偵測到回調網址，使用預設目標:", targetUrl);
+                try {
+                    targetUrl = decodeURIComponent(redirectUrl);
+                } catch (e) {
+                    console.error('Redirect URL decode failed', e);
+                }
             }
 
-            // 3. 執行跳轉
             showNotification('✅ 登入成功！即將跳轉...', false);
             
             setTimeout(() => {
-                // 跳轉到目標網址
                 window.location.href = targetUrl;
-            }, 1500); // 延遲 1.5 秒
+            }, 1500);
         }
-        // **********************************************
 
-        // --- 處理表單提交 (核心登入邏輯) ---
-        document.getElementById('loginForm').addEventListener('submit', function(event) {
+        // --- 處理登入 (呼叫後端 API) ---
+        document.getElementById('loginForm').addEventListener('submit', async function(event) {
             event.preventDefault(); 
             
             const form = event.target;
             const loginButton = document.getElementById('loginButton');
             const account = form.loginAccount.value;
             const password = form.loginPwd.value;
-            const captchaInput = form.captchaCode.value.toUpperCase(); // 驗證碼輸入通常不區分大小寫
+            const captchaInput = form.captchaCode.value.toUpperCase();
 
-            // 1. 檢查前端驗證碼是否正確
+            // 1. 檢查前端驗證碼
             if (captchaInput !== currentCaptcha) {
                 showNotification('❌ **驗證碼錯誤！** 請重新輸入。', true);
-                refreshCaptcha(); // 驗證碼錯誤，強制刷新
+                refreshCaptcha(); 
                 return;
             }
 
@@ -248,64 +200,49 @@
             loginButton.textContent = '登入中...';
             loginButton.classList.add('opacity-75', 'cursor-not-allowed');
 
-            showNotification('正在驗證帳號資訊...', false);
-            
-            // 2. 模擬後端 API 請求
-            setTimeout(() => {
-                
-                let errorMessage = '';
+            try {
+                // 2. 呼叫後端登入 API
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        account: account,
+                        password: password
+                    })
+                });
 
-                // 模擬成功條件：帳號 test@vieshow.com, 密碼 123456
-                const isSuccessful = (account === 'test@vieshow.com' && password === '123456');
+                const result = await response.json();
 
-                if (isSuccessful) {
-                    // 模擬登入成功
-                    localStorage.setItem('auth_token', 'mock_vieshow_token_xyz123'); // 儲存模擬 token
-                    // 為相容舊有頁面檢查（例如 booking 頁面使用 isLoggedIn 判斷），同步設定 isLoggedIn
-                    localStorage.setItem('isLoggedIn', 'true');
-                    // 儲存簡單 user 資訊以供其他頁面顯示
-                    localStorage.setItem('user', JSON.stringify({ name: account }));
-
-                    // *** [修正] 呼叫新的跳轉處理函數 ***
+                if (response.ok) {
+                    // 登入成功
+                    localStorage.setItem('auth_token', result.token);
+                    // 【關鍵修正】儲存完整的 user 物件 (包含 id)
+                    localStorage.setItem('user', JSON.stringify(result.user));
+                    
                     handleLoginSuccessRedirect();
-
                 } else {
-                    // 模擬登入失敗
-                    if (account === 'test@vieshow.com') {
-                        // 帳號正確，但密碼錯誤
-                        errorMessage = '❌ **登入失敗：** 密碼錯誤，請確認您的密碼是否正確！';
-                    } else {
-                        // 帳號不存在或帳號錯誤
-                        errorMessage = '❌ **登入失敗：** 帳號不存在或密碼錯誤，請確認您的帳號密碼是否正確！';
-                    }
-
-                    showNotification(errorMessage, true);
-                    refreshCaptcha(); // 登入失敗，強制刷新驗證碼
-
-                    // 重新啟用按鈕
+                    // 登入失敗
+                    showNotification(`❌ ${result.message}`, true);
+                    refreshCaptcha();
                     loginButton.disabled = false;
                     loginButton.textContent = '登入';
                     loginButton.classList.remove('opacity-75', 'cursor-not-allowed');
                 }
 
-            }, 2000); // 模擬 2 秒網路延遲
+            } catch (error) {
+                console.error(error);
+                showNotification('❌ 連線伺服器失敗，請稍後再試', true);
+                loginButton.disabled = false;
+                loginButton.textContent = '登入';
+                loginButton.classList.remove('opacity-75', 'cursor-not-allowed');
+            }
         });
 
-        // --- 初始化事件綁定 (已修正) ---
+        // --- 初始化 ---
         window.onload = function() {
-            //checkLoginStatus(); // 載入時檢查登入狀態
-            refreshCaptcha(); // 初始化驗證碼
-            
-            // 綁定重新整理驗證碼事件到 Div (模擬圖片點擊)
+            refreshCaptcha(); 
             document.getElementById('captchaImage').addEventListener('click', refreshCaptcha);
-            
-            // 【修正處】：綁定重新整理驗證碼事件到 Button (圖標按鈕點擊)
             document.getElementById('refreshCaptcha').addEventListener('click', refreshCaptcha); 
-            
-            // 綁定已登入時的按鈕 (使用 MEMBER_HOME_URL)
-            // document.getElementById('goToMemberCenter').addEventListener('click', () => {
-            //     window.location.href = MEMBER_HOME_URL;
-            // });
         };
     </script>
     
