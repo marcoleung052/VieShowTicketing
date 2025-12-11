@@ -416,6 +416,70 @@
 
             container.innerHTML = html;
         }
+        async function loadCinemas() {
+            const container = document.getElementById('cinemaInfo');
+            if (!container) return;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/info/cinemas`);
+                const cinemas = await response.json();
+
+                if (cinemas.length === 0) {
+                    container.innerHTML = '<p class="text-center col-span-3 text-gray-500">暫無影城資訊</p>';
+                    return;
+                }
+
+                // 根據您的資料庫欄位渲染
+                container.innerHTML = cinemas.map(cinema => `
+                    <div class="content-card">
+                        <h4 class="text-xl font-bold text-gray-800 mb-2">${cinema.name}</h4>
+                        <p class="text-gray-600 mb-2">
+                            地址：${cinema.address}
+                        </p>
+                        <p class="text-gray-600 font-semibold">
+                            專線：<span class="text-vieshow-red">${cinema.phone}</span>
+                        </p>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error("載入影城失敗:", error);
+                container.innerHTML = '<p class="text-center col-span-3 text-red-500">載入影城資訊失敗</p>';
+            }
+        }
+        /**
+         * 載入並渲染餐點資訊
+         */
+        async function loadMeals() {
+            const container = document.getElementById('foodInfo');
+            if (!container) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/info/meals`);
+                const meals = await response.json();
+
+                if (meals.length === 0) {
+                    container.innerHTML = '<p class="text-center col-span-3 text-gray-500">暫無餐點資訊</p>';
+                    return;
+                }
+
+                container.innerHTML = meals.map(meal => `
+                    <div class="food-card">
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="text-xl font-extrabold text-vieshow-red truncate pr-2" title="${meal.name}">${meal.name}</h4>
+                            <span class="text-2xl font-extrabold text-gray-800 shrink-0">TWD ${meal.price}</span>
+                        </div>
+                        <p class="text-gray-700 text-sm ml-1 line-clamp-2" title="${meal.info}">
+                            ${meal.info}
+                        </p>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error("載入餐點失敗:", error);
+                container.innerHTML = '<p class="text-center col-span-3 text-red-500">載入餐點資訊失敗</p>';
+            }
+        }
 
         // --- 核心修改：使用 async/await 呼叫後端 API ---
         document.addEventListener('DOMContentLoaded', async () => {
@@ -451,6 +515,8 @@
                 document.getElementById('nowPlayingContainer').innerHTML = '<p class="col-span-full text-center text-red-500">無法連線至伺服器，請稍後再試。</p>';
                 document.getElementById('comingSoonContainer').innerHTML = '';
             }
+            loadCinemas();
+            loadMeals();
         });
 
         // 自定義 Alert
@@ -491,4 +557,5 @@
     </script>
 </body>
 </html>
+
 
