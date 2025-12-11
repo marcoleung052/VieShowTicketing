@@ -17,7 +17,7 @@
                         'vieshow-gold': '#f7a83d',
                         'vieshow-dark': '#1a1a1a',
                         'success-green': '#10B981',
-                        'linepay-green': '#00B900', // Line Pay 綠色
+                        'linepay-green': '#00B900',
                     },
                     fontFamily: {
                         sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
@@ -28,31 +28,18 @@
     </script>
 
     <style>
-        /* 步驟指示器 */
+        /* (CSS 樣式保持不變) */
         .step-indicator { display:flex; align-items:center; justify-content:center; margin-bottom:2rem; }
         .step-circle { width:40px; height:40px; border-radius:9999px; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; transition:all .3s ease; }
         .step-line { height:8px; width:64px; background:#D1D5DB; transition:background .3s ease, width .3s ease; margin:0 8px; border-radius:4px; }
         .step-completed { background:#f7a83d; }
         .step-active { background:#e50914; }
-        
-        /* 付款選項互動 */
         .payment-option { transition: all 0.3s ease; border: 2px solid transparent; }
         .payment-option.selected { border-color: #e50914; background-color: #fff1f2; }
         .payment-option:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-
-        /* 票券樣式 */
-        .ticket-divider {
-            border-top: 2px dashed #e5e7eb;
-            margin: 1rem 0;
-            position: relative;
-        }
-        
-        /* 動畫 */
+        .ticket-divider { border-top: 2px dashed #e5e7eb; margin: 1rem 0; position: relative; }
         .fade-in { animation: fadeIn 0.5s ease-out forwards; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="antialiased bg-gray-100 font-sans min-h-screen flex flex-col">
@@ -103,7 +90,7 @@
                     <div id="cc-form" class="hidden mt-4 pl-8 border-t pt-4">
                         <div class="grid grid-cols-1 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">持卡人姓名 (Name on Card)</label>
+                                <label class="block text-sm font-medium text-gray-700">持卡人姓名</label>
                                 <input type="text" placeholder="輸入持卡人完整姓名" class="mt-1 w-full border border-gray-300 rounded p-2">
                             </div>
                             <div><label class="block text-sm font-medium text-gray-700">卡號</label><input type="text" placeholder="0000 0000 0000 0000" class="mt-1 w-full border border-gray-300 rounded p-2"></div>
@@ -123,19 +110,13 @@
                         </label>
                     </div>
                     <div id="line-pay-qr-container" class="hidden mt-4 pt-4 border-t border-gray-200 fade-in">
-                        <p class="text-sm font-semibold text-gray-700 mb-2">請使用 LINE Pay 掃描下方 QR Code 進行付款：</p>
-                        <div id="line-pay-qrcode" class="w-full flex justify-center">
-                            </div>
-                        
+                        <p class="text-sm font-semibold text-gray-700 mb-2">請使用 LINE Pay 掃描下方 QR Code：</p>
+                        <div id="line-pay-qrcode" class="w-full flex justify-center"></div>
                         <div class="mt-4 flex justify-center">
-                            <button onclick="generateLinePayQRCode()" 
-                                    class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 font-medium py-1 px-3 rounded transition duration-150 flex items-center shadow-sm">
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 0020 13a8.001 8.001 0 00-2.008-5.385"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 20v-5h-.582m-15.356-2A8.001 8.001 0 004 11a8.001 8.001 0 002.008 5.385"></path></svg>
+                            <button onclick="generateLinePayQRCode()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 font-medium py-1 px-3 rounded transition duration-150 flex items-center shadow-sm">
                                 重新生成 QR Code
                             </button>
                         </div>
-                        
-                        <p class="text-center text-xs text-gray-500 mt-2">此條碼將在 <span class="font-bold text-vieshow-red">5 分鐘</span>後自動刷新</p>
                     </div>
                 </div>
             </div>
@@ -154,9 +135,7 @@
                 <div class="mb-4 pb-4 border-b border-gray-200">
                     <h4 class="font-bold text-gray-900 text-lg" id="summaryMovieTitle">載入中...</h4>
                     <p class="text-gray-600 text-sm mt-1" id="summaryCinema">載入中...</p>
-                    
                     <p class="text-vieshow-red text-md font-semibold mt-1" id="summaryTheater">載入中...</p> 
-                    
                     <p class="text-gray-600 text-sm" id="summaryShowtime">載入中...</p>
                 </div>
                 
@@ -258,6 +237,8 @@
 </main>
 
 <script>
+    const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api';
+    
     let currentBooking = {};
     let linePayQrCodeInstance = null; 
     let linePayRefreshInterval = null; 
@@ -266,16 +247,10 @@
         loadBookingDataForPayment();
     };
 
-    /**
-     * 從 localStorage 載入訂單資料並渲染摘要區。
-     * 由於 Step 4 (booking_flow_4.html) 已經計算了 totalPrice，
-     * 我們只需確保資料載入和顯示正確。
-     */
     function loadBookingDataForPayment() {
         const storedData = localStorage.getItem('currentBooking');
         if (!storedData) {
-            // 如果沒有訂單資料，導回流程起點
-            window.location.href = 'booking_flow_1.html';
+            alert('訂單資料已過期', () => window.location.href = 'booking_flow_1.html');
             return;
         }
 
@@ -287,7 +262,6 @@
             return;
         }
 
-        // 渲染訂單摘要
         document.getElementById('summaryMovieTitle').textContent = currentBooking.movie?.title || "未知電影";
         document.getElementById('summaryCinema').textContent = currentBooking.cinema?.name || "未知影城";
         document.getElementById('summaryTheater').textContent = currentBooking.showtime?.theater || "未知影廳";
@@ -303,27 +277,21 @@
             document.getElementById('summaryNotesContainer').classList.remove('hidden');
         }
 
-        // 顯示總計金額 (已由 Step 4 計算完畢)
         const total = currentBooking.totalPrice || 0;
         document.getElementById('summaryTotal').textContent = total.toLocaleString();
         document.getElementById('btnTotal').textContent = total.toLocaleString();
     }
 
-    /**
-     * 渲染購買清單中的票券和餐點明細
-     */
     function renderUnifiedList() {
         const container = document.getElementById('unifiedList');
         container.innerHTML = '';
         let allItems = [];
 
-        // 票券
         if (currentBooking.tickets) {
             Object.values(currentBooking.tickets).forEach(t => {
                 if (t.qty > 0) allItems.push({ name: t.name, qty: t.qty, price: t.price });
             });
         }
-        // 餐點
         if (currentBooking.combos) {
             Object.values(currentBooking.combos).forEach(c => {
                 if (c.qty > 0) allItems.push({ name: c.name, qty: c.qty, price: c.price });
@@ -348,39 +316,24 @@
         }
     }
 
-    /**
-     * 生成/刷新 Line Pay QR Code (用於自動和手動刷新)
-     */
     function generateLinePayQRCode() {
-        // 清除舊的 QR Code 實例
         if (linePayQrCodeInstance) {
             linePayQrCodeInstance.clear();
             linePayQrCodeInstance = null;
         }
-
         const qrTarget = document.getElementById('line-pay-qrcode');
         qrTarget.innerHTML = ''; 
-        
-        // 模擬內容：使用訂單資訊和時間戳確保條碼獨一無二且每次刷新都不同
-        const newQrContent = `VIESHOW_LINEPAY_PAYMENT_${currentBooking.orderId || 'TEMP'}_${currentBooking.totalPrice || 0}_${Date.now()}`;
+        const newQrContent = `VIESHOW_PAY_${Date.now()}`;
         
         linePayQrCodeInstance = new QRCode(qrTarget, {
             text: newQrContent,
-            width: 150,
-            height: 150,
-            colorDark : "#00B900", // Line Pay 綠
-            colorLight : "#ffffff",
+            width: 150, height: 150,
+            colorDark : "#00B900", colorLight : "#ffffff",
             correctLevel : QRCode.CorrectLevel.H
         });
-        
-        console.log("Line Pay QR Code refreshed (manual/auto) at:", new Date().toLocaleTimeString());
     }
 
-    /**
-     * 選擇付款方式時的邏輯：切換表單顯示並控制 Line Pay 計時器。
-     */
     function selectPayment(method) {
-        // 移除所有選項的 selected 樣式
         document.querySelectorAll('.payment-option').forEach(el => el.classList.remove('selected'));
         const radio = document.querySelector(`input[value="${method}"]`);
         if (radio) {
@@ -391,28 +344,19 @@
         const ccForm = document.getElementById('cc-form');
         const qrContainer = document.getElementById('line-pay-qr-container');
 
-        // 1. 清除舊的計時器
         if (linePayRefreshInterval) {
             clearInterval(linePayRefreshInterval);
             linePayRefreshInterval = null;
         }
 
-        // 2. 處理信用卡表單顯示
         method === 'credit_card' ? ccForm.classList.remove('hidden') : ccForm.classList.add('hidden');
 
-        // 3. 處理 Line Pay 邏輯
         if (method === 'line_pay') {
             qrContainer.classList.remove('hidden');
-            
-            // 立即生成 QR Code
             generateLinePayQRCode();
-            
-            // 設置每 5 分鐘自動刷新一次
-            const fiveMinutes = 5 * 60 * 1000;
-            linePayRefreshInterval = setInterval(generateLinePayQRCode, fiveMinutes); 
+            linePayRefreshInterval = setInterval(generateLinePayQRCode, 300000); 
         } else {
             qrContainer.classList.add('hidden');
-            // 此處已在步驟 1 清除計時器
         }
 
         const btn = document.getElementById('payButton');
@@ -421,42 +365,68 @@
         btn.classList.add('bg-vieshow-red', 'hover:bg-red-700', 'text-white');
     }
 
-    /**
-     * 模擬付款流程並導向成功頁面
-     */
-    function processPayment() {
+    // 【關鍵修改】呼叫後端 API 建立訂單
+    async function processPayment() {
+        const user = JSON.parse(localStorage.getItem('user'));
+        const token = localStorage.getItem('auth_token');
+
+        if (!user || !token) {
+            alert("請先登入"); return;
+        }
+
         const selectedMethod = document.querySelector('input[name="payment"]:checked');
         if (!selectedMethod) return;
 
-        // 確保在付款時清除 Line Pay 計時器
-        if (linePayRefreshInterval) {
-            clearInterval(linePayRefreshInterval);
-            linePayRefreshInterval = null;
-        }
+        if (linePayRefreshInterval) clearInterval(linePayRefreshInterval);
 
         const btn = document.getElementById('payButton');
         btn.disabled = true;
         btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> 處理中...`;
 
-        // 模擬 1.5 秒的支付處理時間
-        setTimeout(() => {
-            currentBooking.paymentMethod = selectedMethod.value;
-            currentBooking.paymentStatus = 'PAID';
-            currentBooking.paidAt = new Date().toISOString();
-            if(!currentBooking.orderId) currentBooking.orderId = 'VS' + Date.now().toString().slice(-8);
-            
-            localStorage.setItem('currentBooking', JSON.stringify(currentBooking));
-            switchToSuccessView();
-        }, 1500);
+        try {
+            // 準備傳送給後端的資料
+            const payload = {
+                memberId: user.id,
+                showingId: currentBooking.showtime.id,
+                ticketCount: currentBooking.totalTicketQty,
+                totalAmount: currentBooking.totalPrice,
+                seats: currentBooking.selectedSeats,
+                // 可以加入更多欄位如 paymentMethod
+            };
+
+            const response = await fetch(`${API_BASE_URL}/booking/create`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.status === "success") {
+                // 成功，顯示成功畫面
+                currentBooking.orderId = result.orderId;
+                switchToSuccessView();
+                
+                // 清除本地暫存
+                localStorage.removeItem('currentBooking');
+            } else {
+                alert(`付款失敗: ${result.message || "未知錯誤"}`);
+                btn.disabled = false;
+                btn.textContent = `確認付款 NT$ ${currentBooking.totalPrice}`;
+            }
+
+        } catch (e) {
+            console.error(e);
+            alert("連線錯誤，請稍後再試");
+            btn.disabled = false;
+            btn.textContent = `確認付款 NT$ ${currentBooking.totalPrice}`;
+        }
     }
 
-    /**
-     * 切換到訂購成功畫面並顯示最終票券資訊
-     */
     function switchToSuccessView() {
         document.getElementById('paymentSection').classList.add('hidden');
-        
-        // 更新標頭與步驟條狀態
         document.getElementById('headerStatus').textContent = "訂票完成";
         document.getElementById('headerStatus').classList.add('text-success-green', 'font-bold');
 
@@ -465,7 +435,6 @@
         document.getElementById('line-4-5').classList.remove('step-active');
         document.getElementById('line-4-5').classList.add('step-completed');
 
-        // 渲染完票成功資訊
         document.getElementById('finalOrderId').textContent = currentBooking.orderId;
         document.getElementById('ticketMovieTitle').textContent = currentBooking.movie?.title;
         document.getElementById('ticketCinema').textContent = currentBooking.cinema?.name;
@@ -475,7 +444,6 @@
             document.getElementById('ticketShowtime').textContent = `${currentBooking.showtime.date} ${currentBooking.showtime.time}`;
         }
 
-        // 渲染座位
         const seatsContainer = document.getElementById('ticketSeats');
         seatsContainer.innerHTML = '';
         if (currentBooking.selectedSeats) {
@@ -489,7 +457,6 @@
 
         document.getElementById('ticketTotalAmount').textContent = (currentBooking.totalPrice || 0).toLocaleString();
 
-        // 渲染餐點
         const foodList = [];
         if(currentBooking.combos) {
             Object.values(currentBooking.combos).forEach(c => {
@@ -498,21 +465,17 @@
         }
         document.getElementById('ticketFoodList').textContent = foodList.length > 0 ? foodList.join('、') : "未加購餐點";
 
-        // 渲染備註
         if (currentBooking.orderNotes && currentBooking.orderNotes.trim() !== "") {
             document.getElementById('ticketNotesContent').textContent = currentBooking.orderNotes;
             document.getElementById('ticketNotesSection').classList.remove('hidden');
         }
 
-        // 渲染入場 QR Code
         const qrContainer = document.getElementById('qrcode');
         qrContainer.innerHTML = ''; 
         new QRCode(qrContainer, {
             text: currentBooking.orderId,
-            width: 128,
-            height: 128,
-            colorDark : "#000000",
-            colorLight : "#ffffff",
+            width: 128, height: 128,
+            colorDark : "#000000", colorLight : "#ffffff",
             correctLevel : QRCode.CorrectLevel.H
         });
 
@@ -521,11 +484,35 @@
         
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+
+    // Custom Alert
+    function customAlert(message, callback) { 
+        const existingModal = document.getElementById('custom-alert-modal');
+        if (existingModal) existingModal.remove();
+        const handleConfirm = () => {
+            document.getElementById('custom-alert-modal').remove();
+            if (callback && typeof callback === 'function') { callback(); }
+        };
+        window.customAlertConfirm = handleConfirm;
+        const modalHtml = `
+            <div id="custom-alert-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
+                <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform scale-100 transition-all duration-300">
+                    <div class="text-xl font-bold text-gray-900 mb-3 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-vieshow-red mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>系統提示
+                    </div>
+                    <p class="text-gray-700 mb-5">${message}</p>
+                    <div class="flex justify-end">
+                        <button onclick="window.customAlertConfirm()" class="bg-vieshow-red hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-vieshow-red focus:ring-offset-2">確認</button>
+                    </div>
+                </div>
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+    window.alert = customAlert;
 </script>
 
 <footer class="bg-vieshow-dark text-white text-center py-4 mt-8 shadow-inner">
     <p>&copy; 2025 Vieshow Ticketing System</p>
 </footer>
-
 </body>
 </html>
