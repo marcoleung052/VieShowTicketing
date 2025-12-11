@@ -570,20 +570,37 @@
     });
 
     form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        if (!currentSelections.ticketType || !currentSelections.cinema || !currentSelections.movie || !currentSelections.showtime) {
-            alert('請完成所有選擇'); return;
-        }
-        localStorage.setItem('currentBooking', JSON.stringify({
-            ticketType: currentSelections.ticketType,
-            cinema: currentSelections.cinema,
-            movie: currentSelections.movie,
-            showtime: currentSelections.showtime
-        }));
-        // 送出後清除預選電影，避免下次干擾
-        sessionStorage.removeItem('preSelectedMovie');
-        window.location.href = currentSelections.ticketType === 'group' ? 'booking_flow_group.html' : 'booking_flow_2.html';
-    });
+            e.preventDefault();
+            if (!currentSelections.ticketType || !currentSelections.cinema || !currentSelections.movie || !currentSelections.showtime) {
+                alert('請完成所有選擇'); return;
+            }
+            
+            // 【修正重點】確保資料欄位名稱統一
+            // 這裡將 movie.name 轉存為 movie.title，將 showtime.format 轉存為 showtime.type
+            // 以便 booking_flow_2.html 可以正確讀取
+            
+            localStorage.setItem('currentBooking', JSON.stringify({
+                ticketType: currentSelections.ticketType,
+                cinema: currentSelections.cinema,
+                movie: {
+                    id: currentSelections.movie.id,
+                    title: currentSelections.movie.name, // 確保有 title
+                    ...currentSelections.movie 
+                },
+                showtime: {
+                    id: currentSelections.showtime.id,
+                    date: currentSelections.showtime.date,
+                    time: currentSelections.showtime.time,
+                    theater: currentSelections.showtime.theater,
+                    type: currentSelections.showtime.format, // 確保有 type
+                    ...currentSelections.showtime
+                }
+            }));
+            
+            // 送出後清除預選電影，避免下次干擾
+            sessionStorage.removeItem('preSelectedMovie');
+            window.location.href = currentSelections.ticketType === 'group' ? 'booking_flow_group.html' : 'booking_flow_2.html';
+        });
 
     window.onload = () => {
         if (checkLoginStatus()) {
@@ -620,4 +637,5 @@
 </script>
 </body>
 </html>
+
 
