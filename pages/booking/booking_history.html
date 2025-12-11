@@ -469,47 +469,58 @@
 
         // --- 退票 Modal 邏輯 (支援動態資料) ---
         let currentRefund = 0; 
+        let selectedRefundSeats = [];
         
         function renderModificationInputs(order) {
             const ticketContainer = document.getElementById('ticketAdjustments');
             const comboContainer = document.getElementById('comboAdjustments');
-            document.getElementById('totalTicketsQty').textContent = order.tickets.reduce((sum, t) => sum + t.qty, 0);
-            document.getElementById('totalCombosQty').textContent = order.food.reduce((sum, f) => sum + f.qty, 0);
-
-            ticketContainer.innerHTML = '';
-            comboContainer.innerHTML = '';
             
-            if (order.tickets && order.tickets.length > 0) {
-                order.tickets.forEach(ticket => {
-                    ticketContainer.innerHTML += `
-                        <div class="flex justify-between items-center bg-gray-50 p-3 rounded mb-2">
-                            <span>${ticket.name} (NT$ ${ticket.price})</span>
-                            <div class="flex items-center">
-                                <span class="text-xs text-gray-500 mr-2">可退: ${ticket.qty}</span>
-                                <input type="number" min="0" max="${ticket.qty}" value="0" 
-                                    data-price="${ticket.price}" class="w-16 border rounded text-center p-1" onchange="calculateRefund()">
-                            </div>
-                        </div>`;
-                });
-            }
+            // 歸零顯示
+            document.getElementById('totalTicketsQty').textContent = order.seats.length;
+            document.getElementById('totalCombosQty').textContent = 0; // 餐點暫時不處理退款，或視需求隱藏
 
-            if (order.food && order.food.length > 0) {
-                order.food.forEach(food => {
-                    comboContainer.innerHTML += `
-                        <div class="flex justify-between items-center bg-gray-50 p-3 rounded mb-2">
-                            <span>${food.name} (NT$ ${food.price})</span>
+            // 清空容器
+            ticketContainer.innerHTML = '';
+            comboContainer.innerHTML = ''; // 為了簡化，本次優化專注於「退座位」，隱藏餐點調整
+            comboContainer.innerHTML = '<p class="text-gray-400 text-xs italic p-2">部分退票時，餐點將保留於剩餘訂單中。</p>';
+
+            // 計算單價 (總額 / 座位數)
+            const unitPrice = order.seats.length > 0 ? Math.round(order.total / order.seats.length) : 0;
+
+            // 【關鍵】列出所有座位供勾選
+            if (order.seats && order.seats.length > 0) {
+                order.seats.forEach(seat => {
+                    // 如果座位是 "現場劃位" (舊資料)，則無法指定退位
+                    if (seat === "現場劃位") {
+                        ticketContainer.innerHTML = `<p class="text-red-500 p-2">此為舊系統訂單，僅支援整筆取消。</p>`;
+                        // 這裡可以做全退的按鈕，但為了統一先不處理
+                        return; 
+                    }
+
+                    ticketContainer.innerHTML += `
+                        <div class="flex items-center justify-between bg-gray-50 p-3 rounded mb-2 border border-gray-200 hover:bg-red-50 transition cursor-pointer" onclick="toggleRefundSeat('${seat}')">
                             <div class="flex items-center">
-                                <span class="text-xs text-gray-500 mr-2">可退: ${food.qty}</span>
-                                <input type="number" min="0" max="${food.qty}" value="0" 
-                                    data-price="${food.price}" class="w-16 border rounded text-center p-1" onchange="calculateRefund()">
+                                <input type="checkbox" id="chk-${seat}" value="${seat}" 
+                                    data-price="${unitPrice}" 
+                                    class="w-5 h-5 text-vieshow-red focus:ring-vieshow-red border-gray-300 rounded mr-3 pointer-events-none">
+                                <label for="chk-${seat}" class="font-bold text-gray-800 cursor-pointer pointer-events-none">座位 ${seat}</label>
                             </div>
+                            <span class="text-sm text-gray-600">可退: NT$ ${unitPrice}</span>
                         </div>`;
                 });
             } else {
-                comboContainer.innerHTML = '<p class="text-gray-500 text-sm p-3">此訂單未加購餐點。</p>';
+                ticketContainer.innerHTML = '<p class="text-gray-500 text-sm p-3">無座位資訊</p>';
             }
         }
 
+        // 【新增】點擊 Row 就勾選 Checkbox 的輔助函式
+        window.toggleRefundSeat = function(seat) {
+            const checkbox = document.getElementById(`chk-${seat}`);
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                calculateRefund(); // 觸發計算
+            }
+        }
         let currentRefundAmount = 0; // 金額
         let currentRefundQty = 0;    // 【新增】張數
 
@@ -517,39 +528,30 @@
         // 當您調整數量時，即時更新全域變數
         window.calculateRefund = function() {
             let totalMoney = 0;
-            let totalTickets = 0;
+            selectedRefundSeats = []; // 重置清單
 
-            // 計算票券
-            document.querySelectorAll('#ticketAdjustments input[type="number"]').forEach(input => {
-                const qty = parseInt(input.value) || 0;
+            // 遍歷所有被勾選的 Checkbox
+            document.querySelectorAll('#ticketAdjustments input[type="checkbox"]:checked').forEach(input => {
                 const price = parseInt(input.dataset.price) || 0;
-                
-                totalMoney += qty * price;
-                totalTickets += qty;
+                totalMoney += price;
+                selectedRefundSeats.push(input.value); // 加入座位號碼
             });
 
-            // 計算餐點 (餐點不算在退票張數 refundQty 裡，只算金額)
-            document.querySelectorAll('#comboAdjustments input[type="number"]').forEach(input => {
-                const qty = parseInt(input.value) || 0;
-                const price = parseInt(input.dataset.price) || 0;
-                totalMoney += qty * price;
-            });
-
-            // 更新全域變數
             currentRefundAmount = totalMoney;
-            currentRefundQty = totalTickets;
 
-            // 更新畫面顯示
+            // 更新畫面
             document.getElementById('expectedRefundAmount').textContent = totalMoney.toLocaleString();
             
-            // 控制按鈕狀態：只要金額 > 0 或 票數 > 0 就可以下一步
+            // 按鈕狀態控制
             const btn = document.getElementById('nextStepBtn');
-            if (totalMoney > 0 || totalTickets > 0) {
+            if (selectedRefundSeats.length > 0) {
                 btn.disabled = false;
+                btn.textContent = `下一步：確認退掉 ${selectedRefundSeats.length} 個座位`;
                 btn.classList.remove('bg-gray-400', 'cursor-not-allowed');
                 btn.classList.add('bg-vieshow-red', 'hover:bg-red-700');
             } else {
                 btn.disabled = true;
+                btn.textContent = "請選擇要退的座位";
                 btn.classList.add('bg-gray-400', 'cursor-not-allowed');
                 btn.classList.remove('bg-vieshow-red', 'hover:bg-red-700');
             }
@@ -584,7 +586,7 @@
         }
 
        window.submitRefundApplication = async function() {
-            // 驗證銀行資訊
+            // 驗證銀行資訊 (保持不變)
             const bankCode = document.getElementById('bankCode').value;
             const bankAccount = document.getElementById('bankAccount').value;
             const accountName = document.getElementById('accountName').value;
@@ -598,9 +600,8 @@
                 return;
             }
 
-            // 【關鍵修改】直接使用 currentRefundQty 變數檢查
-            if (currentRefundQty <= 0) {
-                alert("請至少選擇一張票進行退票");
+            if (selectedRefundSeats.length <= 0) {
+                alert("請至少選擇一個座位");
                 return;
             }
 
@@ -611,26 +612,24 @@
             btn.textContent = "處理中...";
 
             try {
-                // 發送 API 請求
+                // 【關鍵】傳送 refundSeats 陣列給後端
                 const response = await fetch(`${API_BASE_URL}/booking/modify`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         orderId: currentBookingDetail.id,
                         memberId: user ? user.id : null,
-                        refundQty: currentRefundQty // 直接傳送變數值
+                        refundSeats: selectedRefundSeats // 傳送 ['A1', 'A2']
                     })
                 });
 
                 const result = await response.json();
 
                 if (response.ok) {
-                    // 成功
                     document.getElementById('finalRefundAmount').textContent = currentRefundAmount.toLocaleString();
                     document.getElementById('step2').classList.add('hidden');
                     document.getElementById('step3').classList.remove('hidden');
-                    
-                    fetchOrders(); // 重新載入列表
+                    fetchOrders(); 
                 } else {
                     alert(`❌ 失敗: ${result.message}`);
                 }
@@ -681,6 +680,7 @@
     </script>
 </body>
 </html>
+
 
 
 
