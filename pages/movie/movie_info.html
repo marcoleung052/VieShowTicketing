@@ -159,6 +159,9 @@
                         平均觀眾評分：
                         <span id="scoreValue" class="text-vieshow-red text-4xl font-extrabold ml-2">${movie.averageRating ? movie.averageRating.toFixed(1) : '0.0'}</span> / 5.0
                     </p>
+                    <p class="text-sm text-gray-500 mt-1 text-center">
+                        (共 <span id="voteCount">${movie.totalVotes}</span> 位觀眾評分)
+                    </p>
                 `;
                 
                 if (bookingButtonWrapper) {
@@ -234,6 +237,7 @@
                             alert(`🎉 ${result.message}！感謝您的回饋。`);
                             // 更新畫面上的平均分
                             document.getElementById('scoreValue').textContent = result.newAverage.toFixed(1);
+                            document.getElementById('voteCount').textContent = result.newTotalVotes;
                         } else {
                             alert(`❌ 評分失敗：${result.message}`);
                         }
@@ -306,3 +310,4 @@
     </script>
 </body>
 </html>
+
