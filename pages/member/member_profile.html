@@ -43,34 +43,34 @@
 
             <div id="messageContainer" class="hidden p-3 mb-4 rounded-lg font-medium" role="alert"></div>
 
-            <form id="profileForm" action="#" method="POST" class="space-y-6">
+            <form id="profileForm" class="space-y-6">
                 
                 <div>
                     <label for="memberName" class="block text-sm font-medium text-gray-700 mb-1">姓名:</label>
                     <input type="text" id="memberName" name="memberName" required 
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-vieshow-red focus:border-vieshow-red transition duration-150"
-                            value="李怡萱">
+                            placeholder="載入中...">
                 </div>
                 
                 <div>
                     <label for="memberEmail" class="block text-sm font-medium text-gray-700 mb-1">電子郵件 (Email):</label>
                     <input type="email" id="memberEmail" name="memberEmail" required 
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-vieshow-red focus:border-vieshow-red transition duration-150"
-                            value="yihsuan@vieshow.com">
+                            placeholder="載入中...">
                 </div>
                 
                 <div>
                     <label for="memberPhone" class="block text-sm font-medium text-gray-700 mb-1">行動電話:</label>
                     <input type="tel" id="memberPhone" name="memberPhone" required
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-vieshow-red focus:border-vieshow-red transition duration-150"
-                            value="0912345678">
+                            placeholder="載入中...">
                 </div>
                 
                 <div>
                     <label for="memberBirth" class="block text-sm font-medium text-gray-700 mb-1">生日:</label>
-                    <input type="date" id="memberBirth" name="memberBirth" required
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-vieshow-red focus:border-vieshow-red transition duration-150"
-                            value="1995-10-22">
+                    <input type="date" id="memberBirth" name="memberBirth" required disabled
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed text-gray-500">
+                    <p class="text-xs text-gray-400 mt-1">生日資訊無法修改，如需變更請聯繫客服。</p>
                 </div>
                 
                 <p class="pt-2 text-lg">
@@ -79,7 +79,7 @@
                     </a>
                 </p>
 
-                <button type="submit" class="update-button w-full bg-vieshow-red text-white py-3 rounded-lg font-bold text-lg hover:bg-red-700 transition duration-200 shadow-md">
+                <button type="submit" id="submitButton" class="update-button w-full bg-vieshow-red text-white py-3 rounded-lg font-bold text-lg hover:bg-red-700 transition duration-200 shadow-md">
                     儲存變更
                 </button>
             </form>
@@ -94,17 +94,14 @@
     </footer>
 
     <script>
-        // ----------------------------------------------------
-        // 1. 頁面路徑常數定義
-        // ----------------------------------------------------
+        // 1. 設定後端 API 網址
+        const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api';
+
         const LOGIN_PAGE_URL = '../auth/login.html';
         const MEMBER_HOME_URL = 'member_home.html';
         const INDEX_PAGE_URL = '../../index.html';
 
-        // ----------------------------------------------------
-        // 2. 核心函數：登入/登出狀態渲染
-        // ----------------------------------------------------
-
+        // 2. 導覽列與登入狀態渲染
         function renderLoggedOutState() {
             const headerNavRight = document.getElementById('headerNavRight');
             if (!headerNavRight) return;
@@ -126,66 +123,147 @@
             document.getElementById('signOutLink')?.addEventListener('click', handleSignOut);
         }
 
-        /**
-         * 【***修正區塊 1/2***】處理登出邏輯，將動作延遲到 customAlert 的 callback 中。
-         */
         function handleSignOut(e) {
             e.preventDefault();
-            
-            // 由於清除 token 和跳轉必須在用戶按「確認」後才執行
-            const signOutCallback = () => {
-                // 1. 清除登入狀態
-                localStorage.removeItem('auth_token');
-
-                // 2. 延遲導向首頁
-                setTimeout(() => {
-                    window.location.href = INDEX_PAGE_URL;
-                }, 2000);
-
-                // 立即更新 UI 狀態
-                renderUI(); 
-            };
-
-            // 顯示登出訊息，並將包含清除 token 和跳轉的函數作為 callback 傳入
-            customAlert('您已成功登出。即將導向首頁...', signOutCallback); 
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            alert('您已成功登出。即將導向首頁...', () => {
+                window.location.href = INDEX_PAGE_URL;
+            }); 
         }
 
         function renderUI() {
             const token = localStorage.getItem('auth_token');
-
             if (token) {
                 renderLoggedInState(); 
             } else {
-                renderLoggedOutState(); 
+                renderLoggedOutState();
             }
         }
 
+        // 3. 頁面邏輯
+        function showFormMessage(text, type) {
+            const container = document.getElementById('messageContainer');
+            container.textContent = text;
+            container.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
+            
+            if (type === 'success') {
+                container.classList.add('bg-green-100', 'text-green-800');
+            } else if (type === 'error') {
+                container.classList.add('bg-red-100', 'text-red-800');
+            }
 
-        // ----------------------------------------------------
-        // 3. 【***修正區塊 2/2***】統一的自定義 Alert 函數 (新增 callback 支援)
-        // ----------------------------------------------------
+            setTimeout(() => {
+                container.classList.add('hidden');
+            }, 3000);
+        }
 
-        /**
-         * 自定義 Modal 警告框，並接受一個點擊確認後執行的 callback 函數。
-         * @param {string} message - 顯示的訊息。
-         * @param {function} [callback] - 用戶點擊「確認」後要執行的函數 (可選)。
-         */
-        function customAlert(message, callback) { 
+        // 載入會員資料
+        async function loadProfile(userId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/member/profile?id=${userId}`);
+                if (!response.ok) throw new Error('無法取得會員資料');
+                
+                const data = await response.json();
+                
+                document.getElementById('memberName').value = data.name;
+                document.getElementById('memberEmail').value = data.email;
+                document.getElementById('memberPhone').value = data.phone;
+                
+                // 處理生日格式 (資料庫可能是 YYYY/MM/DD 或 YYYY-MM-DD)
+                let dob = data.dob.replace(/\//g, '-'); 
+                document.getElementById('memberBirth').value = dob;
+
+            } catch (error) {
+                console.error("API Error:", error);
+                showFormMessage('載入資料失敗，請稍後再試', 'error');
+            }
+        }
+
+        // 提交更新
+        document.getElementById('profileForm').addEventListener('submit', async function(e) {
+            e.preventDefault(); 
+            
+            const submitButton = document.getElementById('submitButton');
+            submitButton.disabled = true;
+            submitButton.textContent = '更新中...';
+
+            const user = JSON.parse(localStorage.getItem('user'));
+            const name = document.getElementById('memberName').value;
+            const phone = document.getElementById('memberPhone').value;
+            const email = document.getElementById('memberEmail').value;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/member/profile`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        memberId: user.id,
+                        name: name,
+                        phone: phone,
+                        email: email
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showFormMessage('🎉 資料更新成功！', 'success');
+                    // 更新 localStorage 中的 user 名稱 (如果有的話)
+                    user.name = name;
+                    user.email = email;
+                    localStorage.setItem('user', JSON.stringify(user));
+                } else {
+                    showFormMessage(`❌ 更新失敗: ${result.message}`, 'error');
+                }
+
+            } catch (error) {
+                console.error("API Error:", error);
+                showFormMessage('連線伺服器失敗', 'error');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = '儲存變更';
+            }
+        });
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', async () => {
+            renderUI();
+            
+            const user = JSON.parse(localStorage.getItem('user'));
+            const token = localStorage.getItem('auth_token');
+
+            if (!token || !user) {
+                alert('請先登入以修改資料', () => {
+                    window.location.href = `${LOGIN_PAGE_URL}?redirect=${encodeURIComponent(window.location.href)}`;
+                });
+                return;
+            }
+
+            await loadProfile(user.id);
+
+            // 修改密碼的回跳網址
+            const changePasswordLink = document.getElementById('changePasswordLink');
+            if (changePasswordLink) {
+                const currentUrl = window.location.href; 
+                const encodedUrl = encodeURIComponent(currentUrl);
+                changePasswordLink.href = `../auth/forget_password.html?redirect=${encodedUrl}`;
+            }
+        });
+        
+        // 自定義 Alert
+        function alert(message, callback) { 
             const existingModal = document.getElementById('custom-alert-modal');
             if (existingModal) existingModal.remove();
 
-            // 處理點擊「確認」的邏輯
             const handleConfirm = () => {
                 document.getElementById('custom-alert-modal').remove();
-                // 只有在用戶點擊確認後，才執行傳入的 callback 函數
                 if (callback && typeof callback === 'function') {
                     callback(); 
                 }
             };
 
-            // 將 handleConfirm 函數註冊到全域，確保 HTML onclick 可以找到它
             window.customAlertConfirm = handleConfirm;
-
 
             const modalHtml = `
                 <div id="custom-alert-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
@@ -208,68 +286,7 @@
             `;
             document.body.insertAdjacentHTML('beforeend', modalHtml);
         }
-
-        // 覆寫瀏覽器內建的 alert，統一使用 customAlert
-        window.alert = customAlert;
-
-        // ----------------------------------------------------
-        // 4. 表單處理邏輯 (未變動)
-        // ----------------------------------------------------
-
-        /**
-         * 顯示一個自定義的頂部通知
-         */
-        function showFormMessage(text, type) {
-            const container = document.getElementById('messageContainer');
-            container.textContent = text;
-            container.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
-            
-            if (type === 'success') {
-                container.classList.add('bg-green-100', 'text-green-800');
-            } else if (type === 'error') {
-                container.classList.add('bg-red-100', 'text-red-800');
-            }
-
-            // 3秒後隱藏
-            setTimeout(() => {
-                container.classList.add('hidden');
-            }, 3000);
-        }
-
-        document.getElementById('profileForm').addEventListener('submit', function(e) {
-            e.preventDefault(); 
-            
-            // 模擬 AJAX 提交或後端更新操作
-            const name = document.getElementById('memberName').value;
-            const phone = document.getElementById('memberPhone').value;
-            const birth = document.getElementById('memberBirth').value;
-
-            console.log("模擬提交的會員資料:", { name, phone, birth });
-
-            // 模擬成功回覆
-            showFormMessage('🎉 資料更新成功！', 'success');
-        });
-
-        // ----------------------------------------------------
-        // 5. 初始化 (未變動)
-        // ----------------------------------------------------
-        document.addEventListener('DOMContentLoaded', () => {
-            // 渲染導覽列 UI
-            renderUI();
-            
-            // 【新增的邏輯：設置修改密碼的回跳網址】
-            const changePasswordLink = document.getElementById('changePasswordLink');
-            if (changePasswordLink) {
-                // 1. 取得當前網頁的完整路徑（確保包含所有參數）
-                const currentUrl = window.location.href; 
-                
-                // 2. 將當前網址進行編碼
-                const encodedUrl = encodeURIComponent(currentUrl);
-                
-                // 3. 組合新的 href 屬性：忘記密碼頁面?redirect=編碼後的當前網址
-                changePasswordLink.href = `../auth/forget_password.html?redirect=${encodedUrl}`;
-            }
-        });
+        window.alert = alert;
     </script>
     
 </body>
