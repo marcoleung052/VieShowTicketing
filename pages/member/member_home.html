@@ -12,13 +12,12 @@
     <style>
         /* 自定義樣式 */
         .btn-action {
-            /* 讓方塊變大：增加 padding */
             display: flex;
-            flex-direction: column; /* 讓圖標和文字上下排列 */
+            flex-direction: column; 
             align-items: center;
             justify-content: center;
             padding: 1.5rem 1rem;
-            height: 100%; /* 確保網格中的每個項目等高 */
+            height: 100%; 
             border-radius: 0.5rem;
             font-weight: 700;
             transition: all 0.2s ease-in-out;
@@ -27,7 +26,7 @@
             border: 1px solid transparent;
         }
         .btn-action span.icon {
-            font-size: 1.5rem; /* 增大圖標 */
+            font-size: 1.5rem; 
             margin-bottom: 0.5rem;
         }
         .btn-action:hover {
@@ -35,7 +34,6 @@
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
         
-        /* 調整登出按鈕 */
         .btn-logout-action {
             display: flex;
             align-items: center;
@@ -51,7 +49,7 @@
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
 
-        /* 新增通知動畫 */
+        /* 通知動畫 */
         @keyframes fadeInDown {
             from { opacity: 0; transform: translate(-50%, -20px); }
             to { opacity: 1; transform: translate(-50%, 0); }
@@ -63,14 +61,12 @@
         .animate-fade-in-down { animation: fadeInDown 0.5s ease-out forwards; }
         .animate-fade-out-up { animation: fadeOutUp 0.5s ease-in forwards; }
 
-        /* 條碼容器和顯示調整 (確保與功能方塊視覺比例一致) */
         .barcode-container {
-            /* 設置固定高度，使其看起來與功能按鈕的視覺高度相似 */
             height: 10rem; 
             display: flex;
-            align-items: center; /* 讓條碼垂直置中 */
+            align-items: center; 
             justify-content: center;
-            border: 1px solid #ccc; /* 增加邊框讓其看起來更像一個獨立方塊 */
+            border: 1px solid #ccc; 
             border-radius: 0.5rem;
             padding: 10px;
             background-color: white;
@@ -78,7 +74,7 @@
         }
         .barcode-display {
             font-family: 'Libre Barcode 128', monospace;
-            font-size: 80px; /* 增大條碼本身，填滿容器 */
+            font-size: 80px; 
             text-align: center;
             line-height: 1;
             display: block;
@@ -113,8 +109,7 @@
         <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
             <a href="../../index.html" class="text-xl font-bold hover:text-vieshow-red transition duration-300">Vieshow 影城</a>
             <div id="headerNavRight" class="space-x-4 flex items-center">
-                <span class="text-sm font-medium">歡迎，<span id="memberName"></span></span>
-                </div>
+                <span class="text-sm font-medium">歡迎，<span id="memberName">載入中...</span></span>
             </div>
         </nav>
     </header>
@@ -137,7 +132,7 @@
                         <span id="profile_name" class="font-bold"></span>
                     </p>
                     <p>
-                        <span class="font-semibold text-gray-600 w-20 inline-block">gmail:</span> 
+                        <span class="font-semibold text-gray-600 w-20 inline-block">Email:</span> 
                         <span id="profile_email"></span>
                     </p>
                     <p>
@@ -211,22 +206,11 @@
     </footer>
 
     <script>
+        // 1. 設定後端 API 網址
+        const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api';
+
         const LOGIN_PAGE_URL = '../auth/login.html';
         const INDEX_PAGE_URL = '../../index.html';
-
-        /**
-         * 模擬資料庫獲取的會員資料 (虛擬資料庫)
-         */
-        const MEMBER_DATA = {
-            name: "王大明",
-            email: "david.wang@vieshow.tw",
-            phone: "0912 345 678",
-            dob: "1998/10/25",
-            points: "20,000",
-            memberId: "1234567890", // 10 位數
-            barcodeContent: "1234567890" // 條碼編碼內容
-        };
-
 
         /**
          * 統一的通知顯示函數
@@ -247,76 +231,79 @@
         }
 
         /**
-         * 檢查登入狀態：如果沒有 Token 則跳轉到登入頁。
+         * 檢查登入狀態
          */
         function checkLoginStatus() {
             const token = localStorage.getItem('auth_token');
-            if (!token) {
+            const user = JSON.parse(localStorage.getItem('user'));
+            
+            if (!token || !user) {
                 window.location.href = LOGIN_PAGE_URL; 
                 document.body.innerHTML = '<p class="text-center text-xl p-10">您尚未登入，正在導向登入頁面...</p>';
-                return false;
+                return null;
             }
-            return true;
+            return user;
         }
         
         /**
-         * 渲染會員資料到頁面 (模擬從資料庫讀取後渲染)
+         * 獲取會員完整資料並渲染
          */
-        function renderMemberData() {
-            // Header 歡迎語
-            document.getElementById('memberName').textContent = MEMBER_DATA.name;
-            document.getElementById('memberGreetingName').textContent = MEMBER_DATA.name;
+        async function fetchAndRenderMemberData(userId) {
+            try {
+                // 呼叫後端 API
+                const response = await fetch(`${API_BASE_URL}/member/profile?id=${userId}`);
+                
+                if (!response.ok) throw new Error('無法取得會員資料');
+                
+                const memberData = await response.json();
+                
+                // 渲染資料
+                document.getElementById('memberName').textContent = memberData.name;
+                document.getElementById('memberGreetingName').textContent = memberData.name;
 
-            // 會員詳細資料
-            document.getElementById('profile_name').textContent = MEMBER_DATA.name;
-            document.getElementById('profile_email').textContent = MEMBER_DATA.email;
-            document.getElementById('profile_phone').textContent = MEMBER_DATA.phone;
-            document.getElementById('profile_dob').textContent = MEMBER_DATA.dob;
-            document.getElementById('profile_points').textContent = MEMBER_DATA.points;
-            document.getElementById('profile_member_id').textContent = MEMBER_DATA.memberId;
-            
-            // 條碼內容
-            document.getElementById('barcodeValue').textContent = MEMBER_DATA.barcodeContent;
+                document.getElementById('profile_name').textContent = memberData.name;
+                document.getElementById('profile_email').textContent = memberData.email;
+                document.getElementById('profile_phone').textContent = memberData.phone;
+                document.getElementById('profile_dob').textContent = memberData.dob;
+                document.getElementById('profile_points').textContent = memberData.points;
+                document.getElementById('profile_member_id').textContent = memberData.memberId;
+                
+                // 條碼使用 cardID 或 memberID
+                document.getElementById('barcodeValue').textContent = memberData.cardId || memberData.memberId;
+
+            } catch (error) {
+                console.error("API Error:", error);
+                showNotification('無法載入會員資料，請稍後再試', true);
+            }
         }
 
-
-        // --- 登出處理 (不更改邏輯) ---
+        // --- 登出處理 ---
         document.getElementById('signOutButton').addEventListener('click', function(e) {
             e.preventDefault(); 
 
-            // 禁用按鈕以防止重複點擊
             this.disabled = true; 
             this.textContent = '登出中...';
 
-            // 1. 清除登入狀態的關鍵步驟
+            // 清除登入狀態
             localStorage.removeItem('auth_token'); 
+            localStorage.removeItem('user'); 
 
-            // 2. 顯示登出訊息 (使用彈跳框)
             showNotification('✅ 登出成功！即將導向首頁...', false);
 
-            // 3. 替換 Header 導航為未登入狀態 (視覺更新)
-            const headerNavRight = document.getElementById('headerNavRight');
-            if (headerNavRight) {
-                headerNavRight.innerHTML = `
-                    <a href="${LOGIN_PAGE_URL}" class="hover:text-vieshow-gold transition duration-300">登入</a>
-                    <a href="../auth/register.html" class="hover:text-vieshow-gold transition duration-300">註冊</a>
-                `;
-            }
-
-            // 4. 延遲 2 秒後導向首頁
+            // 導向首頁
             setTimeout(() => {
                 window.location.href = INDEX_PAGE_URL; 
             }, 2000);
         });
 
         // 頁面載入時執行檢查與資料渲染
-        window.onload = function() {
-            if (!checkLoginStatus()) {
-                return; 
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = checkLoginStatus();
+            if (user) {
+                await fetchAndRenderMemberData(user.id);
+                console.log("會員中心頁面初始化完成。");
             }
-            renderMemberData(); // 渲染模擬的會員資料
-            console.log("會員中心頁面初始化完成，虛擬資料已載入。");
-        };
+        });
     </script>
 
 </body>
