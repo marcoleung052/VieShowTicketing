@@ -577,21 +577,32 @@
                 return;
             }
 
-            // 【新增】呼叫後端取消 API
+            // 【新增】計算使用者總共選了幾張票要退
+            let totalRefundQty = 0;
+            document.querySelectorAll('#ticketAdjustments input[data-type="ticket"]').forEach(input => {
+                totalRefundQty += parseInt(input.value) || 0;
+            });
+
+            if (totalRefundQty <= 0) {
+                alert("請至少選擇一張票進行退票");
+                return;
+            }
+
             const user = JSON.parse(localStorage.getItem('user'));
-            const btn = document.querySelector('#step2 button:last-child'); // 確認按鈕
+            const btn = document.querySelector('#step2 button:last-child');
             
-            // 鎖定按鈕避免重複點擊
             btn.disabled = true;
             btn.textContent = "處理中...";
 
             try {
-                const response = await fetch(`${API_BASE_URL}/booking/cancel`, {
+                // 改為呼叫 modify 路由
+                const response = await fetch(`${API_BASE_URL}/booking/modify`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         orderId: currentBookingDetail.id,
-                        memberId: user ? user.id : null // 傳送 memberId 以便退點數
+                        memberId: user ? user.id : null,
+                        refundQty: totalRefundQty // 傳送要退幾張
                     })
                 });
 
@@ -603,10 +614,10 @@
                     document.getElementById('step2').classList.add('hidden');
                     document.getElementById('step3').classList.remove('hidden');
                     
-                    // 重新載入列表以更新狀態
+                    // 重新載入列表以更新 UI (會看到金額變少，或者變灰色取消)
                     fetchOrders(); 
                 } else {
-                    alert(`❌ 退票失敗: ${result.message}`);
+                    alert(`❌ 操作失敗: ${result.message}`);
                 }
 
             } catch (error) {
@@ -656,4 +667,5 @@
     </script>
 </body>
 </html>
+
 
