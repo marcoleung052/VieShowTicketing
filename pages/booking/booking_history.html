@@ -562,10 +562,60 @@
             document.getElementById('step2').classList.remove('hidden');
         }
 
-        window.submitRefundApplication = function() {
-            document.getElementById('finalRefundAmount').textContent = currentRefund.toLocaleString();
-            document.getElementById('step2').classList.add('hidden');
-            document.getElementById('step3').classList.remove('hidden');
+       window.submitRefundApplication = async function() {
+            // 驗證輸入 (保留原本的邏輯)
+            const bankCode = document.getElementById('bankCode').value;
+            const bankAccount = document.getElementById('bankAccount').value;
+            const accountName = document.getElementById('accountName').value;
+
+            if (!bankCode || !bankAccount || !accountName) {
+                alert('請填寫完整的銀行帳號資訊！');
+                return;
+            }
+            if (bankCode.length !== 3 || isNaN(bankCode)) {
+                alert('銀行代碼必須是三碼數字！');
+                return;
+            }
+
+            // 【新增】呼叫後端取消 API
+            const user = JSON.parse(localStorage.getItem('user'));
+            const btn = document.querySelector('#step2 button:last-child'); // 確認按鈕
+            
+            // 鎖定按鈕避免重複點擊
+            btn.disabled = true;
+            btn.textContent = "處理中...";
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/booking/cancel`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        orderId: currentBookingDetail.id,
+                        memberId: user ? user.id : null // 傳送 memberId 以便退點數
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // 成功：顯示成功畫面
+                    document.getElementById('finalRefundAmount').textContent = currentRefund.toLocaleString();
+                    document.getElementById('step2').classList.add('hidden');
+                    document.getElementById('step3').classList.remove('hidden');
+                    
+                    // 重新載入列表以更新狀態
+                    fetchOrders(); 
+                } else {
+                    alert(`❌ 退票失敗: ${result.message}`);
+                }
+
+            } catch (error) {
+                console.error("API Error:", error);
+                alert('連線錯誤，請稍後再試');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "確認送出退票申請";
+            }
         }
 
         function renderPagination(totalItems) { 
@@ -606,3 +656,4 @@
     </script>
 </body>
 </html>
+
