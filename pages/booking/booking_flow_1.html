@@ -118,6 +118,27 @@
         .next-step-button:disabled { background-color: #fda4af; cursor: not-allowed; }
         .loading-message { text-align: center; margin-top: 1.5rem; font-size: 0.95rem; color: #6b7280; }
         footer { text-align: center; padding: 1.5rem; background-color: #1a1a1a; color: #9ca3af; font-size: 0.875rem; margin-top: 2rem; }
+        
+        /* 載入更多按鈕樣式 */
+        .load-more-btn {
+            display: block;
+            width: 100%;
+            max-width: 200px;
+            margin: 1.5rem auto 0;
+            padding: 0.75rem;
+            background-color: white;
+            color: #6b7280;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .load-more-btn:hover {
+            color: #e50914;
+            border-color: #e50914;
+            background-color: #fff1f2;
+        }
     </style>
 </head>
 <body>
@@ -208,6 +229,7 @@
                         <div id="showtimeSelection" class="showtime-section">
                             <div style="text-align: center; padding: 2rem 0; color: var(--gray-500);">請先選擇電影以顯示場次資訊</div>
                         </div>
+                        <div id="loadMoreContainer"></div>
                     </div>
                     
                     <div id="loadingStatus" class="loading-message"></div>
@@ -250,11 +272,18 @@
         const cinemaSelect = document.getElementById('cinema_location');
         const movieSelection = document.getElementById('movieSelection');
         const showtimeSelection = document.getElementById('showtimeSelection');
+        const loadMoreContainer = document.getElementById('loadMoreContainer');
         const nextButton = document.getElementById('nextStepButton');
         const loadingStatus = document.getElementById('loadingStatus');
         const form = document.getElementById('bookingFlow1Form');
         
         let currentSelections = { ticketType: null, cinema: null, movie: null, showtime: null };
+        
+        // --- 全域變數用於分頁控制 ---
+        let allGroupedShowtimes = {}; // 儲存所有已分組的場次
+        let allSortedDates = [];      // 儲存所有日期鍵值
+        let currentDateIndex = 0;     // 目前顯示到第幾個日期
+        const DAYS_PER_LOAD = 2;      // 每次載入幾天
 
         // --- 核心 API 呼叫 ---
         async function loadCinemas() {
@@ -281,7 +310,6 @@
                 const res = await fetch(`${API_BASE_URL}/movie/showtimes?location=${cinemaId}`);
                 const showtimes = await res.json();
                 
-                // 整理該影城有的電影 ID
                 const uniqueMovies = {};
                 showtimes.forEach(s => {
                     if (!uniqueMovies[s.movieId]) {
@@ -294,7 +322,6 @@
                     movieSelection.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:#6b7280;">此影城暫無電影場次</div>'; return;
                 }
 
-                // 產生電影卡片
                 Object.values(uniqueMovies).forEach(async (m) => {
                     let details = { posterUrl: '', grade: '', duration: '', info: '' };
                     try {
@@ -305,8 +332,6 @@
                     const card = document.createElement('div');
                     card.className = 'movie-card cursor-pointer';
                     card.dataset.movieId = m.id;
-                    
-                    // 【關鍵修正】：如果圖片是相對路徑，加上 ../../ 回到根目錄
                     let poster = details.posterUrl || 'https://placehold.co/300x450?text=No+Poster';
                     if (poster && !poster.startsWith('http') && !poster.startsWith('data:')) {
                         poster = '../../' + poster; 
@@ -333,20 +358,16 @@
                 document.getElementById('movieSelectionSection').classList.remove('hidden');
                 updateStepIndicator(2);
 
-                // 【關鍵功能】：檢查網址是否有 movie_id，若有且該電影存在於此影城，自動選取
                 const urlParams = new URLSearchParams(window.location.search);
                 const preMovieId = urlParams.get('movie_id');
                 if (preMovieId && uniqueMovies[preMovieId]) {
-                    // 使用 setTimeout 確保 DOM 渲染完畢後再點擊
                     setTimeout(() => {
                         const targetCard = document.querySelector(`.movie-card[data-movie-id="${preMovieId}"]`);
                         if(targetCard) {
-                            console.log("自動選取電影:", preMovieId);
                             targetCard.click();
-                            // 滾動到電影選擇區
                             targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         }
-                    }, 800); // 給一點時間讓非同步的 details fetch 完成
+                    }, 800);
                 }
 
             } catch (e) { console.error(e); movieSelection.innerHTML = '載入失敗'; }
@@ -354,7 +375,9 @@
 
         async function loadShowtimes(cinemaId, movieId) {
             showtimeSelection.innerHTML = '<div style="text-align:center; padding:2rem; color:#6b7280;">載入場次...</div>';
+            loadMoreContainer.innerHTML = ''; // 清除舊按鈕
             resetSelection(3);
+            
             try {
                 const res = await fetch(`${API_BASE_URL}/movie/showtimes?location=${cinemaId}&movie=${movieId}`);
                 const showtimes = await res.json();
@@ -364,36 +387,83 @@
                     showtimeSelection.innerHTML = '<div style="text-align:center; padding:2rem; color:#6b7280;">無可用場次</div>'; return;
                 }
 
-                const grouped = {};
+                // 1. 整理並分組所有場次 (不直接渲染)
+                allGroupedShowtimes = {};
                 showtimes.forEach(s => {
-                    if (!grouped[s.date]) grouped[s.date] = [];
-                    grouped[s.date].push(s);
+                    if (!allGroupedShowtimes[s.date]) allGroupedShowtimes[s.date] = [];
+                    allGroupedShowtimes[s.date].push(s);
                 });
 
-                Object.keys(grouped).sort().forEach(date => {
-                    const section = document.createElement('div'); section.className = 'date-section';
-                    section.innerHTML = `<h4 class="date-header">${date}</h4>`;
-                    const grid = document.createElement('div'); grid.className = 'showtime-grid';
-                    
-                    grouped[date].forEach(s => {
-                        const card = document.createElement('div'); card.className = 'showtime-card';
-                        card.dataset.id = s.id;
-                        card.innerHTML = `
-                            <div class="showtime-time">${s.time}</div>
-                            <div class="showtime-details">
-                                <div class="showtime-row"><span>影廳:</span><span class="font-medium">${s.theater}</span></div>
-                                <div class="showtime-row"><span>版本:</span><span class="font-medium">${s.format}</span></div>
-                            </div>`;
-                        card.onclick = () => selectShowtime(s);
-                        grid.appendChild(card);
-                    });
-                    section.appendChild(grid);
-                    showtimeSelection.appendChild(section);
-                });
+                // 2. 取得排序後的日期陣列
+                allSortedDates = Object.keys(allGroupedShowtimes).sort();
+                currentDateIndex = 0; // 重置計數器
+
+                // 3. 渲染前 2 天
+                renderShowtimesBatch();
                 
                 document.getElementById('showtimeSelectionSection').classList.remove('hidden');
                 updateStepIndicator(3);
+                
             } catch (e) { console.error(e); showtimeSelection.innerHTML = '載入失敗'; }
+        }
+
+        // --- 新增：分批渲染場次邏輯 ---
+        function renderShowtimesBatch() {
+            // 計算這次要渲染到哪個索引 (例如 0 -> 2, 2 -> 4)
+            const nextIndex = Math.min(currentDateIndex + DAYS_PER_LOAD, allSortedDates.length);
+            
+            // 取出這批要顯示的日期
+            const datesToRender = allSortedDates.slice(currentDateIndex, nextIndex);
+            
+            datesToRender.forEach(date => {
+                const section = document.createElement('div'); 
+                section.className = 'date-section';
+                // 添加淡入動畫效果
+                section.style.opacity = '0';
+                section.style.transition = 'opacity 0.5s ease-in';
+                
+                section.innerHTML = `<h4 class="date-header">${date}</h4>`;
+                const grid = document.createElement('div'); grid.className = 'showtime-grid';
+                
+                allGroupedShowtimes[date].forEach(s => {
+                    const card = document.createElement('div'); card.className = 'showtime-card';
+                    card.dataset.id = s.id;
+                    card.innerHTML = `
+                        <div class="showtime-time">${s.time}</div>
+                        <div class="showtime-details">
+                            <div class="showtime-row"><span>影廳:</span><span class="font-medium">${s.theater}</span></div>
+                            <div class="showtime-row"><span>版本:</span><span class="font-medium">${s.format}</span></div>
+                        </div>`;
+                    card.onclick = () => selectShowtime(s);
+                    grid.appendChild(card);
+                });
+                section.appendChild(grid);
+                showtimeSelection.appendChild(section);
+                
+                // 觸發動畫
+                setTimeout(() => { section.style.opacity = '1'; }, 50);
+            });
+
+            // 更新索引
+            currentDateIndex = nextIndex;
+
+            // 處理「看更多時間」按鈕
+            renderLoadMoreButton();
+        }
+
+        function renderLoadMoreButton() {
+            loadMoreContainer.innerHTML = ''; // 先清空
+            
+            // 如果還有剩下沒顯示的日期，就顯示按鈕
+            if (currentDateIndex < allSortedDates.length) {
+                const remainingDays = allSortedDates.length - currentDateIndex;
+                const btn = document.createElement('button');
+                btn.className = 'load-more-btn';
+                btn.textContent = `看更多時間 (${remainingDays} 天) ▼`;
+                btn.type = 'button'; // 防止觸發 form submit
+                btn.onclick = renderShowtimesBatch; // 點擊載入下一批
+                loadMoreContainer.appendChild(btn);
+            }
         }
 
         // --- 互動邏輯 ---
