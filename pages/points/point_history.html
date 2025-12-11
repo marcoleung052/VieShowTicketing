@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>點數交易歷史記錄 - Vieshow Ticketing</title>
     
-    <!-- 引入 Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script>
@@ -27,24 +26,10 @@
 </head>
 <body class="bg-gray-100 font-sans min-h-screen flex flex-col">
     
-    <!-- Header 導航 (模擬) -->
-    <!-- <header class="bg-gray-800 text-white shadow-md">
-        <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
-            <a href="../../index.html" class="text-xl font-bold hover:text-vieshow-red transition duration-300">Vieshow 影城</a>
-            <div class="space-x-4 flex items-center">
-                <a href="../member/member_home.html" class="text-sm font-medium hover:text-vieshow-gold transition duration-300">👤 會員中心</a>
-                <button id="signOutButton" class="bg-vieshow-red px-3 py-1 rounded-full text-white text-sm font-semibold hover:bg-red-700 transition duration-300">
-                    登出
-                </button>
-            </div>
-        </nav>
-    </header> -->
-
     <header class="bg-gray-800 text-white shadow-md">
         <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
             <a href="../../index.html" class="text-xl font-bold hover:text-vieshow-red transition duration-300">Vieshow 影城</a>
-            <div id="headerNavRight" class="space-x-4 flex items-center">
-                </div>
+            <div id="headerNavRight" class="space-x-4 flex items-center"></div>
         </nav>
     </header>
 
@@ -54,26 +39,21 @@
             <h2 class="text-3xl font-extrabold text-gray-800 mb-2 flex items-center justify-center">
                 🧾 點數交易歷史記錄
             </h2>
-            <p class="text-center text-gray-500 mb-8">查看您 iShow 點數的所有變動記錄，包括獲得與兌換。</p>
+            <p class="text-center text-gray-500 mb-8">查看您 iShow 點數的所有變動記錄。</p>
 
-            <!-- 點數概要區塊 -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                <!-- 當前點數 -->
                 <div class="bg-vieshow-red text-white p-4 rounded-lg shadow-md text-center">
                     <p class="text-sm font-medium opacity-80">當前可用點數</p>
-                    <p class="text-2xl font-bold mt-1" id="currentPoints">1,350</p>
+                    <p class="text-2xl font-bold mt-1" id="currentPoints">載入中...</p>
                 </div>
-                <!-- 連結：點數儲值 -->
                 <a href="../member/topup.html" class="bg-white hover:bg-gray-50 border border-gray-200 p-4 rounded-lg shadow-md text-center transition duration-150 flex flex-col justify-center">
                     <p class="text-vieshow-red font-medium">💰 點數儲值</p>
                 </a>
-                <!-- 連結：點數兌換 -->
                 <a href="point_exchange.html" class="bg-white hover:bg-gray-50 border border-gray-200 p-4 rounded-lg shadow-md text-center transition duration-150 flex flex-col justify-center">
                     <p class="text-vieshow-red font-medium">🎁 點數兌換中心</p>
                 </a>
             </div>
 
-            <!-- 交易篩選器 (Filter) -->
             <div class="flex flex-wrap gap-3 mb-6 items-center">
                 <label for="filterType" class="text-gray-700 font-medium text-sm">篩選類型:</label>
                 <select id="filterType" class="px-3 py-2 border border-gray-300 rounded-lg text-sm shadow-sm focus:ring-vieshow-red focus:border-vieshow-red transition">
@@ -81,200 +61,105 @@
                     <option value="inflow">點數獲得 (收入)</option>
                     <option value="outflow">點數支出 (兌換)</option>
                 </select>
-                
-                <label for="filterPeriod" class="text-gray-700 font-medium text-sm ml-4 sm:ml-0">期間:</label>
-                <select id="filterPeriod" class="px-3 py-2 border border-gray-300 rounded-lg text-sm shadow-sm focus:ring-vieshow-red focus:border-vieshow-red transition">
-                    <option value="all">所有時間</option>
-                    <option value="month">近一個月</option>
-                    <option value="3months">近三個月</option>
-                    <option value="year">今年</option>
-                </select>
             </div>
 
-
-            <!-- 點數交易記錄表格 -->
             <div class="overflow-x-auto bg-white rounded-lg shadow-lg border border-gray-100">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                交易日期
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                交易項目 / 備註
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                點數變動
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                剩餘點數
-                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">交易日期</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">項目 / 備註</th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">點數變動</th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">剩餘點數</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-200" id="pointHistoryTableBody">
-                        <!-- 數據將由 JavaScript 渲染 -->
-                    </tbody>
+                    <tbody class="divide-y divide-gray-200" id="pointHistoryTableBody"></tbody>
                 </table>
                 <div id="noRecordsMessage" class="hidden text-center p-8 text-gray-500">
-                    <p>😮 沒有找到符合條件的交易記錄。</p>
+                    <p>😮 目前還沒有任何交易記錄，快去儲值或兌換吧！</p>
                 </div>
             </div>
 
         </div>
     </div>
 
-    <!-- JavaScript 邏輯 -->
     <script>
-        // 1. 頁面路徑常數定義
-        // ----------------------------------------------------
+        const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api';
         const LOGIN_PAGE_URL = '../auth/login.html';
         const MEMBER_HOME_URL = '../member/member_home.html';
         const INDEX_PAGE_URL = '../../index.html';
 
-        // ----------------------------------------------------
-        // 2. 核心函數：登入/登出狀態渲染
-        // ----------------------------------------------------
-
-        function renderLoggedOutState() {
-            const headerNavRight = document.getElementById('headerNavRight');
-            if (!headerNavRight) return;
-            headerNavRight.innerHTML = `
-                <a href="${LOGIN_PAGE_URL}" class="hover:text-vieshow-gold transition duration-300">登入</a>
-                <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>
-            `;
-        }
-
-        function renderLoggedInState() {
-            const headerNavRight = document.getElementById('headerNavRight');
-            if (!headerNavRight) return;
-
-            headerNavRight.innerHTML = `
-                <a href="#" id="signOutLink" class="hover:text-vieshow-gold transition duration-300">登出</a>
-                <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>
-            `;
-            
-            document.getElementById('signOutLink')?.addEventListener('click', handleSignOut);
-        }
-
-        /**
-         * 【***修正區塊 1/2***】處理登出邏輯，將動作延遲到 customAlert 的 callback 中。
-         */
-        function handleSignOut(e) {
-            e.preventDefault();
-            
-            // 由於清除 token 和跳轉必須在用戶按「確認」後才執行
-            const signOutCallback = () => {
-                // 1. 清除登入狀態
-                localStorage.removeItem('auth_token');
-
-                // 2. 延遲導向首頁
-                setTimeout(() => {
-                    window.location.href = INDEX_PAGE_URL;
-                }, 2000);
-
-                // 立即更新 UI 狀態
-                renderUI(); 
-            };
-
-            // 顯示登出訊息，並將包含清除 token 和跳轉的函數作為 callback 傳入
-            customAlert('您已成功登出。即將導向首頁...', signOutCallback); 
-        }
-
+        // ------------------------
+        // 導覽列與登入狀態
+        // ------------------------
         function renderUI() {
             const token = localStorage.getItem('auth_token');
-
+            const headerNavRight = document.getElementById('headerNavRight');
+            
             if (token) {
-                renderLoggedInState(); 
+                headerNavRight.innerHTML = `
+                    <a href="#" id="signOutLink" class="hover:text-vieshow-gold transition duration-300">登出</a>
+                    <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>
+                `;
+                document.getElementById('signOutLink').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user');
+                    alert('已登出', () => window.location.href = INDEX_PAGE_URL);
+                });
             } else {
-                renderLoggedOutState(); 
+                headerNavRight.innerHTML = `
+                    <a href="${LOGIN_PAGE_URL}" class="hover:text-vieshow-gold transition duration-300">登入</a>
+                `;
             }
         }
 
-
-        // ----------------------------------------------------
-        // 3. 【***修正區塊 2/2***】統一的自定義 Alert 函數 (新增 callback 支援)
-        // ----------------------------------------------------
-
-        /**
-         * 自定義 Modal 警告框，並接受一個點擊確認後執行的 callback 函數。
-         * @param {string} message - 顯示的訊息。
-         * @param {function} [callback] - 用戶點擊「確認」後要執行的函數 (可選)。
-         */
-        function customAlert(message, callback) { 
-            const existingModal = document.getElementById('custom-alert-modal');
-            if (existingModal) existingModal.remove();
-
-            // 處理點擊「確認」的邏輯
-            const handleConfirm = () => {
-                document.getElementById('custom-alert-modal').remove();
-                // 只有在用戶點擊確認後，才執行傳入的 callback 函數
-                if (callback && typeof callback === 'function') {
-                    callback(); 
-                }
-            };
-
-            // 將 handleConfirm 函數註冊到全域，確保 HTML onclick 可以找到它
-            window.customAlertConfirm = handleConfirm;
-
-
-            const modalHtml = `
-                <div id="custom-alert-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
-                    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform scale-100 transition-all duration-300">
-                        <div class="text-xl font-bold text-gray-900 mb-3 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-vieshow-red mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                            </svg>
-                            系統提示
-                        </div>
-                        <p class="text-gray-700 mb-5">${message}</p>
-                        <div class="flex justify-end">
-                            <button onclick="window.customAlertConfirm()" 
-                                    class="bg-vieshow-red hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-vieshow-red focus:ring-offset-2">
-                                確認
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-        }
-
-        // 覆寫瀏覽器內建的 alert，統一使用 customAlert
-        window.alert = customAlert;
-
-        // 初始渲染 UI 狀態
-        // ----------------------------------------------------
-
-        document.addEventListener('DOMContentLoaded', () => {
-            
-            // 渲染導覽列 UI
-            renderUI();
-        });
-
+        // ------------------------
+        // 主程式邏輯
+        // ------------------------
         const currentPointsDisplay = document.getElementById('currentPoints');
         const tableBody = document.getElementById('pointHistoryTableBody');
         const filterType = document.getElementById('filterType');
-        const filterPeriod = document.getElementById('filterPeriod');
         const noRecordsMessage = document.getElementById('noRecordsMessage');
+        let pointHistoryData = [];
 
-        // 模擬點數交易歷史數據
-        const mockHistory = [
-            { date: '2025-11-15', description: '線上儲值 (交易單號: 20231115001)', change: 1000, type: 'inflow', balance: 1350 },
-            { date: '2025-09-19', description: '兌換：經典大爆米花套餐', change: -500, type: 'outflow', balance: 350 },
-            { date: '2025-02-28', description: '消費回饋 (購票: 阿凡達)', change: 150, type: 'inflow', balance: 850 },
-            { date: '2024-10-05', description: '兌換：任選中杯飲料', change: -200, type: 'outflow', balance: 700 },
-            { date: '2024-09-01', description: '會員日活動贈點', change: 500, type: 'inflow', balance: 900 },
-            { date: '2023-08-01', description: '兌換：50元電影抵用券', change: -1500, type: 'outflow', balance: 400 },
-            { date: '2023-07-20', description: '新會員註冊禮', change: 2000, type: 'inflow', balance: 1900 },
-        ];
-        
-        // 設定當前點數 (表格數據中的第一筆剩餘點數)
-        currentPointsDisplay.textContent = mockHistory[0].balance.toLocaleString();
+        document.addEventListener('DOMContentLoaded', async () => {
+            renderUI();
+            
+            const user = JSON.parse(localStorage.getItem('user'));
+            const token = localStorage.getItem('auth_token');
 
-        /**
-         * 渲染表格行
-         * @param {Object[]} records - 交易記錄陣列
-         */
+            if (!token || !user) {
+                alert('請先登入', () => window.location.href = LOGIN_PAGE_URL);
+                return;
+            }
+
+            // 1. 取得當前餘額
+            fetch(`${API_BASE_URL}/member/profile?id=${user.id}`)
+                .then(res => res.json())
+                .then(data => currentPointsDisplay.textContent = `${data.points.toLocaleString()}`)
+                .catch(err => console.error(err));
+
+            // 2. 取得歷史紀錄
+            await fetchPointHistory(user.id);
+        });
+
+        async function fetchPointHistory(memberId) {
+            try {
+                // 呼叫後端 API
+                const response = await fetch(`${API_BASE_URL}/member/point-history?id=${memberId}`);
+                if (!response.ok) throw new Error('Failed to fetch history');
+                
+                pointHistoryData = await response.json();
+                renderTable(pointHistoryData);
+
+            } catch (error) {
+                console.error('API Error:', error);
+                // 如果 API 失敗，清空列表
+                renderTable([]);
+            }
+        }
+
         function renderTable(records) {
             tableBody.innerHTML = '';
             
@@ -286,25 +171,19 @@
 
             records.forEach(record => {
                 const isPositive = record.change >= 0;
-                
-                // 點數變動的樣式和文字
                 const changeClass = isPositive ? 'text-green-600 font-bold' : 'text-vieshow-red font-bold';
-                const changeSign = isPositive ? '+' : '-';
+                const changeSign = isPositive ? '+' : '-'; // 原本是 - -500 會變正，所以要用 abs
                 const absChange = Math.abs(record.change).toLocaleString();
                 
-                // 表格行
-                const row = document.createElement('tr');
-                row.classList.add('hover:bg-gray-50', 'transition', 'duration-100');
+                // 修正：如果 change 本身是負數，record.change 顯示時要小心符號
+                // 我們這裡用絕對值 + 顏色判斷
                 
+                const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        ${record.date}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                        ${record.description}
-                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${record.description}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
-                        <span class="${changeClass}">${changeSign} ${absChange}</span>
+                        <span class="${changeClass}">${isPositive ? '+' : '-'} ${absChange}</span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-700 font-medium">
                         ${record.balance.toLocaleString()}
@@ -314,49 +193,38 @@
             });
         }
 
-        /**
-         * 處理篩選邏輯並重新渲染表格
-         */
-        function applyFilters() {
-            let filteredRecords = [...mockHistory];
+        // 篩選功能
+        filterType.addEventListener('change', () => {
             const type = filterType.value;
-            const period = filterPeriod.value;
-
-            // 1. 篩選類型 (inflow/outflow)
-            if (type !== 'all') {
-                filteredRecords = filteredRecords.filter(record => record.type === type);
+            if (type === 'all') {
+                renderTable(pointHistoryData);
+            } else {
+                const filtered = pointHistoryData.filter(r => r.type === type);
+                renderTable(filtered);
             }
-
-            // 2. 篩選時間 (簡單模擬，基於日期字串)
-            const today = new Date();
-            const oneMonthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
-            const threeMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
-            const startOfYear = new Date(today.getFullYear(), 0, 1);
-            
-            function isDateWithinPeriod(recordDate, startDate) {
-                return new Date(recordDate) >= startDate;
-            }
-
-            if (period === 'month') {
-                filteredRecords = filteredRecords.filter(record => isDateWithinPeriod(record.date, oneMonthAgo));
-            } else if (period === '3months') {
-                filteredRecords = filteredRecords.filter(record => isDateWithinPeriod(record.date, threeMonthsAgo));
-            } else if (period === 'year') {
-                filteredRecords = filteredRecords.filter(record => isDateWithinPeriod(record.date, startOfYear));
-            }
-
-            renderTable(filteredRecords);
-        }
-
-        // 監聽篩選器變化
-        filterType.addEventListener('change', applyFilters);
-        filterPeriod.addEventListener('change', applyFilters);
-
-        // 頁面加載時初始渲染
-        document.addEventListener('DOMContentLoaded', () => {
-            renderTable(mockHistory);
         });
+
+        // 自定義 Alert
+        function alert(message, callback) { 
+            const modalHtml = `
+                <div id="custom-alert-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
+                    <div class="bg-white rounded-xl p-6 w-full max-w-sm">
+                        <p class="text-gray-700 mb-5 font-bold text-lg text-center">${message}</p>
+                        <div class="flex justify-center">
+                            <button id="alertConfirm" class="bg-vieshow-red text-white py-2 px-6 rounded-lg font-bold">確認</button>
+                        </div>
+                    </div>
+                </div>`;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.getElementById('alertConfirm').addEventListener('click', () => {
+                document.getElementById('custom-alert-modal').remove();
+                if (callback) callback();
+            });
+        }
+        window.alert = alert;
     </script>
-    
+    <footer class="bg-gray-800 text-white p-4 mt-auto text-center text-sm">
+        <p class="text-gray-400">&copy; 2025 Vieshow Ticketing System.</p>
+    </footer>
 </body>
 </html>
