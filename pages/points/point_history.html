@@ -36,9 +36,16 @@
     <div class="container mx-auto px-4 py-10 flex-grow max-w-4xl">
         
         <div class="bg-vieshow-bg p-6 sm:p-8 rounded-xl shadow-2xl border-t-4 border-vieshow-gold">
-            <h2 class="text-3xl font-extrabold text-gray-800 mb-2 flex items-center justify-center">
-                🧾 點數交易歷史記錄
-            </h2>
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl font-extrabold text-gray-800 flex items-center">
+                    🧾 點數交易歷史記錄
+                </h2>
+                <button onclick="forceRefresh()" class="text-sm text-gray-500 hover:text-vieshow-red flex items-center transition">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 0020 13a8.001 8.001 0 00-2.008-5.385M4 13c.09.665.23 1.32.418 1.95M12 20v-5h-.582m-15.356-2A8.001 8.001 0 004 11a8.001 8.001 0 002.008 5.385"></path></svg>
+                    更新紀錄
+                </button>
+            </div>
+            
             <p class="text-center text-gray-500 mb-8">查看您 iShow 點數的所有變動記錄。</p>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -105,6 +112,7 @@
                     e.preventDefault();
                     localStorage.removeItem('auth_token');
                     localStorage.removeItem('user');
+                    sessionStorage.removeItem('pointHistoryCache'); // 清除快取
                     alert('已登出', () => window.location.href = INDEX_PAGE_URL);
                 });
             } else {
@@ -121,12 +129,14 @@
         const tableBody = document.getElementById('pointHistoryTableBody');
         const filterType = document.getElementById('filterType');
         const noRecordsMessage = document.getElementById('noRecordsMessage');
+        
         let pointHistoryData = [];
+        let user = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             renderUI();
             
-            const user = JSON.parse(localStorage.getItem('user'));
+            user = JSON.parse(localStorage.getItem('user'));
             const token = localStorage.getItem('auth_token');
 
             if (!token || !user) {
@@ -134,30 +144,76 @@
                 return;
             }
 
-            // 1. 取得當前餘額
-            fetch(`${API_BASE_URL}/member/profile?id=${user.id}`)
-                .then(res => res.json())
-                .then(data => currentPointsDisplay.textContent = `${data.points.toLocaleString()}`)
-                .catch(err => console.error(err));
+            // 1. 取得當前餘額 (優先讀取 memberDataCache)
+            loadCurrentPoints();
 
-            // 2. 取得歷史紀錄
+            // 2. 取得歷史紀錄 (優先讀取 pointHistoryCache)
             await fetchPointHistory(user.id);
         });
 
-        async function fetchPointHistory(memberId) {
+        function loadCurrentPoints() {
+            // 嘗試讀取會員資料快取
+            const cachedProfile = sessionStorage.getItem('memberDataCache');
+            if (cachedProfile) {
+                try {
+                    const data = JSON.parse(cachedProfile);
+                    currentPointsDisplay.textContent = `${data.points.toLocaleString()}`;
+                    return;
+                } catch(e) {}
+            }
+
+            // 如果沒有快取，發送 API
+            fetch(`${API_BASE_URL}/member/profile?id=${user.id}`)
+                .then(res => res.json())
+                .then(data => {
+                    currentPointsDisplay.textContent = `${data.points.toLocaleString()}`;
+                    // 更新快取
+                    sessionStorage.setItem('memberDataCache', JSON.stringify(data));
+                })
+                .catch(err => console.error(err));
+        }
+
+        // 【核心修改】支援快取的歷史紀錄載入
+        async function fetchPointHistory(memberId, forceRefresh = false) {
+            // 1. 檢查快取
+            if (!forceRefresh) {
+                const cachedHistory = sessionStorage.getItem('pointHistoryCache');
+                if (cachedHistory) {
+                    try {
+                        pointHistoryData = JSON.parse(cachedHistory);
+                        console.log("⚡ 使用快取歷史紀錄");
+                        renderTable(pointHistoryData);
+                        return;
+                    } catch(e) { console.warn("快取解析失敗"); }
+                }
+            }
+
+            // 2. 呼叫 API
             try {
-                // 呼叫後端 API
+                console.log("🌐 發送 API 請求載入歷史...");
                 const response = await fetch(`${API_BASE_URL}/member/point-history?id=${memberId}`);
                 if (!response.ok) throw new Error('Failed to fetch history');
                 
                 pointHistoryData = await response.json();
+                
+                // 更新快取
+                sessionStorage.setItem('pointHistoryCache', JSON.stringify(pointHistoryData));
+                
                 renderTable(pointHistoryData);
 
             } catch (error) {
                 console.error('API Error:', error);
-                // 如果 API 失敗，清空列表
                 renderTable([]);
             }
+        }
+
+        // 強制重新整理按鈕
+        window.forceRefresh = function() {
+            if(!user) return;
+            sessionStorage.removeItem('pointHistoryCache');
+            sessionStorage.removeItem('memberDataCache');
+            loadCurrentPoints();
+            fetchPointHistory(user.id, true);
         }
 
         function renderTable(records) {
@@ -172,11 +228,8 @@
             records.forEach(record => {
                 const isPositive = record.change >= 0;
                 const changeClass = isPositive ? 'text-green-600 font-bold' : 'text-vieshow-red font-bold';
-                const changeSign = isPositive ? '+' : '-'; // 原本是 - -500 會變正，所以要用 abs
+                const changeSign = isPositive ? '+' : '-'; 
                 const absChange = Math.abs(record.change).toLocaleString();
-                
-                // 修正：如果 change 本身是負數，record.change 顯示時要小心符號
-                // 我們這裡用絕對值 + 顏色判斷
                 
                 const row = document.createElement('tr');
                 row.innerHTML = `
