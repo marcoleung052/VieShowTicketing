@@ -111,9 +111,9 @@
                 
                 <select name="location" id="location-select" class="search-input bg-white">
                     <option value="">請選擇影城 (選填)</option>
-                    </select>
+                </select>
                 
-                <input type="date" name="date" class="search-input" value="">
+                <input type="date" name="date" id="date-input" class="search-input" value="">
                 
                 <select name="movie" id="movie-select" class="search-input bg-white">
                     <option value="">請選擇電影 (選填)</option>
@@ -242,7 +242,6 @@
         // 資料載入邏輯
         // ------------------------
 
-        // 載入電影選單
         function populateMovieSelect(movies) {
             const select = document.getElementById('movie-select');
             if (!select) return;
@@ -254,7 +253,6 @@
             select.innerHTML += options;
         }
 
-        // 【新增】載入影城選單
         async function loadCinemasForSelect() {
             const select = document.getElementById('location-select');
             if (!select) return;
@@ -272,11 +270,9 @@
 
             } catch (error) {
                 console.error("載入影城選單失敗:", error);
-                // 失敗時保留預設選項
             }
         }
 
-        // 渲染電影列表
         function renderMovieList(movies, containerId, showRatingAndBooking) {
             const container = document.getElementById(containerId);
             if (!container) return;
@@ -337,7 +333,6 @@
             container.innerHTML = html;
         }
 
-        // 載入影城區塊 (下方列表)
         async function loadCinemas() {
             const container = document.getElementById('cinemaInfo');
             if (!container) return;
@@ -370,7 +365,6 @@
             }
         }
 
-        // 載入餐點
         async function loadMeals() {
             const container = document.getElementById('foodInfo');
             if (!container) return;
@@ -407,14 +401,27 @@
         document.addEventListener('DOMContentLoaded', async () => {
             renderUI();
 
-            // 1. 載入電影
+            // 【新增】設定日期輸入框的最小值和預設值
+            const dateInput = document.getElementById('date-input');
+            if (dateInput) {
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                const todayStr = `${year}-${month}-${day}`;
+                
+                // 設定最小值為今天
+                dateInput.min = todayStr;
+                // 設定預設值為今天 (選填，視需求決定是否預設)
+                dateInput.value = todayStr;
+            }
+
             try {
                 const resNow = await fetch(`${API_BASE_URL}/movie/now-playing`);
                 if (!resNow.ok) throw new Error('無法載入熱映電影');
                 const nowPlayingMovies = await resNow.json();
                 renderMovieList(nowPlayingMovies, 'nowPlayingContainer', true);
                 
-                // 填充電影下拉選單
                 populateMovieSelect(nowPlayingMovies);
 
                 const resSoon = await fetch(`${API_BASE_URL}/movie/coming-soon`);
@@ -426,13 +433,8 @@
                 document.getElementById('nowPlayingContainer').innerHTML = '<p class="col-span-full text-center text-red-500">無法連線至伺服器</p>';
             }
 
-            // 2. 載入影城 (下方區塊)
             loadCinemas();
-            
-            // 3. 載入快搜影城選單 (上方選單)
             loadCinemasForSelect();
-
-            // 4. 載入餐點
             loadMeals();
         });
 
