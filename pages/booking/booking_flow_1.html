@@ -280,10 +280,10 @@
         let currentSelections = { ticketType: null, cinema: null, movie: null, showtime: null };
         
         // --- 全域變數用於分頁控制 ---
-        let allGroupedShowtimes = {}; // 儲存所有已分組的場次
-        let allSortedDates = [];      // 儲存所有日期鍵值
-        let currentDateIndex = 0;     // 目前顯示到第幾個日期
-        const DAYS_PER_LOAD = 2;      // 每次載入幾天
+        let allGroupedShowtimes = {}; 
+        let allSortedDates = [];      
+        let currentDateIndex = 0;     
+        const DAYS_PER_LOAD = 2;      
 
         // --- 核心 API 呼叫 ---
         async function loadCinemas() {
@@ -306,12 +306,22 @@
         async function loadMovies(cinemaId) {
             movieSelection.innerHTML = '<div style="text-align:center; padding:2rem; color:#6b7280;">載入電影...</div>';
             resetSelection(2);
+            
+            // 【關鍵修改】取得 URL 中的 movie_id 參數
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetMovieId = urlParams.get('movie_id');
+
             try {
                 const res = await fetch(`${API_BASE_URL}/movie/showtimes?location=${cinemaId}`);
                 const showtimes = await res.json();
                 
                 const uniqueMovies = {};
                 showtimes.forEach(s => {
+                    // 【關鍵修改】如果網址有指定 movie_id，則只保留該電影
+                    if (targetMovieId && String(s.movieId) !== String(targetMovieId)) {
+                        return; // 跳過非目標電影
+                    }
+
                     if (!uniqueMovies[s.movieId]) {
                         uniqueMovies[s.movieId] = { id: s.movieId, name: s.movieName };
                     }
@@ -319,7 +329,12 @@
                 
                 movieSelection.innerHTML = '';
                 if (Object.keys(uniqueMovies).length === 0) {
-                    movieSelection.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:#6b7280;">此影城暫無電影場次</div>'; return;
+                    if (targetMovieId) {
+                        movieSelection.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:#6b7280;">此影城目前未上映您選擇的電影</div>';
+                    } else {
+                        movieSelection.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:#6b7280;">此影城暫無電影場次</div>';
+                    }
+                    return;
                 }
 
                 Object.values(uniqueMovies).forEach(async (m) => {
@@ -358,12 +373,12 @@
                 document.getElementById('movieSelectionSection').classList.remove('hidden');
                 updateStepIndicator(2);
 
-                const urlParams = new URLSearchParams(window.location.search);
-                const preMovieId = urlParams.get('movie_id');
-                if (preMovieId && uniqueMovies[preMovieId]) {
+                // 【關鍵修改】如果只有一部電影 (因為 filter)，自動幫使用者點擊
+                if (targetMovieId && Object.keys(uniqueMovies).length === 1) {
                     setTimeout(() => {
-                        const targetCard = document.querySelector(`.movie-card[data-movie-id="${preMovieId}"]`);
+                        const targetCard = document.querySelector(`.movie-card[data-movie-id="${targetMovieId}"]`);
                         if(targetCard) {
+                            console.log("自動選取電影:", targetMovieId);
                             targetCard.click();
                             targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         }
@@ -409,16 +424,12 @@
 
         // --- 新增：分批渲染場次邏輯 ---
         function renderShowtimesBatch() {
-            // 計算這次要渲染到哪個索引 (例如 0 -> 2, 2 -> 4)
             const nextIndex = Math.min(currentDateIndex + DAYS_PER_LOAD, allSortedDates.length);
-            
-            // 取出這批要顯示的日期
             const datesToRender = allSortedDates.slice(currentDateIndex, nextIndex);
             
             datesToRender.forEach(date => {
                 const section = document.createElement('div'); 
                 section.className = 'date-section';
-                // 添加淡入動畫效果
                 section.style.opacity = '0';
                 section.style.transition = 'opacity 0.5s ease-in';
                 
@@ -440,28 +451,22 @@
                 section.appendChild(grid);
                 showtimeSelection.appendChild(section);
                 
-                // 觸發動畫
                 setTimeout(() => { section.style.opacity = '1'; }, 50);
             });
 
-            // 更新索引
             currentDateIndex = nextIndex;
-
-            // 處理「看更多時間」按鈕
             renderLoadMoreButton();
         }
 
         function renderLoadMoreButton() {
-            loadMoreContainer.innerHTML = ''; // 先清空
-            
-            // 如果還有剩下沒顯示的日期，就顯示按鈕
+            loadMoreContainer.innerHTML = ''; 
             if (currentDateIndex < allSortedDates.length) {
                 const remainingDays = allSortedDates.length - currentDateIndex;
                 const btn = document.createElement('button');
                 btn.className = 'load-more-btn';
                 btn.textContent = `看更多時間 (${remainingDays} 天) ▼`;
-                btn.type = 'button'; // 防止觸發 form submit
-                btn.onclick = renderShowtimesBatch; // 點擊載入下一批
+                btn.type = 'button'; 
+                btn.onclick = renderShowtimesBatch; 
                 loadMoreContainer.appendChild(btn);
             }
         }
