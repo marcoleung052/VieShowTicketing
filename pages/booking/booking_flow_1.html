@@ -53,7 +53,7 @@
     </script>
     
     <style>
-        /* (樣式部分保持不變，直接沿用您原本的 CSS) */
+        /* (CSS 樣式保持不變) */
         body { background-color: #f7f7f7; font-family: 'Noto Sans TC', 'Inter', sans-serif; color: #333; }
         .main-content { padding: 2rem 0; min-height: 80vh; }
         .container { max-width: 1000px; margin: 0 auto; padding: 0 1rem; }
@@ -271,13 +271,6 @@
                 });
                 loadingStatus.textContent = '';
                 
-                // 自動帶入
-                const urlParams = new URLSearchParams(window.location.search);
-                const preMovieId = urlParams.get('movie_id');
-                if (preMovieId) {
-                    // 如果是從電影介紹頁過來，先暫時不自動選影城，讓使用者選
-                    // 但可以考慮提示使用者選擇影城
-                }
             } catch (e) { console.error(e); loadingStatus.textContent = '載入影城失敗'; }
         }
 
@@ -285,14 +278,10 @@
             movieSelection.innerHTML = '<div style="text-align:center; padding:2rem; color:#6b7280;">載入電影...</div>';
             resetSelection(2);
             try {
-                // 這裡我們需要一個能根據影城 ID 撈出該影城上映電影的 API
-                // 假設後端 /movie/now-playing 可以傳參數 ?cinema_id=... (若後端未支援，則先撈全部再前端過濾)
-                // 目前後端 API 尚未支援 filter by cinema，我們改用 /showtimes API 反查
-                
                 const res = await fetch(`${API_BASE_URL}/movie/showtimes?location=${cinemaId}`);
                 const showtimes = await res.json();
                 
-                // 從場次資料中提取唯一的電影列表
+                // 整理該影城有的電影 ID
                 const uniqueMovies = {};
                 showtimes.forEach(s => {
                     if (!uniqueMovies[s.movieId]) {
@@ -305,10 +294,8 @@
                     movieSelection.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:#6b7280;">此影城暫無電影場次</div>'; return;
                 }
 
-                // 為了取得海報等詳情，我們需要再呼叫詳情 API (或依賴 Session Storage 快取)
-                // 這裡簡化處理：直接生成卡片，缺少的資料先用預設值
+                // 產生電影卡片
                 Object.values(uniqueMovies).forEach(async (m) => {
-                    // 嘗試從 API 補全詳情
                     let details = { posterUrl: '', grade: '', duration: '', info: '' };
                     try {
                         const detailRes = await fetch(`${API_BASE_URL}/movie/${m.id}`);
@@ -318,7 +305,12 @@
                     const card = document.createElement('div');
                     card.className = 'movie-card cursor-pointer';
                     card.dataset.movieId = m.id;
-                    const poster = details.posterUrl || 'https://placehold.co/300x450?text=No+Poster';
+                    
+                    // 【關鍵修正】：如果圖片是相對路徑，加上 ../../ 回到根目錄
+                    let poster = details.posterUrl || 'https://placehold.co/300x450?text=No+Poster';
+                    if (poster && !poster.startsWith('http') && !poster.startsWith('data:')) {
+                        poster = '../../' + poster; 
+                    }
                     
                     card.innerHTML = `
                         <div class="movie-content">
@@ -334,22 +326,27 @@
                                 </div>
                             </div>
                         </div>`;
-                    card.onclick = () => selectMovie({ id: m.id, title: m.name, ...details });
+                    card.onclick = () => selectMovie({ id: m.id, title: m.name, ...details, posterUrl: poster });
                     movieSelection.appendChild(card);
                 });
                 
                 document.getElementById('movieSelectionSection').classList.remove('hidden');
                 updateStepIndicator(2);
 
-                // 自動帶入電影 (如果有 URL 參數)
+                // 【關鍵功能】：檢查網址是否有 movie_id，若有且該電影存在於此影城，自動選取
                 const urlParams = new URLSearchParams(window.location.search);
                 const preMovieId = urlParams.get('movie_id');
                 if (preMovieId && uniqueMovies[preMovieId]) {
-                    // 模擬點擊
+                    // 使用 setTimeout 確保 DOM 渲染完畢後再點擊
                     setTimeout(() => {
                         const targetCard = document.querySelector(`.movie-card[data-movie-id="${preMovieId}"]`);
-                        if(targetCard) targetCard.click();
-                    }, 500);
+                        if(targetCard) {
+                            console.log("自動選取電影:", preMovieId);
+                            targetCard.click();
+                            // 滾動到電影選擇區
+                            targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }, 800); // 給一點時間讓非同步的 details fetch 完成
                 }
 
             } catch (e) { console.error(e); movieSelection.innerHTML = '載入失敗'; }
@@ -367,7 +364,6 @@
                     showtimeSelection.innerHTML = '<div style="text-align:center; padding:2rem; color:#6b7280;">無可用場次</div>'; return;
                 }
 
-                // 依日期分組
                 const grouped = {};
                 showtimes.forEach(s => {
                     if (!grouped[s.date]) grouped[s.date] = [];
@@ -434,9 +430,6 @@
 
         function selectShowtime(showtime) {
             document.querySelectorAll('.showtime-card').forEach(c => c.classList.remove('selected'));
-            // 由於 showtime id 可能是數字或字串，且 DOM 渲染後可能沒有 data-id 屬性對應，改用 event target 或重新查詢
-            // 這裡簡單處理：遍歷所有卡片，比對內容或重新加上 ID
-            // 上面 render 時已加 data-id
             const card = document.querySelector(`.showtime-card[data-id="${showtime.id}"]`);
             if(card) card.classList.add('selected');
             
@@ -463,7 +456,6 @@
                 alert('請完成所有選擇'); return;
             }
             
-            // 儲存至 localStorage
             localStorage.setItem('currentBooking', JSON.stringify({
                 ticketType: currentSelections.ticketType,
                 cinema: currentSelections.cinema,
@@ -471,7 +463,6 @@
                 showtime: currentSelections.showtime
             }));
             
-            // 跳轉
             window.location.href = currentSelections.ticketType === 'group' ? 'booking_flow_group.html' : 'booking_flow_2.html';
         });
 
