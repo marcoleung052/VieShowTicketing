@@ -427,6 +427,7 @@
 
             container.innerHTML = html;
         }
+        const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api'; // 請替換
 
         // 頁面載入時執行初始化
         document.addEventListener('DOMContentLoaded', () => {
@@ -434,26 +435,24 @@
             renderUI();
             
             // --- 電影列表渲染 ---
-            const today = new Date('2025/11/27'); 
-            today.setHours(0, 0, 0, 0); 
-            
-            const nowPlaying = mockMovieList.filter(movie => {
-                const release = new Date(movie.releaseDate);
-                release.setHours(0, 0, 0, 0);
-                return release <= today; 
-            });
-            
-            const comingSoon = mockMovieList.filter(movie => {
-                const release = new Date(movie.releaseDate);
-                release.setHours(0, 0, 0, 0);
-                return release > today; 
-            });
-
-            renderMovieList(nowPlaying, 'nowPlayingContainer', true); 
-            renderMovieList(comingSoon, 'comingSoonContainer', false); 
-            
-            // 填充查詢選單
-            populateMovieSelect(mockMovieList);
+            try {
+                // 1. 抓取「熱映中」電影
+                const resNow = await fetch(`${API_BASE_URL}/movie/now-playing`);
+                const nowPlayingMovies = await resNow.json();
+                renderMovieList(nowPlayingMovies, 'nowPlayingContainer', true);
+                
+                // 更新下拉選單 (使用熱映電影)
+                populateMovieSelect(nowPlayingMovies);
+        
+                // 2. 抓取「即將上映」電影
+                const resSoon = await fetch(`${API_BASE_URL}/movie/coming-soon`);
+                const comingSoonMovies = await resSoon.json();
+                renderMovieList(comingSoonMovies, 'comingSoonContainer', false);
+        
+            } catch (e) {
+                console.error("載入電影資料失敗:", e);
+                // 可以顯示一個錯誤提示給使用者
+            }
         });
 
         function alert(message, callback) {
@@ -495,4 +494,5 @@
         }
     </script>
 </body>
+
 </html>
