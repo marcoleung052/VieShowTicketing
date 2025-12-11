@@ -24,21 +24,9 @@
         }
     </script>
     <style>
-        /* 方案卡片樣式 */
-        .option-card {
-            transition: all 0.2s;
-            cursor: pointer;
-            border-width: 2px;
-        }
-        .option-card:hover {
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-        .option-card.selected {
-            border-color: #e50914; /* Vieshow Red */
-            background-color: #fee2e2; /* Red 100 */
-            box-shadow: 0 6px 15px rgba(229, 9, 20, 0.2);
-            transform: translateY(-2px);
-        }
+        .option-card { transition: all 0.2s; cursor: pointer; border-width: 2px; }
+        .option-card:hover { box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); }
+        .option-card.selected { border-color: #e50914; background-color: #fee2e2; box-shadow: 0 6px 15px rgba(229, 9, 20, 0.2); transform: translateY(-2px); }
     </style>
 </head>
 <body class="bg-gray-100 font-sans min-h-screen flex flex-col">
@@ -47,7 +35,7 @@
         <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
             <a href="../../index.html" class="text-xl font-bold hover:text-vieshow-red transition duration-300">Vieshow 影城</a>
             <div id="headerNavRight" class="space-x-4 flex items-center">
-                </div>
+            </div>
         </nav>
     </header>
 
@@ -125,54 +113,25 @@
     </div>
 
     <script>
-        // 1. 設定後端 API 網址
         const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api';
-
         const LOGIN_PAGE_URL = '../auth/login.html';
         const MEMBER_HOME_URL = 'member_home.html';
         const INDEX_PAGE_URL = '../../index.html';
 
-        // 2. 導覽列與登入狀態渲染
         function renderLoggedOutState() {
-            const headerNavRight = document.getElementById('headerNavRight');
-            if (!headerNavRight) return;
-            headerNavRight.innerHTML = `
-                <a href="${LOGIN_PAGE_URL}" class="hover:text-vieshow-gold transition duration-300">登入</a>
-                <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>
-            `;
+            document.getElementById('headerNavRight').innerHTML = `<a href="${LOGIN_PAGE_URL}" class="hover:text-vieshow-gold transition duration-300">登入</a> <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>`;
         }
-
         function renderLoggedInState() {
-            const headerNavRight = document.getElementById('headerNavRight');
-            if (!headerNavRight) return;
-
-            headerNavRight.innerHTML = `
-                <a href="#" id="signOutLink" class="hover:text-vieshow-gold transition duration-300">登出</a>
-                <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>
-            `;
-            
-            document.getElementById('signOutLink')?.addEventListener('click', handleSignOut);
+            document.getElementById('headerNavRight').innerHTML = `<a href="#" id="signOutLink" class="hover:text-vieshow-gold transition duration-300">登出</a> <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>`;
+            document.getElementById('signOutLink')?.addEventListener('click', (e) => {
+                e.preventDefault(); localStorage.removeItem('auth_token'); localStorage.removeItem('user'); sessionStorage.removeItem('memberDataCache'); alert('已登出', () => window.location.href = INDEX_PAGE_URL);
+            });
         }
-
-        function handleSignOut(e) {
-            e.preventDefault();
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user');
-            alert('您已成功登出。即將導向首頁...', () => {
-                window.location.href = INDEX_PAGE_URL;
-            }); 
-        }
-
         function renderUI() {
             const token = localStorage.getItem('auth_token');
-            if (token) {
-                renderLoggedInState(); 
-            } else {
-                renderLoggedOutState();
-            }
+            if (token) renderLoggedInState(); else renderLoggedOutState();
         }
 
-        // 3. 頁面初始化
         const optionCards = document.querySelectorAll('.option-card');
         const paymentMethodSelect = document.getElementById('paymentMethod');
         const topupButton = document.getElementById('topupButton');
@@ -184,32 +143,33 @@
         let selectedPoints = 0;
         let user = null;
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            renderUI();
-            
-            user = JSON.parse(localStorage.getItem('user'));
-            const token = localStorage.getItem('auth_token');
-
-            if (!token || !user) {
-                alert('請先登入以進行儲值', () => {
-                    window.location.href = `${LOGIN_PAGE_URL}?redirect=${encodeURIComponent(window.location.href)}`;
-                });
-                return;
+        // --- 核心修改：優先使用 Cache ---
+        async function fetchUserPoints(memberId) {
+            // 1. 檢查快取
+            const cachedDataStr = sessionStorage.getItem('memberDataCache');
+            if (cachedDataStr) {
+                try {
+                    const data = JSON.parse(cachedDataStr);
+                    // 簡單檢查 ID 是否匹配
+                    if (data.memberId === memberId || data.cardId === memberId) {
+                        console.log("⚡ 使用快取點數資料");
+                        currentBalanceDisplay.textContent = `${data.points.toLocaleString()} 點`;
+                        return; // 直接返回，不 call API
+                    }
+                } catch (e) { console.warn("快取解析失敗", e); }
             }
 
-            // 讀取當前點數
-            await fetchUserPoints(user.id);
-            
-            updateTopupState();
-        });
-
-        async function fetchUserPoints(memberId) {
+            // 2. 如果沒有快取，呼叫 API
             try {
+                console.log("🌐 發送 API 請求載入點數...");
                 const response = await fetch(`${API_BASE_URL}/member/profile?id=${memberId}`);
-                if (!response.ok) throw new Error('無法取得會員資料');
+                if (!response.ok) throw new Error('無法取得資料');
                 
                 const data = await response.json();
                 currentBalanceDisplay.textContent = `${data.points.toLocaleString()} 點`;
+                
+                // 更新快取
+                sessionStorage.setItem('memberDataCache', JSON.stringify(data));
 
             } catch (error) {
                 console.error('API Error:', error);
@@ -219,17 +179,13 @@
 
         function showFormMessage(text, type) {
             messageContainer.textContent = text;
-            messageContainer.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
-            if (type === 'success') messageContainer.classList.add('bg-green-100', 'text-green-800');
-            else if (type === 'error') messageContainer.classList.add('bg-red-100', 'text-red-800');
+            messageContainer.className = `p-3 mb-6 rounded-lg font-medium text-sm text-center ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
             messageContainer.classList.remove('hidden');
             setTimeout(() => { messageContainer.classList.add('hidden'); }, 5000);
         }
 
         function generateTransactionId() {
-            const timestamp = Date.now().toString(36).toUpperCase();
-            const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-            return `VS${timestamp}${random}`;
+            return `VS${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
         }
 
         function updateTopupState() {
@@ -245,12 +201,7 @@
                 topupButton.disabled = true;
                 topupButton.classList.remove('bg-vieshow-gold', 'hover:bg-vieshow-red', 'text-gray-900', 'hover:text-white');
                 topupButton.classList.add('bg-gray-400', 'cursor-not-allowed');
-
-                if (!isAmountSelected) {
-                    topupButton.textContent = '請先選擇儲值方案';
-                } else {
-                    topupButton.textContent = '請選擇付款方式';
-                }
+                topupButton.textContent = !isAmountSelected ? '請先選擇儲值方案' : '請選擇付款方式';
             }
         }
 
@@ -274,7 +225,6 @@
 
         form.addEventListener('submit', async function(e) {
             e.preventDefault(); 
-            
             if (topupButton.disabled) return;
             
             const paymentMethod = paymentMethodSelect.options[paymentMethodSelect.selectedIndex].text;
@@ -284,17 +234,12 @@
             topupButton.textContent = `導向 ${paymentMethod} 付款頁面...`;
             topupButton.classList.add('opacity-75');
 
-            // 模擬導向並呼叫 API
             setTimeout(async () => {
                 try {
-                    // 呼叫後端儲值 API
                     const response = await fetch(`${API_BASE_URL}/member/topup`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            memberId: user.id,
-                            points: selectedPoints
-                        })
+                        body: JSON.stringify({ memberId: user.id, points: selectedPoints })
                     });
 
                     const result = await response.json();
@@ -302,14 +247,12 @@
                     if (response.ok) {
                         currentBalanceDisplay.textContent = `${result.balance.toLocaleString()} 點`;
                         
-                        showFormMessage(
-                            `🥳 儲值成功！交易編號: **${transactionId}**。已為您儲值 ${selectedPoints.toLocaleString()} 點。`, 
-                            'success'
-                        );
+                        // 【關鍵】儲值成功後，必須清除快取，以確保下次回到首頁時能抓到最新的點數
+                        sessionStorage.removeItem('memberDataCache');
                         
-                        // 重設表單
-                        selectedAmount = 0;
-                        selectedPoints = 0;
+                        showFormMessage(`🥳 儲值成功！交易編號: **${transactionId}**。已為您儲值 ${selectedPoints.toLocaleString()} 點。`, 'success');
+                        
+                        selectedAmount = 0; selectedPoints = 0;
                         optionCards.forEach(card => card.classList.remove('selected'));
                         paymentMethodSelect.value = '';
                         topupButton.classList.remove('opacity-75');
@@ -329,42 +272,25 @@
             }, 2000); 
         });
         
-        // 自定義 Alert
         function alert(message, callback) { 
-            const existingModal = document.getElementById('custom-alert-modal');
-            if (existingModal) existingModal.remove();
-
-            const handleConfirm = () => {
-                document.getElementById('custom-alert-modal').remove();
-                if (callback && typeof callback === 'function') {
-                    callback(); 
-                }
-            };
-
-            window.customAlertConfirm = handleConfirm;
-
-            const modalHtml = `
-                <div id="custom-alert-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
-                    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform scale-100 transition-all duration-300">
-                        <div class="text-xl font-bold text-gray-900 mb-3 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-vieshow-red mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                            </svg>
-                            系統提示
-                        </div>
-                        <p class="text-gray-700 mb-5">${message}</p>
-                        <div class="flex justify-end">
-                            <button onclick="window.customAlertConfirm()" 
-                                    class="bg-vieshow-red hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-vieshow-red focus:ring-offset-2">
-                                確認
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const d = document.createElement('div');
+            d.innerHTML = `<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div class="bg-white p-6 rounded-lg shadow-xl"><p class="mb-4 font-bold text-gray-800">${message}</p><button class="bg-vieshow-red text-white px-4 py-2 rounded" onclick="this.closest('.fixed').remove(); if(${callback}) ${callback}()">確定</button></div></div>`;
+            document.body.appendChild(d.firstChild);
         }
-        window.alert = alert;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            renderUI();
+            user = JSON.parse(localStorage.getItem('user'));
+            const token = localStorage.getItem('auth_token');
+
+            if (!token || !user) {
+                alert('請先登入以進行儲值', () => { window.location.href = `${LOGIN_PAGE_URL}?redirect=${encodeURIComponent(window.location.href)}`; });
+                return;
+            }
+
+            await fetchUserPoints(user.id);
+            updateTopupState();
+        });
     </script>
     
     <footer class="bg-gray-800 text-white p-4 mt-auto text-center text-sm">
