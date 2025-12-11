@@ -8,14 +8,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script>
-        // Tailwind 配置，確保顏色和字體與專案一致
+        // Tailwind 配置
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
                         'vieshow-red': '#e50914',
                         'vieshow-gold': '#f7a83d',
-                        'success-green': '#10b981', // Emerald 500
+                        'success-green': '#10b981', 
                     },
                     fontFamily: {
                         sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
@@ -29,7 +29,6 @@
     </script>
 
     <style>
-        /* 新增通知動畫 */
         @keyframes fadeInDown {
             from { opacity: 0; transform: translate(-50%, -40px); }
             to { opacity: 1; transform: translate(-50%, 20px); }
@@ -41,18 +40,9 @@
         .animate-fade-in-down { animation: fadeInDown 0.5s ease-out forwards; }
         .animate-fade-out-up { animation: fadeOutUp 0.5s ease-in forwards; }
 
-        /* 確保 body 最小高度以使用 flex-grow */
-        .min-h-screen {
-            min-height: 100vh;
-        }
-        /* 註冊步驟卡片 */
-        .register-card {
-            display: none; /* 預設隱藏所有步驟卡片 */
-            max-width: 44rem; /* 為了容納成功確認頁面較寬的內容 */
-        }
-        .register-card:first-child {
-            display: block; /* 預設顯示第一個步驟 */
-        }
+        .min-h-screen { min-height: 100vh; }
+        .register-card { display: none; max-width: 44rem; }
+        .register-card:first-child { display: block; }
     </style>
 </head>
 <body class="bg-gray-50 font-sans min-h-screen flex flex-col">
@@ -64,7 +54,7 @@
     </header>
 
     <div id="notification" class="fixed top-0 left-1/2 -translate-x-1/2 z-50 p-4 rounded-lg shadow-xl text-white opacity-0 pointer-events-none transition-all duration-300" role="alert">
-        </div>
+    </div>
 
     <main class="container mx-auto px-4 py-8 flex-grow flex items-center justify-center">
         
@@ -85,7 +75,7 @@
                         
                         <button type="button" id="checkIdButton"
                             class="shrink-0 px-4 py-2 text-sm font-medium rounded-xl bg-gray-200 text-gray-700 hover:bg-vieshow-gold hover:text-white transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                            檢查
+                            檢查格式
                         </button>
                     </div>
                     <span class="error text-vieshow-red text-xs mt-1 block" id="idError"></span>
@@ -174,12 +164,12 @@
 
         <div id="successCard" class="register-card w-full max-w-xl bg-white p-6 sm:p-10 rounded-2xl shadow-2xl border-t-8 border-success-green hidden">
             <h2 class="text-3xl font-extrabold text-success-green mb-6 text-center">
-                🎉 註冊成功！資料確認
+                🎉 註冊成功！
             </h2>
             <p class="text-center text-gray-700 mb-8">恭喜您成為 Vieshow 會員。以下是您的註冊資料：</p>
 
             <div id="confirmationDetails" class="space-y-4 bg-gray-50 p-6 rounded-lg border">
-                </div>
+            </div>
 
             <button id="goToLogin"
                 class="w-full bg-vieshow-red hover:bg-red-700 text-white font-bold py-3 rounded-xl transition duration-300 shadow-lg mt-8 transform hover:-translate-y-0.5">
@@ -194,19 +184,14 @@
     </footer>
 
     <script>
-        // 設定未來 FastAPI 後端 API 的基礎 URL
-        const API_BASE_URL = 'https://your-fastapi-backend.com/api/v1'; 
-        let currentActivationCode = ''; // 模擬儲存的啟用確認碼 (需求 4)
-        let memberData = {}; // 暫存註冊成功的用戶資料 (需求 4, 5)
-        let isIdChecked = false; // 新增：追蹤身份證是否已通過檢查
+        // 1. 設定後端 API 網址
+        const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api';
         
-        // 模擬的資料庫狀態 (模擬檢查身分證或Email是否已存在)
-        const MOCK_DB = {
-            idCards: ['A123456789'], // 已註冊的身份證範例
-            emails: ['registered@example.com'] // 已註冊的Email範例
-        };
-
-        // --- 輔助函數 (保持不變) ---
+        let currentActivationCode = ''; 
+        let memberData = {}; 
+        let isIdChecked = false; 
+        
+        // --- 輔助函數 ---
         let notificationTimeout;
         function showNotification(message, type = 'error', duration = 3000) {
             const notification = document.getElementById('notification');
@@ -217,7 +202,7 @@
                 notification.classList.add('bg-green-600');
             } else if (type === 'warning') {
                 notification.classList.add('bg-vieshow-gold');
-            } else { // default to error
+            } else {
                 notification.classList.add('bg-vieshow-red');
             }
 
@@ -232,11 +217,7 @@
             }, duration);
         }
 
-        /**
-         * 驗證台灣身分證字號格式及檢查碼 (需求 1)
-         * @param {string} id - 身分證字號
-         * @returns {boolean}
-         */
+        // 身分證格式檢查
         function isValidTwId(id) {
             const regex = /^[A-Z][12]\d{8}$/;
             if (!regex.test(id)) return false;
@@ -257,150 +238,97 @@
             return sum % 10 === 0;
         }
 
-        /**
-         * 檢查密碼格式 (需求 3)
-         * @param {string} password - 密碼
-         * @returns {string | null} - 錯誤訊息或 null
-         */
+        // 密碼格式檢查
         function checkPasswordFormat(password) {
-            if (password.length < 8) {
-                return '密碼必須至少 8 個字元。';
-            }
-            if (!/[a-zA-Z]/.test(password)) {
-                return '密碼必須包含英文字母。';
-            }
-            if (!/[0-9]/.test(password)) {
-                return '密碼必須包含數字。';
-            }
-            return null; // 格式正確
+            if (password.length < 8) return '密碼必須至少 8 個字元。';
+            if (!/[a-zA-Z]/.test(password)) return '密碼必須包含英文字母。';
+            if (!/[0-9]/.test(password)) return '密碼必須包含數字。';
+            return null; 
         }
 
-        /**
-         * 隨機生成 4 位數字確認碼 (需求 4)
-         * @returns {string}
-         */
         function generateActivationCode() {
             return Math.floor(1000 + Math.random() * 9000).toString();
         }
 
-        /**
-         * 顯示指定步驟卡片
-         * @param {string} cardId - 要顯示的卡片 ID ('registerCard', 'activationCard', 'successCard')
-         */
         function showCard(cardId) {
             document.querySelectorAll('.register-card').forEach(card => {
                 card.style.display = 'none';
             });
             document.getElementById(cardId).style.display = 'block';
-            window.scrollTo(0, 0); // 跳轉時捲動到頂部
+            window.scrollTo(0, 0); 
         }
 
-        // --- 新增：身分證號碼獨立檢查邏輯 ---
+        // --- 獨立檢查身分證 (純前端格式驗證) ---
         function checkIdCard() {
             const idInput = document.getElementById('memberCardID');
             const idError = document.getElementById('idError');
             const idCard = idInput.value.trim().toUpperCase();
-            const checkButton = document.getElementById('checkIdButton');
-
-            idError.textContent = '';
-            isIdChecked = false; // 重設檢查狀態
-            checkButton.disabled = true; // 檢查期間禁用按鈕
-            checkButton.textContent = '檢查中...';
-
-            // 模擬後端延遲檢查
-            setTimeout(() => {
-                checkButton.disabled = false;
-                checkButton.textContent = '檢查';
-
-                if (idCard.length !== 10) {
-                    idError.textContent = '身分證號必須為 10 碼。';
-                    showNotification('身分證號碼長度錯誤。', 'error');
-                    return;
-                }
-
-                // 1. 格式檢查 (需求 1)
-                if (!isValidTwId(idCard)) {
-                    idError.textContent = '此證號驗證失敗! 請符合要求的格式!';
-                    showNotification('身分證格式驗證失敗。', 'error');
-                    return;
-                }
-                
-                // 2. 存在檢查 (模擬資料庫查詢) (需求 1)
-                if (MOCK_DB.idCards.includes(idCard)) {
-                    idError.textContent = '此證號已為會員! 請直接登入。';
-                    showNotification('此身分證號已註冊。', 'error');
-                    return;
-                }
-
-                // 驗證成功
-                idError.textContent = '✅ 身分證號格式正確且未註冊。';
-                idError.classList.remove('text-vieshow-red');
-                idError.classList.add('text-success-green');
-                isIdChecked = true;
-                showNotification('身分證號驗證通過！', 'success');
-
-                // 讓身分證號碼不能再修改
-                idInput.readOnly = true; 
-            }, 1000); // 模擬 1 秒 API 檢查延遲
-        }
-
-
-        // --- 處理表單提交 (步驟一: 註冊) ---
-        document.getElementById('registerForm').addEventListener('submit', function(event) {
-            event.preventDefault(); 
-
-            // 清除所有錯誤訊息 (除了身分證的成功訊息，如果有)
-            document.querySelectorAll('.error:not(#idError)').forEach(el => el.textContent = '');
             
-            // 如果用戶沒有先按檢查按鈕，則強制執行一次檢查
-            if (!isIdChecked) {
-                document.getElementById('idError').classList.remove('text-success-green');
-                document.getElementById('idError').classList.add('text-vieshow-red');
-                document.getElementById('idError').textContent = '請先點擊「檢查」按鈕驗證身分證號。';
-                showNotification('請先驗證身分證號碼。', 'error');
+            idError.textContent = '';
+            
+            if (idCard.length !== 10) {
+                idError.textContent = '身分證號必須為 10 碼。';
+                showNotification('身分證號碼長度錯誤。', 'error');
                 return;
             }
 
+            if (!isValidTwId(idCard)) {
+                idError.textContent = '此證號驗證失敗! 請符合要求的格式!';
+                showNotification('身分證格式驗證失敗。', 'error');
+                return;
+            }
+            
+            // 格式正確
+            idError.textContent = '✅ 格式正確 (重複檢查將於提交時進行)';
+            idError.classList.remove('text-vieshow-red');
+            idError.classList.add('text-success-green');
+            isIdChecked = true;
+            showNotification('格式驗證通過！', 'success');
+        }
+
+
+        // --- 處理註冊表單提交 (呼叫 API) ---
+        document.getElementById('registerForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); 
+
+            // 清除錯誤訊息
+            document.querySelectorAll('.error:not(#idError)').forEach(el => el.textContent = '');
+            
+            if (!isIdChecked) {
+                checkIdCard(); // 若未檢查則自動檢查一次
+                if (!isIdChecked) return; // 若檢查仍失敗則停止
+            }
+
             const form = event.target;
-            const data = {
+            const requestData = {
                 idCard: form.memberCardID.value.trim().toUpperCase(),
                 name: form.memberName.value.trim(),
                 birthDate: form.memberBirth.value,
                 phone: form.memberPhone.value.trim(),
-                phoneConfirm: form.memberPhoneConfirm.value.trim(),
                 email: form.memberEmail.value.trim(),
-                emailConfirm: form.memberEmailConfirm.value.trim(),
-                password: form.memberPwd.value,
-                passwordConfirm: form.memberPwdConfirm.value 
+                password: form.memberPwd.value
             };
+            const phoneConfirm = form.memberPhoneConfirm.value.trim();
+            const emailConfirm = form.memberEmailConfirm.value.trim();
+            const passwordConfirm = form.memberPwdConfirm.value;
             
-            // --- 前端驗證 (只檢查未被獨立檢查的欄位) ---
+            // --- 前端欄位比對驗證 ---
             let hasError = false;
             
-            // 1. 電話重複確認 (需求 2)
-            if (data.phone !== data.phoneConfirm) {
+            if (requestData.phone !== phoneConfirm) {
                 document.getElementById('phoneMatchError').textContent = '行動電話輸入不相符。';
                 hasError = true;
             }
-
-            // 2. Email 重複確認 (需求 2)
-            if (data.email !== data.emailConfirm) {
+            if (requestData.email !== emailConfirm) {
                 document.getElementById('emailMatchError').textContent = '電子郵件輸入不相符。';
                 hasError = true;
-            } else if (MOCK_DB.emails.includes(data.email)) {
-                document.getElementById('emailError').textContent = '此 Email 已被註冊!';
-                hasError = true;
             }
-            
-            // 3. 密碼格式檢查 (需求 3)
-            const pwdErrorMsg = checkPasswordFormat(data.password);
+            const pwdErrorMsg = checkPasswordFormat(requestData.password);
             if (pwdErrorMsg) {
                 document.getElementById('pwdFormatError').textContent = '密碼格式錯誤：' + pwdErrorMsg;
                 hasError = true;
             }
-
-            // 4. 密碼重複確認 (需求 2)
-            if (data.password !== data.passwordConfirm) {
+            if (requestData.password !== passwordConfirm) {
                 document.getElementById('pwdMatchError').textContent = '密碼與確認密碼不相符。';
                 hasError = true;
             }
@@ -410,45 +338,51 @@
                 return;
             }
 
-            // --- 模擬後端註冊流程 (需求 4) ---
+            // --- 呼叫後端 API ---
             const registerButton = document.getElementById('registerButton');
             registerButton.disabled = true;
-            registerButton.textContent = '註冊中，請稍候...';
-            showNotification('資料驗證成功，正在生成啟用碼並發送郵件...', 'warning', 4000);
+            registerButton.textContent = '註冊中...';
 
-            // 模擬後端將資料寫入資料庫並生成啟用碼
-            setTimeout(() => {
-                memberData = {
-                    idCard: data.idCard,
-                    name: data.name,
-                    birthDate: data.birthDate,
-                    phone: data.phone,
-                    email: data.email
-                    // 不儲存密碼
-                };
-                
-                // 生成確認碼
-                currentActivationCode = generateActivationCode(); 
-                
-                // 模擬將確認碼加入資料庫
-                console.log('--- MOCK DB --- 註冊資料已儲存。');
-                console.warn(`【模擬郵件發送】帳號啟用確認碼：${currentActivationCode}`); // 在 Console 顯示確認碼
-                
-                document.getElementById('sentEmailDisplay').textContent = data.email;
-                
-                // 進入步驟二
-                showCard('activationCard');
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                });
 
-                showNotification('✅ 啟用信已發送！請檢查您的信箱 (及 Console)。', 'success');
-                
-                // 恢復註冊按鈕狀態 (如果需要返回步驟一的話)
+                const result = await response.json();
+
+                if (response.ok) {
+                    // 註冊成功 (DB已建立)
+                    // 進入模擬的 "發送郵件/啟用" 流程
+                    memberData = requestData; // 暫存資料用於顯示
+                    currentActivationCode = generateActivationCode();
+                    
+                    console.warn(`【模擬郵件發送】帳號啟用確認碼：${currentActivationCode}`);
+                    document.getElementById('sentEmailDisplay').textContent = requestData.email;
+                    
+                    showNotification('資料驗證成功，請查收啟用信件 (看 Console)。', 'success', 4000);
+                    showCard('activationCard');
+
+                } else {
+                    // 註冊失敗 (可能是重複)
+                    showNotification(`❌ ${result.message}`, 'error');
+                    if (result.message.includes('已註冊')) {
+                        // 嘗試標示錯誤欄位
+                        if (result.message.includes('Email')) document.getElementById('emailError').textContent = result.message;
+                        if (result.message.includes('身分證')) document.getElementById('idError').textContent = result.message;
+                    }
+                }
+            } catch (error) {
+                console.error(error);
+                showNotification('❌ 連線伺服器失敗，請稍後再試。', 'error');
+            } finally {
                 registerButton.disabled = false;
                 registerButton.textContent = '下一步：發送啟用信件';
-
-            }, 2500); // 模擬 API 延遲
+            }
         });
 
-        // --- 處理表單提交 (步驟二: 啟用) ---
+        // --- 處理表單提交 (步驟二: 啟用 - 純前端模擬) ---
         document.getElementById('activationForm').addEventListener('submit', function(event) {
             event.preventDefault();
             
@@ -456,34 +390,24 @@
             document.getElementById('activationError').textContent = '';
 
             if (inputCode === currentActivationCode) {
-                // 啟用成功 (需求 4)
                 showNotification('🎉 啟用成功！帳號已正式開通。', 'success', 4000);
-                
-                // 模擬將會員加入正式 DB
-                MOCK_DB.idCards.push(memberData.idCard);
-                MOCK_DB.emails.push(memberData.email);
-
-                // 進入步驟三 (確認頁面)
                 displayConfirmation();
                 showCard('successCard');
-
             } else {
-                // 啟用失敗
                 document.getElementById('activationError').textContent = '❌ 確認碼錯誤，請重新輸入。';
                 showNotification('❌ 啟用失敗：確認碼錯誤。', 'error');
                 document.getElementById('activationCode').value = '';
             }
         });
 
-        // --- 重新發送確認碼 (步驟二) ---
+        // --- 重新發送確認碼 ---
         document.getElementById('resendCode').addEventListener('click', function() {
-            // 重新生成新的確認碼
             currentActivationCode = generateActivationCode();
             console.warn(`【重新發送模擬郵件】新的帳號啟用確認碼：${currentActivationCode}`);
             showNotification('新的確認碼已重新發送至信箱。', 'warning');
         });
 
-        // --- 顯示註冊成功資料 (步驟三: 確認) (需求 5) ---
+        // --- 顯示註冊成功資料 (步驟三) ---
         function displayConfirmation() {
             const container = document.getElementById('confirmationDetails');
             container.innerHTML = `
@@ -495,9 +419,7 @@
             `;
         }
         
-        // --- 跳轉到登入頁面 (步驟三) ---
         document.getElementById('goToLogin').addEventListener('click', () => {
-             // 清除暫存資料，模擬註冊流程結束
             memberData = {}; 
             currentActivationCode = '';
             window.location.href = 'login.html'; 
@@ -505,17 +427,12 @@
 
         // --- 初始化事件綁定 ---
         document.addEventListener('DOMContentLoaded', () => {
-            // 綁定新的身分證檢查按鈕事件
             document.getElementById('checkIdButton').addEventListener('click', checkIdCard);
 
-            // 讓身分證輸入框的值改變時，重置檢查狀態
             document.getElementById('memberCardID').addEventListener('input', () => {
-                const idInput = document.getElementById('memberCardID');
                 const idError = document.getElementById('idError');
-                
-                idInput.readOnly = false; // 重新啟用編輯
-                isIdChecked = false; // 重置檢查狀態
-                idError.textContent = ''; // 清除訊息
+                isIdChecked = false; 
+                idError.textContent = ''; 
                 idError.classList.remove('text-success-green');
                 idError.classList.add('text-vieshow-red');
             });
