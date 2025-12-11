@@ -563,7 +563,7 @@
         }
 
        window.submitRefundApplication = async function() {
-            // 驗證輸入 (保留原本的邏輯)
+            // 1. 驗證銀行資訊
             const bankCode = document.getElementById('bankCode').value;
             const bankAccount = document.getElementById('bankAccount').value;
             const accountName = document.getElementById('accountName').value;
@@ -577,7 +577,7 @@
                 return;
             }
 
-            // 【新增】計算使用者總共選了幾張票要退
+            // 2. 取得退票數量
             let totalRefundQty = 0;
             document.querySelectorAll('#ticketAdjustments input[data-type="ticket"]').forEach(input => {
                 totalRefundQty += parseInt(input.value) || 0;
@@ -589,46 +589,56 @@
             }
 
             const user = JSON.parse(localStorage.getItem('user'));
-            const btn = document.querySelector('#step2 button:last-child');
+            const btn = document.querySelector('#step2 button:last-child'); // 確認按鈕
             
+            // 鎖定按鈕
             btn.disabled = true;
             btn.textContent = "處理中...";
 
             try {
-                // 改為呼叫 modify 路由
+                console.log("正在發送請求...", {
+                    orderId: currentBookingDetail.id,
+                    refundQty: totalRefundQty
+                });
+
                 const response = await fetch(`${API_BASE_URL}/booking/modify`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         orderId: currentBookingDetail.id,
                         memberId: user ? user.id : null,
-                        refundQty: totalRefundQty // 傳送要退幾張
+                        refundQty: totalRefundQty
                     })
                 });
 
+                // 檢查 HTTP 狀態碼
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error("Server Error:", errorText);
+                    throw new Error(`伺服器錯誤 (${response.status})`);
+                }
+
                 const result = await response.json();
 
-                if (response.ok) {
-                    // 成功：顯示成功畫面
+                if (result.status === "success") {
+                    // 成功
                     document.getElementById('finalRefundAmount').textContent = currentRefund.toLocaleString();
                     document.getElementById('step2').classList.add('hidden');
                     document.getElementById('step3').classList.remove('hidden');
                     
-                    // 重新載入列表以更新 UI (會看到金額變少，或者變灰色取消)
-                    fetchOrders(); 
+                    fetchOrders(); // 重新載入列表
                 } else {
-                    alert(`❌ 操作失敗: ${result.message}`);
+                    alert(`❌ 失敗: ${result.message}`);
                 }
 
             } catch (error) {
-                console.error("API Error:", error);
-                alert('連線錯誤，請稍後再試');
+                console.error("Client Error:", error);
+                alert(`系統錯誤: ${error.message}`);
             } finally {
                 btn.disabled = false;
                 btn.textContent = "確認送出退票申請";
             }
         }
-
         function renderPagination(totalItems) { 
             const totalPages = Math.ceil(totalItems / itemsPerPage);
             const container = document.getElementById('pagination');
@@ -667,5 +677,6 @@
     </script>
 </body>
 </html>
+
 
 
