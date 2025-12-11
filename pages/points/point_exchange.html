@@ -125,57 +125,14 @@
     </div>
 
     <script>
-        // 1. 設定後端 API 網址
         const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api';
-
         const LOGIN_PAGE_URL = '../auth/login.html';
         const MEMBER_HOME_URL = '../member/member_home.html';
         const INDEX_PAGE_URL = '../../index.html';
 
-        // 2. 導覽列與登入狀態渲染
-        function renderLoggedOutState() {
-            // 如果未登入，此頁面應該直接跳轉，但為了保險起見保留渲染
-            const headerNavRight = document.getElementById('headerNavRight');
-            if (headerNavRight) {
-                headerNavRight.innerHTML = `
-                    <a href="${LOGIN_PAGE_URL}" class="hover:text-vieshow-gold transition duration-300">登入</a>
-                `;
-            }
-        }
-
-        function renderLoggedInState() {
-            const headerNavRight = document.getElementById('headerNavRight');
-            if (!headerNavRight) return;
-
-            headerNavRight.innerHTML = `
-                <a href="#" id="signOutLink" class="hover:text-vieshow-gold transition duration-300">登出</a>
-                <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>
-            `;
-            
-            document.getElementById('signOutLink')?.addEventListener('click', handleSignOut);
-        }
-
-        function handleSignOut(e) {
-            e.preventDefault();
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user');
-            alert('您已成功登出。即將導向首頁...', () => {
-                window.location.href = INDEX_PAGE_URL;
-            }); 
-        }
-
-        function renderUI() {
-            const token = localStorage.getItem('auth_token');
-            if (token) {
-                renderLoggedInState(); 
-            } else {
-                renderLoggedOutState();
-            }
-        }
-
-        // 3. 頁面初始化與 API 資料獲取
         let currentPoints = 0;
         let selectedItem = null;
+        let user = null;
 
         const currentPointsDisplay = document.getElementById('currentPoints');
         const exchangeButtons = document.querySelectorAll('.exchange-button');
@@ -186,11 +143,11 @@
         const confirmButton = document.getElementById('confirmButton');
         const cancelButton = document.getElementById('cancelButton');
 
+        // 初始化
         document.addEventListener('DOMContentLoaded', async () => {
             renderUI();
             
-            // 檢查登入
-            const user = JSON.parse(localStorage.getItem('user'));
+            user = JSON.parse(localStorage.getItem('user'));
             const token = localStorage.getItem('auth_token');
 
             if (!token || !user) {
@@ -200,46 +157,100 @@
                 return;
             }
 
-            // 呼叫 API 獲取真實點數
             await fetchUserPoints(user.id);
         });
 
+        // 讀取點數
         async function fetchUserPoints(memberId) {
             try {
                 const response = await fetch(`${API_BASE_URL}/member/profile?id=${memberId}`);
                 if (!response.ok) throw new Error('無法取得會員資料');
                 
                 const data = await response.json();
-                currentPoints = data.points; // 從後端取得點數
-                
+                currentPoints = data.points; 
                 currentPointsDisplay.textContent = `${currentPoints.toLocaleString()} 點`;
-                
-                // 更新按鈕狀態
                 updateExchangeButtonsState();
 
             } catch (error) {
                 console.error('API Error:', error);
                 currentPointsDisplay.textContent = '讀取失敗';
-                currentPointsDisplay.classList.add('text-sm');
             }
         }
 
-        // --- 彈窗邏輯 ---
+        // --- 兌換邏輯 (核心修改) ---
+        confirmButton.addEventListener('click', async () => {
+            if (!selectedItem || confirmButton.disabled) return;
+
+            const { productName, cost } = selectedItem;
+
+            if (currentPoints < cost) {
+                showModalMessage('點數不足，無法完成兌換。', 'error');
+                return;
+            }
+            
+            confirmButton.disabled = true;
+            confirmButton.textContent = '處理中...';
+            confirmButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+            confirmButton.classList.remove('bg-vieshow-red', 'hover:bg-red-700');
+
+            try {
+                // 呼叫後端 API 扣點
+                const response = await fetch(`${API_BASE_URL}/member/redeem`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        memberId: user.id,
+                        cost: cost,
+                        productName: productName // 傳給後端做紀錄用 (選用)
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // 成功：更新前端點數
+                    currentPoints = result.balance; 
+                    currentPointsDisplay.textContent = `${currentPoints.toLocaleString()} 點`;
+
+                    showModalMessage(`✅ 成功兌換 ${productName}！已扣除 ${cost} 點。`, 'success');
+                    
+                    confirmButton.textContent = '已兌換';
+                    confirmButton.disabled = true;
+                    confirmButton.classList.remove('bg-gray-400');
+                    confirmButton.classList.add('bg-green-600');
+                    
+                    cancelButton.textContent = '完成';
+                    cancelButton.classList.remove('bg-gray-200', 'hover:bg-gray-300', 'text-gray-700');
+                    cancelButton.classList.add('bg-vieshow-gold', 'hover:bg-yellow-600', 'text-gray-900');
+                    
+                    cancelButton.removeEventListener('click', closeCancelModal); 
+                    cancelButton.addEventListener('click', closeSuccessModal); 
+
+                    updateExchangeButtonsState();
+                } else {
+                    // 失敗
+                    showModalMessage(`❌ 兌換失敗: ${result.message}`, 'error');
+                    resetModalButtons(); // 恢復按鈕讓用戶重試
+                }
+
+            } catch (error) {
+                console.error("API Error:", error);
+                showModalMessage('❌ 連線伺服器失敗，請稍後再試', 'error');
+                resetModalButtons();
+            }
+        });
+
+        // --- UI 輔助函式 ---
         function showModalMessage(text, type) {
             modalMessage.textContent = text;
             modalMessage.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
-            
-            if (type === 'success') {
-                modalMessage.classList.add('bg-green-100', 'text-green-800');
-            } else if (type === 'error') {
-                modalMessage.classList.add('bg-red-100', 'text-red-800');
-            }
+            if (type === 'success') modalMessage.classList.add('bg-green-100', 'text-green-800');
+            else modalMessage.classList.add('bg-red-100', 'text-red-800');
             modalMessage.classList.remove('hidden');
         }
 
         function resetModalButtons() {
             if (confirmButton.textContent === '處理中...') return; 
-            
             confirmButton.textContent = '確認兌換';
             confirmButton.disabled = false;
             confirmButton.classList.remove('bg-gray-400', 'cursor-not-allowed', 'bg-green-600');
@@ -252,109 +263,12 @@
             cancelButton.addEventListener('click', closeCancelModal); 
         }
 
-        function closeCancelModal() {
-            exchangeModal.classList.add('hidden');
-            exchangeModal.classList.remove('flex');
-            selectedItem = null;
-            resetModalButtons(); 
-        }
-
-        function closeSuccessModal() {
-            exchangeModal.classList.add('hidden');
-            exchangeModal.classList.remove('flex');
-            selectedItem = null;
-            resetModalButtons(); 
-        }
-
-        function openModal(productName, cost, id) {
-            selectedItem = { productName, cost, id };
-            
-            modalProduct.textContent = productName;
-            modalCost.textContent = cost.toLocaleString();
-            modalMessage.classList.add('hidden'); 
-            
-            resetModalButtons(); 
-
-            exchangeModal.classList.add('flex');
-            exchangeModal.classList.remove('hidden');
-        }
-
-        function closeModal(event) {
-            if (event.target === exchangeModal) { 
-                closeCancelModal();
-            }
-        }
-        
-        cancelButton.addEventListener('click', closeCancelModal);
-
-        // --- 綁定兌換按鈕 ---
-        exchangeButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const card = button.closest('.exchange-card');
-                const cost = parseInt(card.dataset.cost);
-                const id = card.dataset.id;
-                const productName = card.querySelector('h4').textContent.trim();
-                
-                if (cost > currentPoints) return; 
-
-                openModal(productName, cost, id);
-            });
-        });
-
-        // --- 確認兌換邏輯 ---
-        confirmButton.addEventListener('click', () => {
-            if (!selectedItem || confirmButton.disabled) return;
-
-            const { productName, cost, id } = selectedItem;
-
-            if (currentPoints < cost) {
-                showModalMessage('點數不足，無法完成兌換。', 'error');
-                return;
-            }
-            
-            // 模擬兌換 API (後端目前沒有 exchange API，這裡做前端模擬更新)
-            confirmButton.disabled = true;
-            confirmButton.textContent = '處理中...';
-            confirmButton.classList.add('bg-gray-400', 'cursor-not-allowed');
-            confirmButton.classList.remove('bg-vieshow-red', 'hover:bg-red-700');
-
-            setTimeout(() => {
-                // 假設兌換成功，本地扣除點數
-                currentPoints -= cost;
-                
-                // 更新 UI
-                currentPointsDisplay.textContent = `${currentPoints.toLocaleString()} 點`;
-
-                // 顯示成功訊息
-                showModalMessage(`✅ 成功兌換 ${productName}！已扣除 ${cost} 點。`, 'success');
-                
-                // 更新按鈕狀態
-                confirmButton.textContent = '已兌換';
-                confirmButton.disabled = true;
-                confirmButton.classList.remove('bg-gray-400');
-                confirmButton.classList.add('bg-green-600');
-                
-                cancelButton.textContent = '完成';
-                cancelButton.classList.remove('bg-gray-200', 'hover:bg-gray-300', 'text-gray-700');
-                cancelButton.classList.add('bg-vieshow-gold', 'hover:bg-yellow-600', 'text-gray-900');
-                
-                cancelButton.removeEventListener('click', closeCancelModal); 
-                cancelButton.addEventListener('click', closeSuccessModal); 
-
-                // 更新商品列表按鈕
-                updateExchangeButtonsState();
-
-            }, 1500);
-        });
-
-        // --- 更新列表按鈕狀態 ---
         function updateExchangeButtonsState() {
             document.querySelectorAll('.exchange-card').forEach(card => {
                 const button = card.querySelector('.exchange-button');
                 const cost = parseInt(card.dataset.cost);
 
                 if (cost > currentPoints) {
-                    // 點數不足
                     card.classList.add('opacity-60');
                     button.disabled = true;
                     button.textContent = '點數不足';
@@ -362,7 +276,6 @@
                     button.classList.remove('bg-vieshow-gold', 'hover:bg-yellow-600', 'text-white');
                     card.querySelector('.text-xs').textContent = `需 ${cost.toLocaleString()} 點，目前不足`;
                 } else {
-                    // 點數足夠
                     card.classList.remove('opacity-60');
                     button.disabled = false;
                     button.textContent = '立即兌換';
@@ -372,21 +285,74 @@
                 }
             });
         }
-        
-        // 自定義 Alert
+
+        function openModal(productName, cost, id) {
+            selectedItem = { productName, cost, id };
+            modalProduct.textContent = productName;
+            modalCost.textContent = cost.toLocaleString();
+            modalMessage.classList.add('hidden'); 
+            resetModalButtons(); 
+            exchangeModal.classList.add('flex');
+            exchangeModal.classList.remove('hidden');
+        }
+
+        function closeCancelModal() {
+            exchangeModal.classList.add('hidden');
+            exchangeModal.classList.remove('flex');
+            selectedItem = null;
+            resetModalButtons(); 
+        }
+
+        function closeSuccessModal() {
+            closeCancelModal();
+        }
+
+        function closeModal(event) {
+            if (event.target === exchangeModal) closeCancelModal();
+        }
+        cancelButton.addEventListener('click', closeCancelModal);
+
+        exchangeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const card = button.closest('.exchange-card');
+                const cost = parseInt(card.dataset.cost);
+                const id = card.dataset.id;
+                const productName = card.querySelector('h4').textContent.trim();
+                if (cost > currentPoints) return; 
+                openModal(productName, cost, id);
+            });
+        });
+
+        // 導覽列與登入狀態
+        function renderLoggedOutState() {
+            const headerNavRight = document.getElementById('headerNavRight');
+            if (headerNavRight) headerNavRight.innerHTML = `<a href="${LOGIN_PAGE_URL}" class="hover:text-vieshow-gold transition duration-300">登入</a>`;
+        }
+        function renderLoggedInState() {
+            const headerNavRight = document.getElementById('headerNavRight');
+            if (!headerNavRight) return;
+            headerNavRight.innerHTML = `<a href="#" id="signOutLink" class="hover:text-vieshow-gold transition duration-300">登出</a> <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>`;
+            document.getElementById('signOutLink')?.addEventListener('click', handleSignOut);
+        }
+        function handleSignOut(e) {
+            e.preventDefault();
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            alert('您已成功登出。即將導向首頁...', () => { window.location.href = INDEX_PAGE_URL; }); 
+        }
+        function renderUI() {
+            const token = localStorage.getItem('auth_token');
+            if (token) renderLoggedInState(); else renderLoggedOutState();
+        }
+
         function customAlert(message, callback) { 
             const existingModal = document.getElementById('custom-alert-modal');
             if (existingModal) existingModal.remove();
-
             const handleConfirm = () => {
                 document.getElementById('custom-alert-modal').remove();
-                if (callback && typeof callback === 'function') {
-                    callback(); 
-                }
+                if (callback && typeof callback === 'function') callback(); 
             };
-
             window.customAlertConfirm = handleConfirm;
-
             const modalHtml = `
                 <div id="custom-alert-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
                     <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform scale-100 transition-all duration-300">
@@ -398,23 +364,16 @@
                         </div>
                         <p class="text-gray-700 mb-5">${message}</p>
                         <div class="flex justify-end">
-                            <button onclick="window.customAlertConfirm()" 
-                                    class="bg-vieshow-red hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-vieshow-red focus:ring-offset-2">
-                                確認
-                            </button>
+                            <button onclick="window.customAlertConfirm()" class="bg-vieshow-red hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-vieshow-red focus:ring-offset-2">確認</button>
                         </div>
                     </div>
-                </div>
-            `;
+                </div>`;
             document.body.insertAdjacentHTML('beforeend', modalHtml);
         }
-
         window.alert = customAlert;
     </script>
-    
     <footer class="bg-gray-800 text-white p-4 mt-auto text-center text-sm">
         <p class="text-gray-400">&copy; 2025 Vieshow Ticketing System.</p>
     </footer>
-
 </body>
 </html>
