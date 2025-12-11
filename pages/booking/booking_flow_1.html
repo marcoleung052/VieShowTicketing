@@ -8,7 +8,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script>
-        // Tailwind 配置
         tailwind.config = {
             theme: {
                 extend: {
@@ -21,457 +20,104 @@
                     fontFamily: {
                         sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
                     },
-                },
-            },
+                }
+            }
         };
 
-        // 3. 統一的自定義 Alert 函數 (用於確保樣式一致性)
-        // ----------------------------------------------------
-
-        /**
-         * 自定義 Modal 警告框，並接受一個點擊確認後執行的 callback 函數。
-         * @param {string} message - 顯示的訊息。
-         * @param {function} [callback] - 用戶點擊「確認」後要執行的函數 (可選)。
-         */
+        // 自定義 Alert
         function customAlert(message, callback) { 
             const existingModal = document.getElementById('custom-alert-modal');
             if (existingModal) existingModal.remove();
 
             const handleConfirm = () => {
                 document.getElementById('custom-alert-modal').remove();
-                if (callback && typeof callback === 'function') {
-                    callback(); 
-                }
+                if (callback && typeof callback === 'function') { callback(); }
             };
-
             window.customAlertConfirm = handleConfirm;
 
             const modalHtml = `
                 <div id="custom-alert-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
                     <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform scale-100 transition-all duration-300">
                         <div class="text-xl font-bold text-gray-900 mb-3 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-vieshow-red mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                            </svg>
-                            系統提示
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-vieshow-red mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>系統提示
                         </div>
                         <p class="text-gray-700 mb-5">${message}</p>
                         <div class="flex justify-end">
-                            <button onclick="window.customAlertConfirm()" 
-                                    class="bg-vieshow-red hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-vieshow-red focus:ring-offset-2">
-                                確認
-                            </button>
+                            <button onclick="window.customAlertConfirm()" class="bg-vieshow-red hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-vieshow-red focus:ring-offset-2">確認</button>
                         </div>
                     </div>
-                </div>
-            `;
+                </div>`;
             document.body.insertAdjacentHTML('beforeend', modalHtml);
         }
         window.alert = customAlert;
     </script>
     
     <style>
-        /* General Layout */
-        body {
-            background-color: #f7f7f7;
-            font-family: 'Noto Sans TC', 'Inter', sans-serif;
-            color: #333;
-        }
-        .main-content {
-            padding: 2rem 0;
-            min-height: 80vh;
-        }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 0 1rem;
-        }
-
-        /* Booking Card */
-        .booking-card {
-            background-color: white;
-            border-radius: 1rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            padding: 2rem;
-        }
-        .title-section {
-            border-bottom: 1px solid #e5e5e5;
-            padding-bottom: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        .main-title {
-            font-size: 1.875rem; /* 30px */
-            font-weight: 700;
-            color: #1a1a1a;
-            margin-bottom: 0.5rem;
-        }
-        .step-title {
-            font-size: 1.25rem; /* 20px */
-            font-weight: 600;
-            color: #e50914;
-        }
-        .step-description {
-            color: #6b7280;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
-        }
-
-        /* Step Indicator */
-        .step-indicator {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-        .step-circle {
-            width: 2.5rem;
-            height: 2.5rem;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-weight: 700;
-            color: white;
-            background-color: #9ca3af; /* Pending */
-            transition: all 0.3s;
-        }
-        .step-active {
-            background-color: #e50914; /* Active */
-            box-shadow: 0 0 0 5px rgba(229, 9, 20, 0.3);
-        }
-        .step-completed {
-            background-color: #10b981; /* Completed/Green */
-        }
-        .step-line {
-            width: 3rem;
-            height: 3px;
-            background-color: #9ca3af; /* Pending */
-            margin: 0 0.5rem;
-            transition: background-color 0.3s;
-        }
-        .step-line.step-active {
-            background-color: #e50914;
-        }
-
-        /* Form Elements */
-        .form-section > div {
-            padding: 1rem 0;
-            border-bottom: 1px solid #f3f4f6;
-        }
-        .section-label {
-            display: block;
-            font-size: 1.125rem;
-            font-weight: 600;
-            color: #333;
-            margin-top: 1.5rem;
-            margin-bottom: 0.75rem;
-            display: flex;
-            align-items: center;
-        }
-        .select-styled {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            background-color: #f9fafb;
-            font-size: 1rem;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-        .select-styled:focus {
-            border-color: #e50914;
-            box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2);
-            outline: none;
-        }
-        .select-help {
-            font-size: 0.875rem;
-            color: #6b7280;
-            margin-top: 0.5rem;
-        }
-
-        /* Ticket Type Selection (Step 1) */
-        .ticket-type-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-        }
-        .ticket-type-card {
-            border: 2px solid #e5e5e5;
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-        }
-        .ticket-type-card:hover {
-            border-color: #f7a83d;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-        }
-        .ticket-type-card.selected {
-            border-color: #e50914;
-            box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1);
-            background-color: #fff5f5;
-        }
-        .ticket-icon {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-        }
-        .ticket-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-        .ticket-description {
-            color: #6b7280;
-            font-size: 0.9rem;
-            margin-bottom: 1rem;
-        }
-        .feature-item {
-            display: flex;
-            align-items: center;
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-        }
-        .feature-dot {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 0.5rem;
-        }
+        /* (樣式部分保持不變，直接沿用您原本的 CSS) */
+        body { background-color: #f7f7f7; font-family: 'Noto Sans TC', 'Inter', sans-serif; color: #333; }
+        .main-content { padding: 2rem 0; min-height: 80vh; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 0 1rem; }
+        .booking-card { background-color: white; border-radius: 1rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); padding: 2rem; }
+        .title-section { border-bottom: 1px solid #e5e5e5; padding-bottom: 1.5rem; margin-bottom: 2rem; }
+        .main-title { font-size: 1.875rem; font-weight: 700; color: #1a1a1a; margin-bottom: 0.5rem; }
+        .step-title { font-size: 1.25rem; font-weight: 600; color: #e50914; }
+        .step-description { color: #6b7280; font-size: 0.9rem; margin-top: 0.5rem; }
+        .step-indicator { display: flex; justify-content: center; align-items: center; margin-bottom: 2rem; }
+        .step-circle { width: 2.5rem; height: 2.5rem; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: 700; color: white; background-color: #9ca3af; transition: all 0.3s; }
+        .step-active { background-color: #e50914; box-shadow: 0 0 0 5px rgba(229, 9, 20, 0.3); }
+        .step-completed { background-color: #10b981; }
+        .step-line { width: 3rem; height: 3px; background-color: #9ca3af; margin: 0 0.5rem; transition: background-color 0.3s; }
+        .step-line.step-active { background-color: #e50914; }
+        .form-section > div { padding: 1rem 0; border-bottom: 1px solid #f3f4f6; }
+        .section-label { display: block; font-size: 1.125rem; font-weight: 600; color: #333; margin-top: 1.5rem; margin-bottom: 0.75rem; display: flex; align-items: center; }
+        .select-styled { width: 100%; padding: 0.75rem 1rem; border: 1px solid #d1d5db; border-radius: 0.5rem; background-color: #f9fafb; font-size: 1rem; transition: border-color 0.3s, box-shadow 0.3s; }
+        .select-styled:focus { border-color: #e50914; box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2); outline: none; }
+        .select-help { font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem; }
+        .ticket-type-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+        .ticket-type-card { border: 2px solid #e5e5e5; border-radius: 0.75rem; padding: 1.5rem; cursor: pointer; transition: all 0.2s; position: relative; }
+        .ticket-type-card:hover { border-color: #f7a83d; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); }
+        .ticket-type-card.selected { border-color: #e50914; box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1); background-color: #fff5f5; }
+        .ticket-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        .ticket-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .ticket-description { color: #6b7280; font-size: 0.9rem; margin-bottom: 1rem; }
+        .feature-item { display: flex; align-items: center; font-size: 0.9rem; margin-bottom: 0.5rem; }
+        .feature-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.5rem; }
         .dot-blue { background-color: #3b82f6; }
         .dot-green { background-color: #10b981; }
-
-        .group-ticket-info {
-            margin-top: 1rem;
-            padding: 1rem;
-            background-color: #f0fdf4;
-            border: 1px dashed #4ade80;
-            border-radius: 0.5rem;
-        }
-        .group-ticket-title {
-            font-weight: 600;
-            color: #16a34a;
-            margin-bottom: 0.5rem;
-        }
-        .group-ticket-list {
-            list-style: none;
-            padding-left: 0;
-            font-size: 0.9rem;
-            color: #16a34a;
-        }
-
-        /* Movie Selection (Step 3) */
-        .movie-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-        }
-        .movie-card {
-            border: 1px solid #e5e5e5;
-            border-radius: 0.75rem;
-            overflow: hidden;
-            transition: all 0.2s;
-            background-color: #fafafa;
-            position: relative;
-        }
-        .movie-card:hover {
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
-            transform: translateY(-2px);
-        }
-        .movie-card.selected {
-            border-color: #e50914;
-            box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2);
-        }
-        .movie-content {
-            padding: 1rem;
-        }
-        .movie-layout {
-            display: flex;
-            gap: 1rem;
-        }
-        .movie-poster-container {
-            flex-shrink: 0;
-            width: 100px;
-            height: 150px;
-        }
-        .movie-poster {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 0.5rem;
-        }
-        .movie-details {
-            flex-grow: 1;
-        }
-        .movie-title {
-            font-size: 1.125rem;
-            font-weight: 700;
-            color: #1a1a1a;
-            margin-bottom: 0.25rem;
-        }
-        .movie-tags {
-            margin-bottom: 0.5rem;
-        }
-        .movie-tag {
-            display: inline-block;
-            padding: 0.1rem 0.5rem;
-            border-radius: 0.375rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin-right: 0.5rem;
-        }
+        .group-ticket-info { margin-top: 1rem; padding: 1rem; background-color: #f0fdf4; border: 1px dashed #4ade80; border-radius: 0.5rem; }
+        .group-ticket-title { font-weight: 600; color: #16a34a; margin-bottom: 0.5rem; }
+        .group-ticket-list { list-style: none; padding-left: 0; font-size: 0.9rem; color: #16a34a; }
+        .movie-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .movie-card { border: 1px solid #e5e5e5; border-radius: 0.75rem; overflow: hidden; transition: all 0.2s; background-color: #fafafa; position: relative; }
+        .movie-card:hover { box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15); transform: translateY(-2px); }
+        .movie-card.selected { border-color: #e50914; box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2); }
+        .movie-content { padding: 1rem; }
+        .movie-layout { display: flex; gap: 1rem; }
+        .movie-poster-container { flex-shrink: 0; width: 100px; height: 150px; }
+        .movie-poster { width: 100%; height: 100%; object-fit: cover; border-radius: 0.5rem; }
+        .movie-details { flex-grow: 1; }
+        .movie-title { font-size: 1.125rem; font-weight: 700; color: #1a1a1a; margin-bottom: 0.25rem; }
+        .movie-tags { margin-bottom: 0.5rem; }
+        .movie-tag { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 600; margin-right: 0.5rem; }
         .tag-red { background-color: #fee2e2; color: #ef4444; }
         .tag-gray { background-color: #e5e7eb; color: #4b5563; }
-        .movie-description {
-            font-size: 0.875rem;
-            color: #6b7280;
-            margin-top: 0.5rem;
-        }
-        .group-badge {
-            position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-            background-color: #10b981;
-            color: white;
-            padding: 0.2rem 0.5rem;
-            border-radius: 0.375rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            z-index: 10;
-        }
-
-        /* Showtime Selection (Step 4) */
-        .showtime-section {
-            padding: 1rem 0;
-            background-color: #f9fafb;
-            border-radius: 0.75rem;
-        }
-        .date-section {
-            padding: 0 1rem 1rem 1rem;
-        }
-        .date-header {
-            font-size: 1.125rem;
-            font-weight: 700;
-            color: #1a1a1a;
-            background-color: #f3f4f6;
-            padding: 0.5rem 1rem;
-            margin: 1rem -1rem 1rem -1rem;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .showtime-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-        }
-        .showtime-card {
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            background-color: white;
-            position: relative;
-        }
-        .showtime-card:hover {
-            border-color: #f7a83d;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .showtime-card.selected {
-            border-color: #e50914;
-            box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2);
-            background-color: #fff5f5;
-        }
-        .showtime-time {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #e50914;
-            margin-bottom: 0.5rem;
-            border-bottom: 1px solid #e5e7eb;
-            padding-bottom: 0.5rem;
-        }
-        .showtime-details {
-            font-size: 0.875rem;
-            color: #4b5563;
-        }
-        .showtime-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.25rem;
-        }
-        .showtime-divider {
-            padding-top: 0.5rem;
-            margin-top: 0.5rem;
-            border-top: 1px dashed #e5e7eb;
-        }
-        .seats-low {
-            color: #f59e0b;
-            font-weight: 700;
-        }
-        .seats-available {
-            color: #10b981;
-            font-weight: 700;
-        }
-        .showtime-group-badge {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            background-color: #3b82f6;
-            color: white;
-            padding: 0.1rem 0.5rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            z-index: 10;
-        }
-
-        /* Footer */
-        footer {
-            text-align: center;
-            padding: 1.5rem;
-            background-color: #1a1a1a;
-            color: #9ca3af;
-            font-size: 0.875rem;
-            margin-top: 2rem;
-        }
-
-        /* Button & Status */
-        .button-container {
-            padding-top: 2rem;
-            text-align: center;
-        }
-        .next-step-button {
-            background-color: #e50914;
-            color: white;
-            padding: 0.8rem 2rem;
-            font-size: 1.125rem;
-            font-weight: 700;
-            border-radius: 0.5rem;
-            transition: background-color 0.2s;
-        }
-        .next-step-button:hover:not(:disabled) {
-            background-color: #c50711;
-        }
-        .next-step-button:disabled {
-            background-color: #fda4af;
-            cursor: not-allowed;
-        }
-        .loading-message {
-            text-align: center;
-            margin-top: 1.5rem;
-            font-size: 0.95rem;
-            color: #6b7280;
-        }
-        .success-message {
-            padding: 0.75rem;
-            background-color: #ecfdf5;
-            border: 1px solid #a7f3d0;
-            border-radius: 0.5rem;
-            color: #047857;
-            margin-top: 1rem;
-        }
-        .success-text {
-            font-size: 0.95rem;
-        }
+        .movie-description { font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;}
+        .showtime-section { padding: 1rem 0; background-color: #f9fafb; border-radius: 0.75rem; }
+        .date-section { padding: 0 1rem 1rem 1rem; }
+        .date-header { font-size: 1.125rem; font-weight: 700; color: #1a1a1a; background-color: #f3f4f6; padding: 0.5rem 1rem; margin: 1rem -1rem 1rem -1rem; border-bottom: 1px solid #e5e7eb; }
+        .showtime-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+        .showtime-card { border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 1rem; cursor: pointer; transition: all 0.2s; background-color: white; position: relative; }
+        .showtime-card:hover { border-color: #f7a83d; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+        .showtime-card.selected { border-color: #e50914; box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2); background-color: #fff5f5; }
+        .showtime-time { font-size: 1.5rem; font-weight: 700; color: #e50914; margin-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; }
+        .showtime-details { font-size: 0.875rem; color: #4b5563; }
+        .showtime-row { display: flex; justify-content: space-between; margin-bottom: 0.25rem; }
+        .button-container { padding-top: 2rem; text-align: center; }
+        .next-step-button { background-color: #e50914; color: white; padding: 0.8rem 2rem; font-size: 1.125rem; font-weight: 700; border-radius: 0.5rem; transition: background-color 0.2s; }
+        .next-step-button:hover:not(:disabled) { background-color: #c50711; }
+        .next-step-button:disabled { background-color: #fda4af; cursor: not-allowed; }
+        .loading-message { text-align: center; margin-top: 1.5rem; font-size: 0.95rem; color: #6b7280; }
+        footer { text-align: center; padding: 1.5rem; background-color: #1a1a1a; color: #9ca3af; font-size: 0.875rem; margin-top: 2rem; }
     </style>
 </head>
 <body>
@@ -479,8 +125,7 @@
     <header class="bg-gray-800 text-white shadow-md">
         <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
             <a href="../../index.html" class="text-xl font-bold hover:text-vieshow-red transition duration-300">Vieshow 影城</a>
-            <div id="headerNavRight" class="space-x-4">
-            </div>
+            <div id="headerNavRight" class="space-x-4"></div>
         </nav>
     </header>
 
@@ -509,10 +154,7 @@
                 <form id="bookingFlow1Form" action="#" method="POST" class="form-section">
                     
                     <div id="ticketTypeSection">
-                        <label class="section-label">
-                            <span style="margin-right: 0.5rem;">🎫</span> 選擇票務類型
-                        </label>
-                        
+                        <label class="section-label"><span style="margin-right: 0.5rem;">🎫</span> 選擇票務類型</label>
                         <div class="ticket-type-grid">
                             <div class="ticket-type-card general" data-type="general">
                                 <div class="ticket-type-content">
@@ -520,676 +162,325 @@
                                     <h3 class="ticket-title">一般購票</h3>
                                     <p class="ticket-description">個人或小團體觀影選擇</p>
                                     <div class="ticket-features">
-                                        <div class="feature-item">
-                                            <span class="feature-dot dot-blue"></span>
-                                            <span>適合 **1-8 人**觀影</span>
-                                        </div>
-                                        <div class="feature-item">
-                                            <span class="feature-dot dot-blue"></span>
-                                            <span>多種票種選擇</span>
-                                        </div>
-                                        <div class="feature-item">
-                                            <span class="feature-dot dot-blue"></span>
-                                            <span>即時線上選位</span>
-                                        </div>
+                                        <div class="feature-item"><span class="feature-dot dot-blue"></span><span>適合 **1-8 人**觀影</span></div>
+                                        <div class="feature-item"><span class="feature-dot dot-blue"></span><span>多種票種選擇</span></div>
                                     </div>
                                 </div>
                             </div>
-                            
                             <div class="ticket-type-card group" data-type="group">
                                 <div class="ticket-type-content">
                                     <div class="ticket-icon">👥</div>
                                     <h3 class="ticket-title">團體票</h3>
                                     <p class="ticket-description">10人以上團體優惠</p>
                                     <div class="ticket-features">
-                                        <div class="feature-item">
-                                            <span class="feature-dot dot-green"></span>
-                                            <span>適合 **10-20 人**團體</span>
-                                        </div>
-                                        <div class="feature-item">
-                                            <span class="feature-dot dot-green"></span>
-                                            <span>專屬團體優惠價</span>
-                                        </div>
-                                        <div class="feature-item">
-                                            <span class="feature-dot dot-green"></span>
-                                            <span>需提前預約</span>
-                                        </div>
+                                        <div class="feature-item"><span class="feature-dot dot-green"></span><span>適合 **10-20 人**團體</span></div>
+                                        <div class="feature-item"><span class="feature-dot dot-green"></span><span>專屬團體優惠價</span></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        
                         <div id="groupTicketInfo" class="group-ticket-info hidden">
                             <h4 class="group-ticket-title">🎉 團體票專屬優惠</h4>
                             <ul class="group-ticket-list">
                                 <li>• **10人以上**享團體優惠價 (限 **20 人**以下)</li>
-                                <li>• 可預約專屬場次時段</li>
-                                <li>• 專人服務協助安排座位</li>
-                                <li>• 可客製化餐點組合</li>
                                 <li>• 需於觀影前3天預訂</li>
                             </ul>
                         </div>
                     </div>
                     
                     <div id="cinemaSelectionSection" class="hidden">
-                        <label for="cinema_location" class="section-label">
-                            <span style="margin-right: 0.5rem;">📍</span> 選擇影城地點
-                        </label>
+                        <label for="cinema_location" class="section-label"><span style="margin-right: 0.5rem;">📍</span> 選擇影城地點</label>
                         <select id="cinema_location" name="cinema_location" required class="select-styled">
                             <option value="" disabled selected>請選擇影城地點</option>
-                            </select>
+                        </select>
                         <p class="select-help">選擇您想觀影的影城地點 (**必填**)</p>
                     </div>
                     
                     <div id="movieSelectionSection" class="hidden">
-                        <label class="section-label">
-                            <span style="margin-right: 0.5rem;">🎬</span> 選擇電影
-                        </label>
-                        
+                        <label class="section-label"><span style="margin-right: 0.5rem;">🎬</span> 選擇電影</label>
                         <div id="movieSelection" class="movie-grid">
-                            <div style="grid-column: 1 / -1; text-align: center; padding: 2rem 0; color: var(--gray-500);">
-                                請先選擇影城地點以顯示電影清單
-                            </div>
+                            <div style="grid-column: 1 / -1; text-align: center; padding: 2rem 0; color: var(--gray-500);">請先選擇影城地點以顯示電影清單</div>
                         </div>
                     </div>
                     
                     <div id="showtimeSelectionSection" class="hidden">
-                        <label class="section-label">
-                            <span style="margin-right: 0.5rem;">🕒</span> 選擇場次
-                        </label>
-                        
+                        <label class="section-label"><span style="margin-right: 0.5rem;">🕒</span> 選擇場次</label>
                         <div id="showtimeSelection" class="showtime-section">
-                            <div style="text-align: center; padding: 2rem 0; color: var(--gray-500);">
-                                請先選擇電影以顯示場次資訊
-                            </div>
+                            <div style="text-align: center; padding: 2rem 0; color: var(--gray-500);">請先選擇電影以顯示場次資訊</div>
                         </div>
                     </div>
                     
                     <div id="loadingStatus" class="loading-message"></div>
 
                     <div class="button-container">
-                        <button type="submit" id="nextStepButton" class="next-step-button" disabled>
-                            下一步: 選擇票種與餐點
-                        </button>
+                        <button type="submit" id="nextStepButton" class="next-step-button" disabled>下一步: 選擇票種與餐點</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
+    <footer><p>&copy; 2025 Vieshow Ticketing System</p></footer>
+
     <script>
-        // 頁面路徑常數
+        const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api';
         const INDEX_PAGE_URL = '../../index.html';
         const LOGIN_PAGE_URL = '../auth/login.html';
         const MEMBER_HOME_URL = '../member/member_home.html';
 
-        // --- Mock 資料設定 (已整合您的預設條件) ---
-        const MOCK_CINEMAS = [
-            { id: 'taipei_xinyi', name: '台北信義影城', region: '台北' },
-            { id: 'banqiao_fuzhong', name: '板橋府中影城', region: '新北' },
-        ];
-
-        // 影廳設定: 40 個位置，10% 已售 (4 個)
-        // B 廳有愛心座 (6 個)
-        const SHOWTIME_TEMPLATE = [
-            // 影廳 A: 40 總位, 0 愛心, 4 已售
-            { id: 101, time: '14:00', theater: 'A廳', seats: 40, careSeats: 0, reserved: 4, type: '數位版', language: '英語', subtitle: '中文字幕', availableForGroup: true },
-            // 影廳 B: 40 總位, 6 愛心, 4 已售
-            { id: 102, time: '17:30', theater: 'B廳', seats: 40, careSeats: 6, reserved: 4, type: 'IMAX 3D', language: '英語', subtitle: '中文字幕', availableForGroup: true },
-            // 影廳 C: 40 總位, 0 愛心, 4 已售 - (模擬團體票不適用)
-            { id: 103, time: '20:00', theater: 'C廳', seats: 40, careSeats: 0, reserved: 4, type: '4DX', language: '中文', subtitle: '無', availableForGroup: false },
-        ];
-
-        const MOCK_MOVIES = [
-            { 
-                id: 1, 
-                title: '阿凡達 3: 最終戰役', 
-                duration: '180分鐘',
-                rating: '保護級',
-                genre: '科幻/動作',
-                image: 'https://via.placeholder.com/300x450/4A5568/FFFFFF?text=Avatar+3',
-                description: '延續前作劇情，納美人與人類的戰爭進入最終章',
-                showtimes: SHOWTIME_TEMPLATE
-            },
-            { 
-                id: 2, 
-                title: '不可能的任務 8', 
-                duration: '158分鐘',
-                rating: '輔12級',
-                genre: '動作/冒險',
-                image: 'https://via.placeholder.com/300x450/2D3748/FFFFFF?text=Mission+Impossible',
-                description: '伊森韓特再次挑戰不可能的任務',
-                showtimes: SHOWTIME_TEMPLATE.filter(s => s.type === 'IMAX 3D' || s.type === '4DX')
-            }
-        ];
-        
-        // --- 日期工具函數 (購票日 ~ 購票日+7天) ---
-        /**
-         * 取得從今天開始 n 天內的日期清單
-         * @param {number} days - 包含今天在內的天數
-         */
-        function getNextNDays(days) {
-            const dates = [];
-            const today = new Date();
-            today.setHours(0, 0, 0, 0); 
-            const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
-
-            for (let i = 0; i < days; i++) {
-                const nextDay = new Date(today);
-                nextDay.setDate(today.getDate() + i);
-
-                const dateStr = `${nextDay.getFullYear()}/${(nextDay.getMonth() + 1).toString().padStart(2, '0')}/${nextDay.getDate().toString().padStart(2, '0')}`;
-                const dayOfWeekStr = dayNames[nextDay.getDay()];
-                
-                dates.push({
-                    date: `${dateStr}(${dayOfWeekStr})`,
-                    simpleDate: `${nextDay.getFullYear()}-${(nextDay.getMonth() + 1).toString().padStart(2, '0')}-${nextDay.getDate().toString().padStart(2, '0')}`
-                });
-            }
-            return dates;
-        }
-
-        // --- 登入/登出/導覽列邏輯 ---
         function renderLoggedOutState() {
-            const headerNavRight = document.getElementById('headerNavRight');
-            if (!headerNavRight) return;
-            const currentUrl = encodeURIComponent(window.location.href);
-            const loginRedirectUrl = `${LOGIN_PAGE_URL}?redirect=${currentUrl}`;
-            headerNavRight.innerHTML = `
-                <a href="${loginRedirectUrl}" class="hover:text-vieshow-gold transition duration-300">登入</a>
-                <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>
-            `;
+            document.getElementById('headerNavRight').innerHTML = `<a href="${LOGIN_PAGE_URL}?redirect=${encodeURIComponent(window.location.href)}" class="hover:text-vieshow-gold transition duration-300">登入</a> <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>`;
         }
-
         function renderLoggedInState() {
-            const headerNavRight = document.getElementById('headerNavRight');
-            if (!headerNavRight) return;
-            headerNavRight.innerHTML = `
-                <a href="#" id="signOutLink" class="hover:text-vieshow-gold transition duration-300">登出</a>
-                <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>
-            `;
+            document.getElementById('headerNavRight').innerHTML = `<a href="#" id="signOutLink" class="hover:text-vieshow-gold transition duration-300">登出</a> <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>`;
             document.getElementById('signOutLink')?.addEventListener('click', handleSignOut);
         }
-
         function handleSignOut(e) {
-            e.preventDefault();
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('isLoggedIn');
-            localStorage.removeItem('currentBooking'); // 清除未完成的訂單
-            alert('您已成功登出。即將導向首頁...', () => {
-                setTimeout(() => {
-                    window.location.href = INDEX_PAGE_URL;
-                }, 2000);
-            }); 
-            renderUI();
+            e.preventDefault(); localStorage.removeItem('auth_token');
+            alert('已登出，跳轉首頁...', () => { window.location.href = INDEX_PAGE_URL; });
         }
-
-        function renderUI() {
-            const token = localStorage.getItem('auth_token');
-            if (token) {
-                renderLoggedInState(); 
-            } else {
-                renderLoggedOutState();
-            }
-        }
-
         function checkLoginStatus() {
-            const token = localStorage.getItem('auth_token');
-            if (!token) {
-                alert('請先登入才能進行訂票', () => {
-                    const currentPage = window.location.pathname + window.location.search;
-                    window.location.href = `${LOGIN_PAGE_URL}?redirect=${encodeURIComponent(currentPage)}`;
-                });
+            if (!localStorage.getItem('auth_token')) {
+                alert('請先登入才能進行訂票', () => { window.location.href = `${LOGIN_PAGE_URL}?redirect=${encodeURIComponent(window.location.href)}`; });
                 return false;
             }
-            return true;
+            renderLoggedInState(); return true;
         }
 
-        // --- 核心邏輯 ---
         const cinemaSelect = document.getElementById('cinema_location');
         const movieSelection = document.getElementById('movieSelection');
         const showtimeSelection = document.getElementById('showtimeSelection');
         const nextButton = document.getElementById('nextStepButton');
         const loadingStatus = document.getElementById('loadingStatus');
         const form = document.getElementById('bookingFlow1Form');
-        const groupTicketInfo = document.getElementById('groupTicketInfo');
-        const cinemaSelectionSection = document.getElementById('cinemaSelectionSection');
-        const movieSelectionSection = document.getElementById('movieSelectionSection');
-        const showtimeSelectionSection = document.getElementById('showtimeSelectionSection');
-
-        let currentSelections = {
-            ticketType: null, // 'general' 或 'group'
-            cinema: null,
-            movie: null,
-            showtime: null
-        };
-
-        // 票務類型選擇 (步驟 1)
-        function setupTicketTypeSelection() {
-            const ticketCards = document.querySelectorAll('.ticket-type-card');
-            
-            ticketCards.forEach(card => {
-                card.addEventListener('click', function() {
-                    ticketCards.forEach(c => c.classList.remove('selected'));
-                    this.classList.add('selected');
-                    
-                    currentSelections.ticketType = this.dataset.type;
-                    
-                    if (currentSelections.ticketType === 'group') {
-                        groupTicketInfo.classList.remove('hidden');
-                        nextButton.textContent = '下一步: 填寫團體資訊';
-                    } else {
-                        groupTicketInfo.classList.add('hidden');
-                        nextButton.textContent = '下一步: 選擇票種與餐點';
-                    }
-                    
-                    resetSelection(1);
-                    cinemaSelectionSection.classList.remove('hidden');
-                    loadCinemas();
-                    updateStepIndicator(1);
-                });
-            });
-        }
         
-        // 重置後續選擇的區塊和狀態
-        function resetSelection(startStep) {
-            if (startStep <= 1) {
-                currentSelections.cinema = null;
-                cinemaSelect.selectedIndex = 0;
-                movieSelectionSection.classList.add('hidden');
-            }
-            if (startStep <= 2) {
-                currentSelections.movie = null;
-                showtimeSelectionSection.classList.add('hidden');
-                movieSelection.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 2rem 0; color: #6b7280;">請先選擇影城地點以顯示電影清單</div>';
-            }
-            if (startStep <= 3) {
-                currentSelections.showtime = null;
-                nextButton.disabled = true;
-                loadingStatus.textContent = '';
-                showtimeSelection.innerHTML = '<div style="text-align: center; padding: 2rem 0; color: #6b7280;">請先選擇電影以顯示場次資訊</div>';
-            }
-        }
+        let currentSelections = { ticketType: null, cinema: null, movie: null, showtime: null };
 
-
-        // 更新步驟指示器
-        function updateStepIndicator(step) {
-            document.querySelectorAll('.step-circle').forEach((circle, index) => {
-                circle.classList.remove('step-active', 'step-completed', 'step-pending');
-                if (index < step) {
-                    circle.classList.add('step-completed');
-                } else if (index === step) {
-                    circle.classList.add('step-active');
-                } else {
-                    circle.classList.add('step-pending');
-                }
-            });
-            
-            document.querySelectorAll('.step-line').forEach((line, index) => {
-                line.classList.remove('step-active', 'step-pending');
-                line.classList.add(index < step - 1 ? 'step-active' : 'step-pending');
-            });
-        }
-
-        // 步驟 2: 動態載入影城地點
+        // --- 核心 API 呼叫 ---
         async function loadCinemas() {
             try {
-                loadingStatus.textContent = '正在載入影城地點...';
-                
-                const data = { cinemas: MOCK_CINEMAS }; 
-                await new Promise(resolve => setTimeout(resolve, 500)); // 模擬延遲
+                loadingStatus.textContent = '載入影城...';
+                const res = await fetch(`${API_BASE_URL}/info/cinemas`);
+                const cinemas = await res.json();
                 
                 cinemaSelect.innerHTML = '<option value="" disabled selected>請選擇影城地點</option>';
-                data.cinemas.forEach(cinema => {
-                    const option = document.createElement('option');
-                    option.value = cinema.id;
-                    option.textContent = `${cinema.name} (${cinema.region})`;
-                    cinemaSelect.appendChild(option);
+                cinemas.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id; opt.textContent = c.name;
+                    cinemaSelect.appendChild(opt);
                 });
-
-                cinemaSelect.disabled = false;
                 loadingStatus.textContent = '';
-            } catch (error) {
-                console.error('載入影城失敗:', error);
-                loadingStatus.textContent = '載入影城資料失敗，請檢查網路。';
-            }
+                
+                // 自動帶入
+                const urlParams = new URLSearchParams(window.location.search);
+                const preMovieId = urlParams.get('movie_id');
+                if (preMovieId) {
+                    // 如果是從電影介紹頁過來，先暫時不自動選影城，讓使用者選
+                    // 但可以考慮提示使用者選擇影城
+                }
+            } catch (e) { console.error(e); loadingStatus.textContent = '載入影城失敗'; }
         }
 
-        // 步驟 3: 根據選擇的影城，動態載入電影清單
         async function loadMovies(cinemaId) {
-            movieSelection.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 2rem 0; color: #6b7280;">載入電影中...</div>';
+            movieSelection.innerHTML = '<div style="text-align:center; padding:2rem; color:#6b7280;">載入電影...</div>';
             resetSelection(2);
-
             try {
-                await new Promise(resolve => setTimeout(resolve, 600)); // 模擬延遲
+                // 這裡我們需要一個能根據影城 ID 撈出該影城上映電影的 API
+                // 假設後端 /movie/now-playing 可以傳參數 ?cinema_id=... (若後端未支援，則先撈全部再前端過濾)
+                // 目前後端 API 尚未支援 filter by cinema，我們改用 /showtimes API 反查
                 
-                let movies = MOCK_MOVIES;
+                const res = await fetch(`${API_BASE_URL}/movie/showtimes?location=${cinemaId}`);
+                const showtimes = await res.json();
                 
-                // 根據使用者選擇的票務類型過濾電影清單
-                if (currentSelections.ticketType === 'group') {
-                    // 團體票: 只顯示有可用團體場次的電影
-                    const availableMovieIds = MOCK_MOVIES.filter(movie => 
-                        movie.showtimes.some(st => st.availableForGroup)
-                    ).map(m => m.id);
-                    movies = MOCK_MOVIES.filter(m => availableMovieIds.includes(m.id));
-                } 
-                // 一般購票則顯示所有電影 (因為 MOCK_MOVIES 預設就是所有電影)
+                // 從場次資料中提取唯一的電影列表
+                const uniqueMovies = {};
+                showtimes.forEach(s => {
+                    if (!uniqueMovies[s.movieId]) {
+                        uniqueMovies[s.movieId] = { id: s.movieId, name: s.movieName };
+                    }
+                });
                 
                 movieSelection.innerHTML = '';
-                
-                if (movies.length === 0) {
-                    movieSelection.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 2rem 0; color: #6b7280;">目前無符合您選擇條件的電影</div>';
-                    movieSelectionSection.classList.remove('hidden');
-                    updateStepIndicator(2);
-                    return;
+                if (Object.keys(uniqueMovies).length === 0) {
+                    movieSelection.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:#6b7280;">此影城暫無電影場次</div>'; return;
                 }
-                
-                movies.forEach(movie => {
-                    const movieCard = document.createElement('div');
-                    movieCard.className = 'movie-card cursor-pointer';
-                    movieCard.dataset.movieId = movie.id;
-                    movieCard.tabIndex = 0;
+
+                // 為了取得海報等詳情，我們需要再呼叫詳情 API (或依賴 Session Storage 快取)
+                // 這裡簡化處理：直接生成卡片，缺少的資料先用預設值
+                Object.values(uniqueMovies).forEach(async (m) => {
+                    // 嘗試從 API 補全詳情
+                    let details = { posterUrl: '', grade: '', duration: '', info: '' };
+                    try {
+                        const detailRes = await fetch(`${API_BASE_URL}/movie/${m.id}`);
+                        if (detailRes.ok) details = await detailRes.json();
+                    } catch(e){}
+
+                    const card = document.createElement('div');
+                    card.className = 'movie-card cursor-pointer';
+                    card.dataset.movieId = m.id;
+                    const poster = details.posterUrl || 'https://placehold.co/300x450?text=No+Poster';
                     
-                    const canGroupBook = movie.showtimes.some(st => st.availableForGroup);
-                    const groupBadge = (canGroupBook && currentSelections.ticketType !== 'group') ?
-                        '<span class="group-badge">可團體預訂</span>' : '';
-                    
-                    movieCard.innerHTML = `
+                    card.innerHTML = `
                         <div class="movie-content">
-                            ${groupBadge}
                             <div class="movie-layout">
-                                <div class="movie-poster-container">
-                                    <img src="${movie.image}" alt="${movie.title}" class="movie-poster">
-                                </div>
+                                <div class="movie-poster-container"><img src="${poster}" class="movie-poster"></div>
                                 <div class="movie-details">
-                                    <h3 class="movie-title">${movie.title}</h3>
+                                    <h3 class="movie-title">${m.name}</h3>
                                     <div class="movie-tags">
-                                        <span class="movie-tag tag-red">${movie.rating}</span>
-                                        <span class="movie-tag tag-gray">${movie.genre}</span>
-                                        <span class="movie-tag tag-gray">${movie.duration}</span>
+                                        <span class="movie-tag tag-red">${details.grade || '普遍級'}</span>
+                                        <span class="movie-tag tag-gray">${details.duration || ''}</span>
                                     </div>
-                                    <p class="movie-description">${movie.description}</p>
+                                    <p class="movie-description">${details.info || ''}</p>
                                 </div>
                             </div>
-                        </div>
-                    `;
-                    
-                    movieCard.addEventListener('click', () => selectMovie(movie));
-                    movieCard.addEventListener('keydown', (e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            selectMovie(movie);
-                        }
-                    });
-                    
-                    movieSelection.appendChild(movieCard);
+                        </div>`;
+                    card.onclick = () => selectMovie({ id: m.id, title: m.name, ...details });
+                    movieSelection.appendChild(card);
                 });
                 
-                movieSelectionSection.classList.remove('hidden');
+                document.getElementById('movieSelectionSection').classList.remove('hidden');
                 updateStepIndicator(2);
-                
-            } catch (error) {
-                console.error('載入電影失敗:', error);
-                movieSelection.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 2rem 0; color: #6b7280;">載入電影清單失敗</div>';
-            }
+
+                // 自動帶入電影 (如果有 URL 參數)
+                const urlParams = new URLSearchParams(window.location.search);
+                const preMovieId = urlParams.get('movie_id');
+                if (preMovieId && uniqueMovies[preMovieId]) {
+                    // 模擬點擊
+                    setTimeout(() => {
+                        const targetCard = document.querySelector(`.movie-card[data-movie-id="${preMovieId}"]`);
+                        if(targetCard) targetCard.click();
+                    }, 500);
+                }
+
+            } catch (e) { console.error(e); movieSelection.innerHTML = '載入失敗'; }
         }
 
-        // 選擇電影
-        function selectMovie(movie) {
-            document.querySelectorAll('.movie-card').forEach(card => {
-                card.classList.remove('selected');
+        async function loadShowtimes(cinemaId, movieId) {
+            showtimeSelection.innerHTML = '<div style="text-align:center; padding:2rem; color:#6b7280;">載入場次...</div>';
+            resetSelection(3);
+            try {
+                const res = await fetch(`${API_BASE_URL}/movie/showtimes?location=${cinemaId}&movie=${movieId}`);
+                const showtimes = await res.json();
+                
+                showtimeSelection.innerHTML = '';
+                if (showtimes.length === 0) {
+                    showtimeSelection.innerHTML = '<div style="text-align:center; padding:2rem; color:#6b7280;">無可用場次</div>'; return;
+                }
+
+                // 依日期分組
+                const grouped = {};
+                showtimes.forEach(s => {
+                    if (!grouped[s.date]) grouped[s.date] = [];
+                    grouped[s.date].push(s);
+                });
+
+                Object.keys(grouped).sort().forEach(date => {
+                    const section = document.createElement('div'); section.className = 'date-section';
+                    section.innerHTML = `<h4 class="date-header">${date}</h4>`;
+                    const grid = document.createElement('div'); grid.className = 'showtime-grid';
+                    
+                    grouped[date].forEach(s => {
+                        const card = document.createElement('div'); card.className = 'showtime-card';
+                        card.dataset.id = s.id;
+                        card.innerHTML = `
+                            <div class="showtime-time">${s.time}</div>
+                            <div class="showtime-details">
+                                <div class="showtime-row"><span>影廳:</span><span class="font-medium">${s.theater}</span></div>
+                                <div class="showtime-row"><span>版本:</span><span class="font-medium">${s.format}</span></div>
+                            </div>`;
+                        card.onclick = () => selectShowtime(s);
+                        grid.appendChild(card);
+                    });
+                    section.appendChild(grid);
+                    showtimeSelection.appendChild(section);
+                });
+                
+                document.getElementById('showtimeSelectionSection').classList.remove('hidden');
+                updateStepIndicator(3);
+            } catch (e) { console.error(e); showtimeSelection.innerHTML = '載入失敗'; }
+        }
+
+        // --- 互動邏輯 ---
+        function setupTicketTypeSelection() {
+            document.querySelectorAll('.ticket-type-card').forEach(card => {
+                card.onclick = function() {
+                    document.querySelectorAll('.ticket-type-card').forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected');
+                    currentSelections.ticketType = this.dataset.type;
+                    
+                    document.getElementById('groupTicketInfo').classList.toggle('hidden', currentSelections.ticketType !== 'group');
+                    nextButton.textContent = currentSelections.ticketType === 'group' ? '下一步: 填寫團體資訊' : '下一步: 選擇票種與餐點';
+                    
+                    resetSelection(1);
+                    document.getElementById('cinemaSelectionSection').classList.remove('hidden');
+                    loadCinemas();
+                    updateStepIndicator(1);
+                };
             });
-            
-            const selectedCard = document.querySelector(`[data-movie-id="${movie.id}"]`);
-            if (selectedCard) {
-                selectedCard.classList.add('selected');
-            }
-            
+        }
+
+        function resetSelection(step) {
+            if (step <= 1) { currentSelections.cinema = null; cinemaSelect.selectedIndex = 0; document.getElementById('movieSelectionSection').classList.add('hidden'); }
+            if (step <= 2) { currentSelections.movie = null; document.getElementById('showtimeSelectionSection').classList.add('hidden'); }
+            if (step <= 3) { currentSelections.showtime = null; nextButton.disabled = true; }
+        }
+
+        function selectMovie(movie) {
+            document.querySelectorAll('.movie-card').forEach(c => c.classList.remove('selected'));
+            document.querySelector(`.movie-card[data-movie-id="${movie.id}"]`)?.classList.add('selected');
             currentSelections.movie = movie;
             loadShowtimes(currentSelections.cinema.id, movie.id);
         }
 
-        // 步驟 4, 5: 動態載入場次清單 (實作日期和座位過濾)
-        async function loadShowtimes(cinemaId, movieId) {
-            showtimeSelection.innerHTML = '<div style="text-align: center; padding: 2rem 0; color: #6b7280;">載入場次中...</div>';
-            resetSelection(3);
-
-            try {
-                await new Promise(resolve => setTimeout(resolve, 500)); // 模擬延遲
-                
-                const movie = MOCK_MOVIES.find(m => m.id == movieId);
-                if (!movie) throw new Error("找不到電影資訊");
-                
-                // 決定最大購票人數 (個人: 8, 團體: 20)
-                const maxCapacityNeeded = currentSelections.ticketType === 'group' ? 20 : 8;
-                
-                // 取得日期範圍: 購票日 ~ 購票日+7天 (共 7 天)
-                const next7Days = getNextNDays(7); 
-                
-                let allShowtimes = [];
-                next7Days.forEach(day => {
-                    movie.showtimes.forEach(template => {
-                        // 計算剩餘一般座位數: 總位 - 已售 - 愛心座
-                        const availableGeneralSeats = template.seats - template.reserved - template.careSeats;
-                        
-                        // 檢查 1: 影廳可購買的位置數 - 票種的最大人數 >= 0
-                        const seatsPass = availableGeneralSeats >= maxCapacityNeeded;
-                        
-                        // 檢查 2: 團體票檢查
-                        const groupPass = (currentSelections.ticketType === 'group') ? template.availableForGroup : true;
-                        
-                        if (seatsPass && groupPass) {
-                            allShowtimes.push({
-                                ...template,
-                                id: `${day.simpleDate}-${template.id}`, 
-                                date: day.date, 
-                                availableSeats: availableGeneralSeats 
-                            });
-                        }
-                    });
-                });
-
-                showtimeSelection.innerHTML = '';
-                
-                if (allShowtimes.length === 0) {
-                    showtimeSelection.innerHTML = '<div style="text-align: center; padding: 2rem 0; color: #6b7280;">此時段無可用場次或剩餘座位不足</div>';
-                    loadingStatus.textContent = "該電影在選擇的影城暫無符合條件的場次";
-                    return;
-                }
-                
-                // 按日期分組場次
-                const groupedByDate = {};
-                allShowtimes.forEach(showtime => {
-                    if (!groupedByDate[showtime.date]) groupedByDate[showtime.date] = [];
-                    groupedByDate[showtime.date].push(showtime);
-                });
-                
-                // 生成場次選擇介面
-                Object.keys(groupedByDate).forEach(date => {
-                    const dateSection = document.createElement('div');
-                    dateSection.className = 'date-section';
-                    
-                    const dateHeader = document.createElement('h4');
-                    dateHeader.className = 'date-header';
-                    dateHeader.textContent = date;
-                    dateSection.appendChild(dateHeader);
-                    
-                    const showtimesGrid = document.createElement('div');
-                    showtimesGrid.className = 'showtime-grid';
-                    
-                    groupedByDate[date].forEach(showtime => {
-                        const showtimeCard = document.createElement('div');
-                        showtimeCard.className = 'showtime-card';
-                        showtimeCard.dataset.showtimeId = showtime.id;
-                        
-                        const groupBadge = showtime.availableForGroup ? 
-                            '<span class="showtime-group-badge">團體場</span>' : '';
-                        
-                        showtimeCard.innerHTML = `
-                            ${groupBadge}
-                            <div class="showtime-time">${showtime.time}</div>
-                            <div class="showtime-details">
-                                <div class="showtime-row">
-                                    <span>影廳:</span>
-                                    <span class="font-medium">${showtime.theater}</span>
-                                </div>
-                                <div class="showtime-row">
-                                    <span>版本:</span>
-                                    <span class="font-medium">${showtime.type}</span>
-                                </div>
-                                <div class="showtime-row showtime-divider">
-                                    <span>剩餘座位:</span>
-                                    <span class="${showtime.availableSeats < 10 ? 'seats-low' : 'seats-available'}">${showtime.availableSeats}</span>
-                                </div>
-                            </div>
-                        `;
-                        
-                        showtimeCard.addEventListener('click', () => selectShowtime(showtime));
-                        showtimesGrid.appendChild(showtimeCard);
-                    });
-                    
-                    dateSection.appendChild(showtimesGrid);
-                    showtimeSelection.appendChild(dateSection);
-                });
-                
-                showtimeSelectionSection.classList.remove('hidden');
-                updateStepIndicator(3);
-                loadingStatus.textContent = "";
-            } catch (error) {
-                console.error('載入場次失敗:', error);
-                showtimeSelection.innerHTML = '<div style="text-align: center; padding: 2rem 0; color: #6b7280;">載入場次清單失敗</div>';
-            }
-        }
-
-        // 選擇場次
         function selectShowtime(showtime) {
-            document.querySelectorAll('.showtime-card').forEach(card => {
-                card.classList.remove('selected');
-            });
-            
-            const selectedCard = document.querySelector(`[data-showtime-id="${showtime.id}"]`);
-            if (selectedCard) {
-                selectedCard.classList.add('selected');
-            }
+            document.querySelectorAll('.showtime-card').forEach(c => c.classList.remove('selected'));
+            // 由於 showtime id 可能是數字或字串，且 DOM 渲染後可能沒有 data-id 屬性對應，改用 event target 或重新查詢
+            // 這裡簡單處理：遍歷所有卡片，比對內容或重新加上 ID
+            // 上面 render 時已加 data-id
+            const card = document.querySelector(`.showtime-card[data-id="${showtime.id}"]`);
+            if(card) card.classList.add('selected');
             
             currentSelections.showtime = showtime;
             nextButton.disabled = false;
-            
-            loadingStatus.innerHTML = `
-                <div class="success-message">
-                    <p class="success-text">已選擇: 
-                        <span style="font-weight: bold;">${currentSelections.ticketType === 'general' ? '一般購票' : '團體票'}</span> | 
-                        <span style="font-weight: bold;">${currentSelections.cinema.name}</span> | 
-                        <span style="font-weight: bold;">${currentSelections.movie.title}</span> | 
-                        <span style="font-weight: bold;">${showtime.date} ${showtime.time} ${showtime.theater}</span>
-                    </p>
-                </div>
-            `;
         }
-        
-        // 監聽器：影城選擇改變時 (步驟 2)
+
+        function updateStepIndicator(step) {
+            document.querySelectorAll('.step-circle').forEach((c, i) => {
+                c.className = `step-circle ${i < step ? 'step-completed' : (i === step ? 'step-active' : 'step-pending')}`;
+            });
+        }
+
         cinemaSelect.addEventListener('change', function() {
-            const cinemaId = this.value;
-            if (cinemaId) {
-                // 更新影城資訊
-                currentSelections.cinema = {
-                    id: cinemaId,
-                    name: this.options[this.selectedIndex].textContent.split(' ')[0]
-                };
-                
-                loadMovies(cinemaId);
+            if (this.value) {
+                currentSelections.cinema = { id: this.value, name: this.options[this.selectedIndex].text };
+                loadMovies(this.value);
             }
         });
 
-        // 監聽器：表單提交 (步驟 6: 確認資料格式並傳遞)
-        form.addEventListener('submit', function(event) {
-            event.preventDefault();
-
-            // 檢查必填欄位
-            if (!currentSelections.ticketType) {
-                alert('請先選擇票務類型');
-                return;
-            }
-            if (!currentSelections.cinema) {
-                alert('請選擇影城地點');
-                return;
-            }
-            // 根據需求 5: 如果沒有選擇影城 (必填) 則提示並要求回到步驟 5 (即重新載入場次)
-            if (!cinemaSelect.value) {
-                alert('請務必選擇影城地點！');
-                updateStepIndicator(1); // 導回選擇影城
-                return;
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (!currentSelections.ticketType || !currentSelections.cinema || !currentSelections.movie || !currentSelections.showtime) {
+                alert('請完成所有選擇'); return;
             }
             
-            // 檢查電影/場次 (如果使用者沒有選擇，只顯示所有場次的話，這裡需要調整邏輯。
-            // 由於目前邏輯是點擊電影/場次才會啟用下一步按鈕，所以只要下一步按鈕可點擊，資料就是完整的)
-            if (!currentSelections.movie || !currentSelections.showtime) {
-                alert('請確認已選擇電影和場次。');
-                return;
-            }
-
-            // 統一格式傳遞給下一個頁面
-            const bookingData = {
-            ticketType: currentSelections.ticketType,
-            cinema: { 
-                // 傳遞完整電影院資訊
-                id: currentSelections.cinema.id, 
-                name: currentSelections.cinema.name
-            },
-            movie: { 
-                // 傳遞完整電影資訊 (包含 rating, genre, duration, image 等)
-                id: currentSelections.movie.id, 
-                title: currentSelections.movie.title,
-                duration: currentSelections.movie.duration,
-                rating: currentSelections.movie.rating,
-                genre: currentSelections.movie.genre,
-                image: currentSelections.movie.image, // 確保下一頁顯示圖片
-                description: currentSelections.movie.description
-            },
-            showtime: {
-                // 傳遞完整場次資訊 (包含 seats, careSeats, reserved 等)
-                id: currentSelections.showtime.id,
-                date: currentSelections.showtime.date,
-                time: currentSelections.showtime.time,
-                theater: currentSelections.showtime.theater,
-                type: currentSelections.showtime.type,
-                language: currentSelections.showtime.language,
-                subtitle: currentSelections.showtime.subtitle,
-                seats: currentSelections.showtime.seats, // 總座位數
-                careSeats: currentSelections.showtime.careSeats, // 愛心座
-                reserved: currentSelections.showtime.reserved, // 已售出
-                availableSeats: currentSelections.showtime.availableSeats // 剩餘可訂購座位數
-            }
-            };
+            // 儲存至 localStorage
+            localStorage.setItem('currentBooking', JSON.stringify({
+                ticketType: currentSelections.ticketType,
+                cinema: currentSelections.cinema,
+                movie: currentSelections.movie,
+                showtime: currentSelections.showtime
+            }));
             
-            // 使用 localStorage 傳遞資料 (這是跨頁面傳遞相同資料格式最常見的方法)
-            localStorage.setItem('currentBooking', JSON.stringify(bookingData));
-            
-            // 導向下一頁
-            if (currentSelections.ticketType === 'group') {
-                window.location.href = 'booking_flow_group.html';
-            } else {
-                window.location.href = 'booking_flow_2.html';
-            }
+            // 跳轉
+            window.location.href = currentSelections.ticketType === 'group' ? 'booking_flow_group.html' : 'booking_flow_2.html';
         });
 
-        // 頁面載入時，執行初始化
-        window.onload = function() {
-            if (!checkLoginStatus()) {
-                return;
+        window.onload = () => {
+            if (checkLoginStatus()) {
+                setupTicketTypeSelection();
+                localStorage.removeItem('currentBooking');
             }
-            
-            renderUI();
-            setupTicketTypeSelection();
-            
-            // 檢查是否有未完成的訂單 (如果有的話可以讀取並恢復狀態，這裡簡化為直接清除)
-            localStorage.removeItem('currentBooking'); 
         };
     </script>
-
-    <footer>
-        <p>&copy; 2025 Vieshow Ticketing System</p>
-    </footer>
-    
 </body>
 </html>
