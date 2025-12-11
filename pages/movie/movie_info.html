@@ -100,7 +100,15 @@
                         平均觀眾評分：<span id="scoreValue" class="text-vieshow-red text-4xl font-extrabold ml-2">${movie.averageRating ? movie.averageRating.toFixed(1) : '0.0'}</span> / 5.0
                     </p>
                     <p class="text-sm text-gray-500 mt-1 text-center">(共 <span id="voteCount">${movie.totalVotes}</span> 位觀眾評分)</p>`;
-                if (bookingButtonWrapper) bookingButtonWrapper.innerHTML = `<a href="../booking/booking_flow_1.html?movie_id=${movie.id}" class="inline-block px-8 py-3 bg-vieshow-red text-white font-bold rounded-full shadow-lg hover:bg-red-700 transition duration-300 transform hover:scale-[1.02]">🎟️ 前往訂票</a>`;
+                const movieDataStr = encodeURIComponent(JSON.stringify(movie));
+                
+                if (bookingButtonWrapper) {
+                    bookingButtonWrapper.innerHTML = `
+                        <button onclick="goToBooking('${movieDataStr}')" 
+                            class="inline-block px-8 py-3 bg-vieshow-red text-white font-bold rounded-full shadow-lg hover:bg-red-700 transition duration-300 transform hover:scale-[1.02]">
+                            🎟️ 前往訂票
+                        </button>`;
+                }
             } else {
                 ratingDisplay.textContent = "此電影尚未上映，暫無評分資料。";
                 if (bookingButtonWrapper) bookingButtonWrapper.innerHTML = `<button disabled class="inline-block px-8 py-3 bg-gray-400 text-white font-bold rounded-full shadow-lg cursor-not-allowed">🎟️ 尚未開放訂票</button>`;
@@ -153,6 +161,20 @@
             document.body.insertAdjacentHTML('beforeend', html);
             document.getElementById('alertOK').onclick = () => { document.getElementById('custom-alert').remove(); if(callback) callback(); };
         }
+        function goToBooking(movieDataStr) {
+            try {
+                const movie = JSON.parse(decodeURIComponent(movieDataStr));
+                
+                // 1. 將電影資料存入 Session Storage
+                sessionStorage.setItem('preSelectedMovie', JSON.stringify(movie));
+                
+                // 2. 跳轉到訂票頁面 (不需要再帶 URL 參數了，因為資料在 storage 裡)
+                window.location.href = '../booking/booking_flow_1.html';
+            } catch (e) {
+                console.error("跳轉失敗", e);
+                alert("系統錯誤，請稍後再試");
+            }
+        }
 
         // 初始化
         document.addEventListener('DOMContentLoaded', async () => {
@@ -182,3 +204,4 @@
     </script>
 </body>
 </html>
+
