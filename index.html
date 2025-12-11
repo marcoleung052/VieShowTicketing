@@ -250,34 +250,25 @@
     </footer>
 
     <script>
-        // 模擬電影列表資料
-        const mockMovieList = [
-            { id: 'G001', name: "星際特攻隊：無限戰爭", releaseDate: "2025/11/25", rating: 4.2, posterUrl: "https://placehold.co/400x600/1e293b/ffffff?text=Guardians+of+Galaxy+5" },
-            { id: 'D002', name: "夢想啟動：人工智慧時代", releaseDate: "2025/11/20", rating: 3.8, posterUrl: "https://placehold.co/400x600/f59e0b/000000?text=AI+Dream+Starter" },
-            { id: 'H003', name: "極速狂飆：午夜對決", releaseDate: "2025/12/15", rating: 4.5, posterUrl: "https://placehold.co/400x600/ef4444/ffffff?text=Midnight+Race" },
-            { id: 'C004', name: "貓咪偵探與失蹤的鑽石", releaseDate: "2025/12/05", rating: 3.9, posterUrl: "https://placehold.co/400x600/10b981/ffffff?text=Cat+Detective" },
-            { id: 'F005', name: "失落的古文明", releaseDate: "2025/11/10", rating: 4.0, posterUrl: "https://placehold.co/400x600/3b82f6/ffffff?text=Lost+Civilization" },
-            { id: 'J006', name: "廚神爭霸戰", releaseDate: "2025/12/24", rating: 4.7, posterUrl: "https://placehold.co/400x600/f97316/ffffff?text=Master+Chef+Battle" },
-        ];
+        // 1. 設定後端 API 網址 (請確認這是您的正確網址)
+        const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api';
 
         const LOGIN_PAGE_URL = './pages/auth/login.html';
         const MEMBER_HOME_URL = './pages/member/member_home.html';
         const REGISTER_PAGE_URL = './pages/auth/register.html';
 
         /**
-         * 渲染未登入狀態的導覽列和英雄區。
+         * 渲染未登入狀態
          */
         function renderLoggedOutState() {
             const headerNavRight = document.getElementById('headerNavRight');
             const heroSection = document.getElementById('heroSection');
 
-            // 1. 渲染導覽列：登入 + 會員中心
             headerNavRight.innerHTML = `
                 <a href="${LOGIN_PAGE_URL}" class="hover:text-vieshow-gold transition duration-300">登入</a>
                 <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>
             `;
 
-            // 2. 渲染英雄區：歡迎 + 註冊按鈕
             heroSection.innerHTML = `
                 <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-2">
                     🎬 Vieshow 線上訂票系統
@@ -292,21 +283,17 @@
         }
 
         /**
-         * 渲染已登入狀態的導覽列和英雄區。
+         * 渲染已登入狀態
          */
         function renderLoggedInState() {
             const headerNavRight = document.getElementById('headerNavRight');
             const heroSection = document.getElementById('heroSection');
             
-            // ... 登入連結構造邏輯 (這段其實在登入狀態下不需要，但保持不變) ...
-
-            // 1. 渲染導覽列：登出 + 會員中心
             headerNavRight.innerHTML = `
                 <a href="javascript:void(0)" id="signOutLink" class="text-white hover:text-vieshow-gold transition duration-300">登出</a>
                 <a href="${MEMBER_HOME_URL}" class="text-white hover:text-vieshow-gold transition duration-300">會員中心</a>
-            `; // 注意：我同時加入了 text-white 類別，以修正上次的跑版問題
+            `;
 
-            // 2. 渲染英雄區 (保持不變)
             heroSection.innerHTML = `
                 <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-2">
                     🎬 Vieshow 線上訂票系統
@@ -314,9 +301,6 @@
                 <p class="text-lg text-gray-600 mb-6">您已登入！最新的熱門電影正在熱映中，立即訂票享優惠。</p>
             `;
             
-            // 3. 綁定登出事件 (確保這行在元素被渲染後執行)
-            // 🚨 注意：您原先的程式碼中，這行被註解掉了，或者沒有正確綁定。
-            // 必須確保先渲染 <a id="signOutLink">，才能綁定事件。
             const signOutLinkElement = document.getElementById('signOutLink');
             if (signOutLinkElement) {
                 signOutLinkElement.addEventListener('click', handleSignOut);
@@ -324,30 +308,20 @@
         }
 
         /**
-         * 處理登出邏輯 (與會員中心頁面中的邏輯相同)
+         * 登出邏輯
          */
         function handleSignOut(e) {
             e.preventDefault();
-
-            // 1. 清除登入狀態的關鍵步驟
             localStorage.removeItem('auth_token');
-
-            // 2. 顯示登出訊息
-            alert('您已成功登出。即將重新整理頁面...'); 
-
-            // 3.由於登出是在首頁進行，不需要跳轉，直接切換 UI 狀態即可。
-
-            // 4. 重新渲染頁面至未登入狀態
-            renderUI();
-            
-            // 由於登出是在首頁進行，不需要跳轉，直接切換 UI 狀態即可。
+            alert('您已成功登出。即將重新整理頁面...', () => {
+                window.location.reload(); // 重新整理頁面
+            }); 
         }
 
         /**
-         * 檢查登入狀態並渲染 UI
+         * 檢查 UI 狀態
          */
         function renderUI() {
-            // 模擬：如果 localStorage 中有 'auth_token' 則視為已登入
             const token = localStorage.getItem('auth_token');
             if (token) {
                 renderLoggedInState();
@@ -357,11 +331,14 @@
         }
         
         /**
-         * 填充電影下拉選單
+         * 填充下拉選單
          */
         function populateMovieSelect(movies) {
             const select = document.getElementById('movie-select');
             if (!select) return;
+
+            // 清空舊選項 (保留第一個預設選項)
+            select.innerHTML = '<option value="">請選擇電影 (選填)</option>';
 
             const options = movies.map(movie => 
                 `<option value="${movie.id}">${movie.name}</option>`
@@ -371,20 +348,29 @@
         }
 
         /**
-         * 渲染電影列表 (原始函數已還原)
+         * 渲染電影列表 (海報路徑處理邏輯已優化)
          */
         function renderMovieList(movies, containerId, showRatingAndBooking) {
             const container = document.getElementById(containerId);
             if (!container) return;
 
+            // 如果沒有電影資料，顯示提示
+            if (!movies || movies.length === 0) {
+                container.innerHTML = '<p class="col-span-full text-center text-gray-500">目前沒有相關電影資料。</p>';
+                return;
+            }
+
             const html = movies.map(movie => {
-                // 熱映中才顯示評分和訂票按鈕
+                // 處理海報路徑：如果是相對路徑 (rgproject/...)，保持原樣；如果是完整網址則直接使用
+                // 若後端回傳空字串，則使用預設圖
+                const posterSrc = movie.posterUrl ? movie.posterUrl : 'https://placehold.co/400x600/9ca3af/ffffff?text=No+Poster';
+
                 const ratingHtml = showRatingAndBooking ? `
                     <span class="flex items-center font-semibold text-vieshow-gold">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.817 2.045a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.817-2.045a1 1 0 00-1.175 0l-2.817 2.045c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.02 8.729c-.783-.57-.381-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
-                        ${movie.rating.toFixed(1)}
+                        ${movie.rating ? movie.rating.toFixed(1) : '0.0'}
                     </span>
                 ` : `<span class="text-sm font-semibold text-gray-500">尚無評分</span>`;
 
@@ -397,11 +383,14 @@
                     </div>
                 ` : ``;
 
+                // 處理上映日期顯示 (只取日期部分)
+                const displayDate = movie.releaseDate ? movie.releaseDate.split(' ')[0] : '近日上映';
+
                 return `
                     <div class="movie-poster-card block rounded-lg shadow-lg hover:shadow-2xl">
                         <a href="pages/movie/movie_info.html?movie_id=${movie.id}">
                             <div class="poster-container rounded-t-lg">
-                                <img src="${movie.posterUrl}" 
+                                <img src="${posterSrc}" 
                                             alt="${movie.name} 海報" 
                                             onerror="this.onerror=null; this.src='https://placehold.co/400x600/9ca3af/ffffff?text=No+Poster';"
                                             class="rounded-t-lg">
@@ -415,7 +404,7 @@
                                 <div class="flex justify-between items-center text-sm text-gray-500">
                                     ${ratingHtml}
                                     <span class="text-xs ${showRatingAndBooking ? '' : 'ml-auto font-bold text-gray-800'}">
-                                        ${movie.releaseDate.substring(5)} 上映
+                                        ${displayDate} 上映
                                     </span>
                                 </div>
                             </div>
@@ -428,48 +417,54 @@
             container.innerHTML = html;
         }
 
-        // 頁面載入時執行初始化
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- 狀態和 UI 渲染 ---
+        // --- 核心修改：使用 async/await 呼叫後端 API ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 1. 渲染基本 UI
             renderUI();
             
-            // --- 電影列表渲染 ---
-            const today = new Date('2025/11/27'); 
-            today.setHours(0, 0, 0, 0); 
-            
-            const nowPlaying = mockMovieList.filter(movie => {
-                const release = new Date(movie.releaseDate);
-                release.setHours(0, 0, 0, 0);
-                return release <= today; 
-            });
-            
-            const comingSoon = mockMovieList.filter(movie => {
-                const release = new Date(movie.releaseDate);
-                release.setHours(0, 0, 0, 0);
-                return release > today; 
-            });
+            // 2. 顯示載入中狀態
+            document.getElementById('nowPlayingContainer').innerHTML = '<p class="col-span-full text-center py-10">載入中...</p>';
+            document.getElementById('comingSoonContainer').innerHTML = '<p class="col-span-full text-center py-10">載入中...</p>';
 
-            renderMovieList(nowPlaying, 'nowPlayingContainer', true); 
-            renderMovieList(comingSoon, 'comingSoonContainer', false); 
-            
-            // 填充查詢選單
-            populateMovieSelect(mockMovieList);
+            try {
+                // 3. 從後端獲取「熱映中」電影
+                const resNow = await fetch(`${API_BASE_URL}/movie/now-playing`);
+                if (!resNow.ok) throw new Error('無法載入熱映電影');
+                const nowPlayingMovies = await resNow.json();
+                
+                // 渲染熱映電影
+                renderMovieList(nowPlayingMovies, 'nowPlayingContainer', true);
+                
+                // 填充搜尋下拉選單
+                populateMovieSelect(nowPlayingMovies);
+
+                // 4. 從後端獲取「即將上映」電影
+                const resSoon = await fetch(`${API_BASE_URL}/movie/coming-soon`);
+                if (!resSoon.ok) throw new Error('無法載入即將上映電影');
+                const comingSoonMovies = await resSoon.json();
+                
+                // 渲染即將上映電影
+                renderMovieList(comingSoonMovies, 'comingSoonContainer', false);
+
+            } catch (error) {
+                console.error("API 載入失敗:", error);
+                document.getElementById('nowPlayingContainer').innerHTML = '<p class="col-span-full text-center text-red-500">無法連線至伺服器，請稍後再試。</p>';
+                document.getElementById('comingSoonContainer').innerHTML = '';
+            }
         });
 
+        // 自定義 Alert
         function alert(message, callback) {
             const existingModal = document.getElementById('custom-alert-modal');
             if (existingModal) existingModal.remove();
 
-            // 處理點擊「確認」的邏輯
             const handleConfirm = () => {
                 document.getElementById('custom-alert-modal').remove();
                 if (callback && typeof callback === 'function') {
-                    // **只有在用戶點擊確認後，才執行傳入的 callback 函數 (例如登出後的跳轉)**
                     callback(); 
                 }
             };
             
-            // 將 handleConfirm 函數註冊到全域，以便在 HTML onclick 中使用
             window.customAlertConfirm = handleConfirm;
 
             const modalHtml = `
@@ -496,3 +491,4 @@
     </script>
 </body>
 </html>
+
