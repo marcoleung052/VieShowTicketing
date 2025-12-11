@@ -29,7 +29,7 @@
         <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
             <a href="../../index.html" class="text-xl font-bold hover:text-vieshow-red transition duration-300">Vieshow 影城</a>
             <div id="headerNavRight" class="space-x-4 flex items-center">
-                </div>
+            </div>
         </nav>
     </header>
 
@@ -68,9 +68,8 @@
                 
                 <div>
                     <label for="memberBirth" class="block text-sm font-medium text-gray-700 mb-1">生日:</label>
-                    <input type="date" id="memberBirth" name="memberBirth" required disabled
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed text-gray-500">
-                    <p class="text-xs text-gray-400 mt-1">生日資訊無法修改，如需變更請聯繫客服。</p>
+                    <input type="date" id="memberBirth" name="memberBirth" required 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-vieshow-red focus:border-vieshow-red transition duration-150">
                 </div>
                 
                 <p class="pt-2 text-lg">
@@ -94,104 +93,66 @@
     </footer>
 
     <script>
-        // 1. 設定後端 API 網址
         const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api';
-
         const LOGIN_PAGE_URL = '../auth/login.html';
         const MEMBER_HOME_URL = 'member_home.html';
         const INDEX_PAGE_URL = '../../index.html';
 
-        // 2. 導覽列與登入狀態渲染
+        // --- 導覽列與登入狀態 ---
         function renderLoggedOutState() {
-            const headerNavRight = document.getElementById('headerNavRight');
-            if (!headerNavRight) return;
-            headerNavRight.innerHTML = `
-                <a href="${LOGIN_PAGE_URL}" class="hover:text-vieshow-gold transition duration-300">登入</a>
-                <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>
-            `;
+            document.getElementById('headerNavRight').innerHTML = `<a href="${LOGIN_PAGE_URL}" class="hover:text-vieshow-gold transition duration-300">登入</a> <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>`;
         }
-
         function renderLoggedInState() {
-            const headerNavRight = document.getElementById('headerNavRight');
-            if (!headerNavRight) return;
-
-            headerNavRight.innerHTML = `
-                <a href="#" id="signOutLink" class="hover:text-vieshow-gold transition duration-300">登出</a>
-                <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>
-            `;
-            
-            document.getElementById('signOutLink')?.addEventListener('click', handleSignOut);
+            document.getElementById('headerNavRight').innerHTML = `<a href="#" id="signOutLink" class="hover:text-vieshow-gold transition duration-300">登出</a> <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>`;
+            document.getElementById('signOutLink')?.addEventListener('click', (e) => {
+                e.preventDefault(); localStorage.removeItem('auth_token'); localStorage.removeItem('user'); alert('已登出', () => window.location.href = INDEX_PAGE_URL);
+            });
         }
-
-        function handleSignOut(e) {
-            e.preventDefault();
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user');
-            alert('您已成功登出。即將導向首頁...', () => {
-                window.location.href = INDEX_PAGE_URL;
-            }); 
-        }
-
         function renderUI() {
             const token = localStorage.getItem('auth_token');
-            if (token) {
-                renderLoggedInState(); 
-            } else {
-                renderLoggedOutState();
-            }
+            if (token) renderLoggedInState(); else renderLoggedOutState();
         }
 
-        // 3. 頁面邏輯
         function showFormMessage(text, type) {
             const container = document.getElementById('messageContainer');
             container.textContent = text;
-            container.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
-            
-            if (type === 'success') {
-                container.classList.add('bg-green-100', 'text-green-800');
-            } else if (type === 'error') {
-                container.classList.add('bg-red-100', 'text-red-800');
-            }
-
-            setTimeout(() => {
-                container.classList.add('hidden');
-            }, 3000);
+            container.className = `p-3 mb-4 rounded-lg font-medium ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+            container.classList.remove('hidden');
+            setTimeout(() => container.classList.add('hidden'), 3000);
         }
 
-        // 載入會員資料
+        // --- 載入與更新邏輯 ---
+        
         async function loadProfile(userId) {
             try {
                 const response = await fetch(`${API_BASE_URL}/member/profile?id=${userId}`);
                 if (!response.ok) throw new Error('無法取得會員資料');
-                
                 const data = await response.json();
                 
                 document.getElementById('memberName').value = data.name;
                 document.getElementById('memberEmail').value = data.email;
                 document.getElementById('memberPhone').value = data.phone;
                 
-                // 處理生日格式 (資料庫可能是 YYYY/MM/DD 或 YYYY-MM-DD)
-                let dob = data.dob.replace(/\//g, '-'); 
+                // 處理生日 (API 回傳可能是 YYYY/MM/DD)
+                let dob = data.dob ? data.dob.replace(/\//g, '-') : ''; 
                 document.getElementById('memberBirth').value = dob;
 
             } catch (error) {
                 console.error("API Error:", error);
-                showFormMessage('載入資料失敗，請稍後再試', 'error');
+                showFormMessage('載入資料失敗', 'error');
             }
         }
 
-        // 提交更新
         document.getElementById('profileForm').addEventListener('submit', async function(e) {
             e.preventDefault(); 
-            
-            const submitButton = document.getElementById('submitButton');
-            submitButton.disabled = true;
-            submitButton.textContent = '更新中...';
+            const btn = document.getElementById('submitButton');
+            btn.disabled = true; btn.textContent = '更新中...';
 
             const user = JSON.parse(localStorage.getItem('user'));
             const name = document.getElementById('memberName').value;
             const phone = document.getElementById('memberPhone').value;
             const email = document.getElementById('memberEmail').value;
+            const dob = document.getElementById('memberBirth').value; // 取得生日
 
             try {
                 const response = await fetch(`${API_BASE_URL}/member/profile`, {
@@ -201,7 +162,8 @@
                         memberId: user.id,
                         name: name,
                         phone: phone,
-                        email: email
+                        email: email,
+                        dob: dob // 【新增】傳送生日欄位
                     })
                 });
 
@@ -209,85 +171,45 @@
 
                 if (response.ok) {
                     showFormMessage('🎉 資料更新成功！', 'success');
-                    // 更新 localStorage 中的 user 名稱 (如果有的話)
-                    user.name = name;
-                    user.email = email;
+                    user.name = name; user.email = email;
                     localStorage.setItem('user', JSON.stringify(user));
                 } else {
                     showFormMessage(`❌ 更新失敗: ${result.message}`, 'error');
                 }
-
             } catch (error) {
                 console.error("API Error:", error);
                 showFormMessage('連線伺服器失敗', 'error');
             } finally {
-                submitButton.disabled = false;
-                submitButton.textContent = '儲存變更';
+                btn.disabled = false; btn.textContent = '儲存變更';
             }
         });
 
         // 初始化
         document.addEventListener('DOMContentLoaded', async () => {
             renderUI();
-            
             const user = JSON.parse(localStorage.getItem('user'));
             const token = localStorage.getItem('auth_token');
 
             if (!token || !user) {
-                alert('請先登入以修改資料', () => {
-                    window.location.href = `${LOGIN_PAGE_URL}?redirect=${encodeURIComponent(window.location.href)}`;
-                });
+                alert('請先登入', () => window.location.href = `${LOGIN_PAGE_URL}?redirect=${encodeURIComponent(window.location.href)}`);
                 return;
             }
 
             await loadProfile(user.id);
 
-            // 修改密碼的回跳網址
             const changePasswordLink = document.getElementById('changePasswordLink');
             if (changePasswordLink) {
-                const currentUrl = window.location.href; 
-                const encodedUrl = encodeURIComponent(currentUrl);
-                changePasswordLink.href = `../auth/forget_password.html?redirect=${encodedUrl}`;
+                changePasswordLink.href = `../auth/forget_password.html?redirect=${encodeURIComponent(window.location.href)}`;
             }
         });
         
-        // 自定義 Alert
-        function alert(message, callback) { 
-            const existingModal = document.getElementById('custom-alert-modal');
-            if (existingModal) existingModal.remove();
-
-            const handleConfirm = () => {
-                document.getElementById('custom-alert-modal').remove();
-                if (callback && typeof callback === 'function') {
-                    callback(); 
-                }
-            };
-
-            window.customAlertConfirm = handleConfirm;
-
-            const modalHtml = `
-                <div id="custom-alert-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
-                    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform scale-100 transition-all duration-300">
-                        <div class="text-xl font-bold text-gray-900 mb-3 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-vieshow-red mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                            </svg>
-                            系統提示
-                        </div>
-                        <p class="text-gray-700 mb-5">${message}</p>
-                        <div class="flex justify-end">
-                            <button onclick="window.customAlertConfirm()" 
-                                    class="bg-vieshow-red hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-vieshow-red focus:ring-offset-2">
-                                確認
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        // Custom Alert
+        function customAlert(msg, cb) {
+            const d = document.createElement('div');
+            d.innerHTML = `<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div class="bg-white p-6 rounded-lg shadow-xl"><p class="mb-4 font-bold text-gray-800">${msg}</p><button class="bg-vieshow-red text-white px-4 py-2 rounded" onclick="this.closest('.fixed').remove(); if(${cb}) ${cb}()">確定</button></div></div>`;
+            document.body.appendChild(d.firstChild);
         }
-        window.alert = alert;
+        window.alert = customAlert;
     </script>
-    
 </body>
 </html>
