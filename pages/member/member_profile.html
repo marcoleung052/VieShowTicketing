@@ -98,7 +98,6 @@
         const MEMBER_HOME_URL = 'member_home.html';
         const INDEX_PAGE_URL = '../../index.html';
 
-        // --- 導覽列與登入狀態 ---
         function renderLoggedOutState() {
             document.getElementById('headerNavRight').innerHTML = `<a href="${LOGIN_PAGE_URL}" class="hover:text-vieshow-gold transition duration-300">登入</a> <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>`;
         }
@@ -121,26 +120,49 @@
             setTimeout(() => container.classList.add('hidden'), 3000);
         }
 
-        // --- 載入與更新邏輯 ---
+        // --- 核心邏輯：優先讀取快取 ---
         
         async function loadProfile(userId) {
+            // 【關鍵修改】先檢查 sessionStorage 是否有快取資料
+            const cachedDataStr = sessionStorage.getItem('memberDataCache');
+            
+            if (cachedDataStr) {
+                try {
+                    const data = JSON.parse(cachedDataStr);
+                    // 檢查 ID 是否匹配，避免登入不同帳號看到舊資料
+                    if (data.memberId === userId || data.cardId === userId) { // 寬鬆檢查
+                        console.log("⚡ 使用快取資料渲染頁面");
+                        renderForm(data);
+                        return; // 直接結束，不發送 API
+                    }
+                } catch (e) {
+                    console.warn("快取資料解析失敗，回退至 API", e);
+                }
+            }
+
+            // 如果沒有快取或快取無效，才發送 API
             try {
+                console.log("🌐 發送 API 請求載入資料...");
                 const response = await fetch(`${API_BASE_URL}/member/profile?id=${userId}`);
                 if (!response.ok) throw new Error('無法取得會員資料');
                 const data = await response.json();
                 
-                document.getElementById('memberName').value = data.name;
-                document.getElementById('memberEmail').value = data.email;
-                document.getElementById('memberPhone').value = data.phone;
-                
-                // 處理生日 (API 回傳可能是 YYYY/MM/DD)
-                let dob = data.dob ? data.dob.replace(/\//g, '-') : ''; 
-                document.getElementById('memberBirth').value = dob;
+                // 更新快取
+                sessionStorage.setItem('memberDataCache', JSON.stringify(data));
+                renderForm(data);
 
             } catch (error) {
                 console.error("API Error:", error);
                 showFormMessage('載入資料失敗', 'error');
             }
+        }
+
+        function renderForm(data) {
+            document.getElementById('memberName').value = data.name;
+            document.getElementById('memberEmail').value = data.email;
+            document.getElementById('memberPhone').value = data.phone;
+            let dob = data.dob ? data.dob.replace(/\//g, '-') : ''; 
+            document.getElementById('memberBirth').value = dob;
         }
 
         document.getElementById('profileForm').addEventListener('submit', async function(e) {
@@ -152,7 +174,7 @@
             const name = document.getElementById('memberName').value;
             const phone = document.getElementById('memberPhone').value;
             const email = document.getElementById('memberEmail').value;
-            const dob = document.getElementById('memberBirth').value; // 取得生日
+            const dob = document.getElementById('memberBirth').value;
 
             try {
                 const response = await fetch(`${API_BASE_URL}/member/profile`, {
@@ -163,7 +185,7 @@
                         name: name,
                         phone: phone,
                         email: email,
-                        dob: dob // 【新增】傳送生日欄位
+                        dob: dob
                     })
                 });
 
@@ -171,8 +193,17 @@
 
                 if (response.ok) {
                     showFormMessage('🎉 資料更新成功！', 'success');
-                    user.name = name; user.email = email;
+                    
+                    // 更新 user localStorage
+                    user.name = name; 
+                    user.email = email;
                     localStorage.setItem('user', JSON.stringify(user));
+
+                    // 【關鍵】更新 Cache，這樣回到上一頁或重整時才會看到新資料
+                    // 為了確保資料一致，我們清除舊 Cache，下次進入 member_home 會重新抓取
+                    // 或者更進階的做法是手動更新 Cache 物件，這裡選擇清除最保險
+                    sessionStorage.removeItem('memberDataCache'); 
+
                 } else {
                     showFormMessage(`❌ 更新失敗: ${result.message}`, 'error');
                 }
@@ -184,7 +215,6 @@
             }
         });
 
-        // 初始化
         document.addEventListener('DOMContentLoaded', async () => {
             renderUI();
             const user = JSON.parse(localStorage.getItem('user'));
@@ -203,7 +233,6 @@
             }
         });
         
-        // Custom Alert
         function customAlert(msg, cb) {
             const d = document.createElement('div');
             d.innerHTML = `<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div class="bg-white p-6 rounded-lg shadow-xl"><p class="mb-4 font-bold text-gray-800">${msg}</p><button class="bg-vieshow-red text-white px-4 py-2 rounded" onclick="this.closest('.fixed').remove(); if(${cb}) ${cb}()">確定</button></div></div>`;
