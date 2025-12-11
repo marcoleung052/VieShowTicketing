@@ -245,308 +245,379 @@
     <footer><p>&copy; 2025 Vieshow Ticketing System</p></footer>
 
     <script>
-        const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api';
-        const INDEX_PAGE_URL = '../../index.html';
-        const LOGIN_PAGE_URL = '../auth/login.html';
-        const MEMBER_HOME_URL = '../member/member_home.html';
+    const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api';
+    const INDEX_PAGE_URL = '../../index.html';
+    const LOGIN_PAGE_URL = '../auth/login.html';
+    const MEMBER_HOME_URL = '../member/member_home.html';
 
-        function renderLoggedOutState() {
-            document.getElementById('headerNavRight').innerHTML = `<a href="${LOGIN_PAGE_URL}?redirect=${encodeURIComponent(window.location.href)}" class="hover:text-vieshow-gold transition duration-300">登入</a> <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>`;
-        }
-        function renderLoggedInState() {
-            document.getElementById('headerNavRight').innerHTML = `<a href="#" id="signOutLink" class="hover:text-vieshow-gold transition duration-300">登出</a> <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>`;
-            document.getElementById('signOutLink')?.addEventListener('click', handleSignOut);
-        }
-        function handleSignOut(e) {
-            e.preventDefault(); localStorage.removeItem('auth_token');
-            alert('已登出，跳轉首頁...', () => { window.location.href = INDEX_PAGE_URL; });
-        }
-        function checkLoginStatus() {
-            if (!localStorage.getItem('auth_token')) {
-                alert('請先登入才能進行訂票', () => { window.location.href = `${LOGIN_PAGE_URL}?redirect=${encodeURIComponent(window.location.href)}`; });
-                return false;
-            }
-            renderLoggedInState(); return true;
-        }
+    // --- 全域變數 ---
+    let currentSelections = { ticketType: null, cinema: null, movie: null, showtime: null };
+    
+    // 用於場次顯示的變數
+    let allGroupedShowtimes = {}; 
+    let allSortedDates = [];      
+    let currentDateIndex = 0;     
+    const DAYS_PER_LOAD = 2;      
 
-        const cinemaSelect = document.getElementById('cinema_location');
-        const movieSelection = document.getElementById('movieSelection');
-        const showtimeSelection = document.getElementById('showtimeSelection');
-        const loadMoreContainer = document.getElementById('loadMoreContainer');
-        const nextButton = document.getElementById('nextStepButton');
-        const loadingStatus = document.getElementById('loadingStatus');
-        const form = document.getElementById('bookingFlow1Form');
-        
-        let currentSelections = { ticketType: null, cinema: null, movie: null, showtime: null };
-        
-        // --- 全域變數用於分頁控制 ---
-        let allGroupedShowtimes = {}; 
-        let allSortedDates = [];      
-        let currentDateIndex = 0;     
-        const DAYS_PER_LOAD = 2;      
+    // DOM 元素
+    const cinemaSelect = document.getElementById('cinema_location');
+    const movieSelection = document.getElementById('movieSelection');
+    const showtimeSelection = document.getElementById('showtimeSelection');
+    const loadMoreContainer = document.getElementById('loadMoreContainer');
+    const nextButton = document.getElementById('nextStepButton');
+    const loadingStatus = document.getElementById('loadingStatus');
+    const form = document.getElementById('bookingFlow1Form');
+    const cinemaSelectionSection = document.getElementById('cinemaSelectionSection');
+    const movieSelectionSection = document.getElementById('movieSelectionSection');
+    const showtimeSelectionSection = document.getElementById('showtimeSelectionSection');
 
-        // --- 核心 API 呼叫 ---
-        async function loadCinemas() {
-            try {
-                loadingStatus.textContent = '載入影城...';
-                const res = await fetch(`${API_BASE_URL}/info/cinemas`);
-                const cinemas = await res.json();
-                
-                cinemaSelect.innerHTML = '<option value="" disabled selected>請選擇影城地點</option>';
-                cinemas.forEach(c => {
-                    const opt = document.createElement('option');
-                    opt.value = c.id; opt.textContent = c.name;
-                    cinemaSelect.appendChild(opt);
-                });
-                loadingStatus.textContent = '';
-                
-            } catch (e) { console.error(e); loadingStatus.textContent = '載入影城失敗'; }
+    // --- 登入與 UI ---
+    function renderUI() {
+        const token = localStorage.getItem('auth_token');
+        const navRight = document.getElementById('headerNavRight');
+        if (token) {
+            navRight.innerHTML = `<a href="#" id="signOutLink" class="hover:text-vieshow-gold transition duration-300">登出</a> <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>`;
+            document.getElementById('signOutLink').addEventListener('click', (e) => {
+                e.preventDefault(); localStorage.removeItem('auth_token'); localStorage.removeItem('preSelectedMovie'); alert('已登出', () => window.location.href = INDEX_PAGE_URL);
+            });
+        } else {
+            navRight.innerHTML = `<a href="${LOGIN_PAGE_URL}?redirect=${encodeURIComponent(window.location.href)}" class="hover:text-vieshow-gold transition duration-300">登入</a> <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>`;
         }
+    }
 
-        async function loadMovies(cinemaId) {
-            movieSelection.innerHTML = '<div style="text-align:center; padding:2rem; color:#6b7280;">載入電影...</div>';
-            resetSelection(2);
+    function checkLoginStatus() {
+        if (!localStorage.getItem('auth_token')) {
+            alert('請先登入才能進行訂票', () => { window.location.href = `${LOGIN_PAGE_URL}?redirect=${encodeURIComponent(window.location.href)}`; });
+            return false;
+        }
+        renderUI(); return true;
+    }
+
+    // --- 核心邏輯 ---
+
+    // 1. 載入影城
+    async function loadCinemas() {
+        try {
+            loadingStatus.textContent = '載入影城列表...';
+            const res = await fetch(`${API_BASE_URL}/info/cinemas`);
+            const cinemas = await res.json();
             
-            // 【關鍵修改】取得 URL 中的 movie_id 參數
-            const urlParams = new URLSearchParams(window.location.search);
-            const targetMovieId = urlParams.get('movie_id');
+            cinemaSelect.innerHTML = '<option value="" disabled selected>請選擇影城地點</option>';
+            cinemas.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id; opt.textContent = c.name;
+                cinemaSelect.appendChild(opt);
+            });
+            loadingStatus.textContent = '';
+        } catch (e) { 
+            console.error(e); loadingStatus.textContent = '載入影城失敗'; 
+        }
+    }
 
+    // 2. 載入電影 (已優化：優先讀取 sessionStorage)
+    async function loadMovies(cinemaId) {
+        movieSelection.innerHTML = '';
+        resetSelection(2);
+
+        // 【關鍵優化】檢查是否有從上一頁傳來的電影資料
+        const preSelectedMovieStr = sessionStorage.getItem('preSelectedMovie');
+        
+        if (preSelectedMovieStr) {
             try {
-                const res = await fetch(`${API_BASE_URL}/movie/showtimes?location=${cinemaId}`);
-                const showtimes = await res.json();
-                
-                const uniqueMovies = {};
-                showtimes.forEach(s => {
-                    // 【關鍵修改】如果網址有指定 movie_id，則只保留該電影
-                    if (targetMovieId && String(s.movieId) !== String(targetMovieId)) {
-                        return; // 跳過非目標電影
-                    }
+                const preMovie = JSON.parse(preSelectedMovieStr);
+                console.log("⚡ 檢測到預選電影，跳過 API 查詢:", preMovie.name);
 
-                    if (!uniqueMovies[s.movieId]) {
-                        uniqueMovies[s.movieId] = { id: s.movieId, name: s.movieName };
-                    }
-                });
+                // 直接渲染這一張卡片
+                renderSingleMovieCard(preMovie);
                 
-                movieSelection.innerHTML = '';
-                if (Object.keys(uniqueMovies).length === 0) {
-                    if (targetMovieId) {
-                        movieSelection.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:#6b7280;">此影城目前未上映您選擇的電影</div>';
-                    } else {
-                        movieSelection.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:#6b7280;">此影城暫無電影場次</div>';
-                    }
-                    return;
-                }
-
-                Object.values(uniqueMovies).forEach(async (m) => {
-                    let details = { posterUrl: '', grade: '', duration: '', info: '' };
-                    try {
-                        const detailRes = await fetch(`${API_BASE_URL}/movie/${m.id}`);
-                        if (detailRes.ok) details = await detailRes.json();
-                    } catch(e){}
-
-                    const card = document.createElement('div');
-                    card.className = 'movie-card cursor-pointer';
-                    card.dataset.movieId = m.id;
-                    let poster = details.posterUrl || 'https://placehold.co/300x450?text=No+Poster';
-                    if (poster && !poster.startsWith('http') && !poster.startsWith('data:')) {
-                        poster = '../../' + poster; 
-                    }
-                    
-                    card.innerHTML = `
-                        <div class="movie-content">
-                            <div class="movie-layout">
-                                <div class="movie-poster-container"><img src="${poster}" class="movie-poster"></div>
-                                <div class="movie-details">
-                                    <h3 class="movie-title">${m.name}</h3>
-                                    <div class="movie-tags">
-                                        <span class="movie-tag tag-red">${details.grade || '普遍級'}</span>
-                                        <span class="movie-tag tag-gray">${details.duration || ''}</span>
-                                    </div>
-                                    <p class="movie-description">${details.info || ''}</p>
-                                </div>
-                            </div>
-                        </div>`;
-                    card.onclick = () => selectMovie({ id: m.id, title: m.name, ...details, posterUrl: poster });
-                    movieSelection.appendChild(card);
-                });
-                
-                document.getElementById('movieSelectionSection').classList.remove('hidden');
+                // 顯示區域
+                movieSelectionSection.classList.remove('hidden');
                 updateStepIndicator(2);
 
-                // 【關鍵修改】如果只有一部電影 (因為 filter)，自動幫使用者點擊
-                if (targetMovieId && Object.keys(uniqueMovies).length === 1) {
-                    setTimeout(() => {
-                        const targetCard = document.querySelector(`.movie-card[data-movie-id="${targetMovieId}"]`);
-                        if(targetCard) {
-                            console.log("自動選取電影:", targetMovieId);
-                            targetCard.click();
-                            targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // 自動選取並載入場次
+                // 注意：這裡直接選取，如果該影城沒有這部電影，loadShowtimes 會回傳空並提示，這是正確的邏輯
+                selectMovie(preMovie);
+                
+                // 渲染完後稍微滾動
+                setTimeout(() => {
+                    const card = document.querySelector('.movie-card');
+                    if(card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+
+                return; // 【直接結束，不發送 API 請求】
+
+            } catch (e) {
+                console.error("解析預選電影失敗，回退到一般模式", e);
+                sessionStorage.removeItem('preSelectedMovie'); // 清除錯誤資料
+            }
+        }
+
+        // --- 以下為一般模式 (沒有預選電影時，載入該影城所有電影) ---
+        movieSelection.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:#6b7280;">載入電影清單...</div>';
+        
+        try {
+            const res = await fetch(`${API_BASE_URL}/movie/showtimes?location=${cinemaId}`);
+            const showtimes = await res.json();
+            
+            const uniqueMovies = {};
+            showtimes.forEach(s => {
+                if (!uniqueMovies[s.movieId]) {
+                    uniqueMovies[s.movieId] = { id: s.movieId, name: s.movieName };
+                }
+            });
+            
+            movieSelection.innerHTML = '';
+            if (Object.keys(uniqueMovies).length === 0) {
+                movieSelection.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:#6b7280;">此影城暫無電影場次</div>'; 
+                return;
+            }
+
+            // 渲染所有電影卡片 (需要補全海報等資訊)
+            Object.values(uniqueMovies).forEach(async (m) => {
+                // 嘗試讀取快取詳情，或發送 API (這裡也可以優化，但我們先維持原樣)
+                let details = { posterUrl: '', grade: '', duration: '', info: '' };
+                const cacheKey = `movie_cache_${m.id}`;
+                const cachedDetail = sessionStorage.getItem(cacheKey);
+
+                if (cachedDetail) {
+                    details = JSON.parse(cachedDetail);
+                } else {
+                    try {
+                        const detailRes = await fetch(`${API_BASE_URL}/movie/${m.id}`);
+                        if (detailRes.ok) {
+                            details = await detailRes.json();
+                            sessionStorage.setItem(cacheKey, JSON.stringify(details)); // 順便快取
                         }
-                    }, 800);
+                    } catch(e){}
                 }
-
-            } catch (e) { console.error(e); movieSelection.innerHTML = '載入失敗'; }
-        }
-
-        async function loadShowtimes(cinemaId, movieId) {
-            showtimeSelection.innerHTML = '<div style="text-align:center; padding:2rem; color:#6b7280;">載入場次...</div>';
-            loadMoreContainer.innerHTML = ''; // 清除舊按鈕
-            resetSelection(3);
-            
-            try {
-                const res = await fetch(`${API_BASE_URL}/movie/showtimes?location=${cinemaId}&movie=${movieId}`);
-                const showtimes = await res.json();
                 
-                showtimeSelection.innerHTML = '';
-                if (showtimes.length === 0) {
-                    showtimeSelection.innerHTML = '<div style="text-align:center; padding:2rem; color:#6b7280;">無可用場次</div>'; return;
-                }
-
-                // 1. 整理並分組所有場次 (不直接渲染)
-                allGroupedShowtimes = {};
-                showtimes.forEach(s => {
-                    if (!allGroupedShowtimes[s.date]) allGroupedShowtimes[s.date] = [];
-                    allGroupedShowtimes[s.date].push(s);
-                });
-
-                // 2. 取得排序後的日期陣列
-                allSortedDates = Object.keys(allGroupedShowtimes).sort();
-                currentDateIndex = 0; // 重置計數器
-
-                // 3. 渲染前 2 天
-                renderShowtimesBatch();
-                
-                document.getElementById('showtimeSelectionSection').classList.remove('hidden');
-                updateStepIndicator(3);
-                
-            } catch (e) { console.error(e); showtimeSelection.innerHTML = '載入失敗'; }
-        }
-
-        // --- 新增：分批渲染場次邏輯 ---
-        function renderShowtimesBatch() {
-            const nextIndex = Math.min(currentDateIndex + DAYS_PER_LOAD, allSortedDates.length);
-            const datesToRender = allSortedDates.slice(currentDateIndex, nextIndex);
-            
-            datesToRender.forEach(date => {
-                const section = document.createElement('div'); 
-                section.className = 'date-section';
-                section.style.opacity = '0';
-                section.style.transition = 'opacity 0.5s ease-in';
-                
-                section.innerHTML = `<h4 class="date-header">${date}</h4>`;
-                const grid = document.createElement('div'); grid.className = 'showtime-grid';
-                
-                allGroupedShowtimes[date].forEach(s => {
-                    const card = document.createElement('div'); card.className = 'showtime-card';
-                    card.dataset.id = s.id;
-                    card.innerHTML = `
-                        <div class="showtime-time">${s.time}</div>
-                        <div class="showtime-details">
-                            <div class="showtime-row"><span>影廳:</span><span class="font-medium">${s.theater}</span></div>
-                            <div class="showtime-row"><span>版本:</span><span class="font-medium">${s.format}</span></div>
-                        </div>`;
-                    card.onclick = () => selectShowtime(s);
-                    grid.appendChild(card);
-                });
-                section.appendChild(grid);
-                showtimeSelection.appendChild(section);
-                
-                setTimeout(() => { section.style.opacity = '1'; }, 50);
+                // 渲染卡片
+                renderSingleMovieCard({ ...m, ...details });
             });
+            
+            movieSelectionSection.classList.remove('hidden');
+            updateStepIndicator(2);
 
-            currentDateIndex = nextIndex;
-            renderLoadMoreButton();
+        } catch (e) { console.error(e); movieSelection.innerHTML = '載入失敗'; }
+    }
+
+    // 輔助函式：渲染單張電影卡片
+    function renderSingleMovieCard(movie) {
+        const card = document.createElement('div');
+        card.className = 'movie-card cursor-pointer';
+        card.dataset.movieId = movie.id;
+        
+        // 圖片路徑處理
+        let poster = movie.posterUrl || 'https://placehold.co/300x450?text=No+Poster';
+        if (poster && !poster.startsWith('http') && !poster.startsWith('data:')) {
+            poster = '../../' + poster; 
         }
+        
+        card.innerHTML = `
+            <div class="movie-content">
+                <div class="movie-layout">
+                    <div class="movie-poster-container"><img src="${poster}" class="movie-poster"></div>
+                    <div class="movie-details">
+                        <h3 class="movie-title">${movie.name}</h3>
+                        <div class="movie-tags">
+                            <span class="movie-tag tag-red">${movie.grade || '普遍級'}</span>
+                            <span class="movie-tag tag-gray">${movie.duration || ''}</span>
+                        </div>
+                        <p class="movie-description">${movie.info || ''}</p>
+                    </div>
+                </div>
+            </div>`;
+        card.onclick = () => selectMovie(movie);
+        movieSelection.appendChild(card);
+    }
 
-        function renderLoadMoreButton() {
-            loadMoreContainer.innerHTML = ''; 
-            if (currentDateIndex < allSortedDates.length) {
-                const remainingDays = allSortedDates.length - currentDateIndex;
-                const btn = document.createElement('button');
-                btn.className = 'load-more-btn';
-                btn.textContent = `看更多時間 (${remainingDays} 天) ▼`;
-                btn.type = 'button'; 
-                btn.onclick = renderShowtimesBatch; 
-                loadMoreContainer.appendChild(btn);
+    // 3. 載入場次 (分頁載入邏輯)
+    async function loadShowtimes(cinemaId, movieId) {
+        showtimeSelection.innerHTML = '<div style="text-align:center; padding:2rem; color:#6b7280;">正在查詢場次...</div>';
+        loadMoreContainer.innerHTML = ''; 
+        resetSelection(3);
+        
+        try {
+            const res = await fetch(`${API_BASE_URL}/movie/showtimes?location=${cinemaId}&movie=${movieId}`);
+            const showtimes = await res.json();
+            
+            showtimeSelection.innerHTML = '';
+            if (showtimes.length === 0) {
+                // 這裡特別處理：如果是預選電影但沒場次，提示換影城
+                showtimeSelection.innerHTML = `
+                    <div style="text-align:center; padding:2rem; color:#6b7280;">
+                        <p class="text-lg font-bold mb-2">此影城目前沒有《${currentSelections.movie?.name || '此電影'}》的場次</p>
+                        <p class="text-sm">請嘗試選擇其他影城，或回到首頁選擇其他電影。</p>
+                    </div>`; 
+                return;
             }
-        }
 
-        // --- 互動邏輯 ---
-        function setupTicketTypeSelection() {
-            document.querySelectorAll('.ticket-type-card').forEach(card => {
-                card.onclick = function() {
-                    document.querySelectorAll('.ticket-type-card').forEach(c => c.classList.remove('selected'));
-                    this.classList.add('selected');
-                    currentSelections.ticketType = this.dataset.type;
-                    
-                    document.getElementById('groupTicketInfo').classList.toggle('hidden', currentSelections.ticketType !== 'group');
-                    nextButton.textContent = currentSelections.ticketType === 'group' ? '下一步: 填寫團體資訊' : '下一步: 選擇票種與餐點';
-                    
-                    resetSelection(1);
-                    document.getElementById('cinemaSelectionSection').classList.remove('hidden');
-                    loadCinemas();
-                    updateStepIndicator(1);
-                };
+            // 資料分組
+            allGroupedShowtimes = {};
+            showtimes.forEach(s => {
+                if (!allGroupedShowtimes[s.date]) allGroupedShowtimes[s.date] = [];
+                allGroupedShowtimes[s.date].push(s);
             });
-        }
 
-        function resetSelection(step) {
-            if (step <= 1) { currentSelections.cinema = null; cinemaSelect.selectedIndex = 0; document.getElementById('movieSelectionSection').classList.add('hidden'); }
-            if (step <= 2) { currentSelections.movie = null; document.getElementById('showtimeSelectionSection').classList.add('hidden'); }
-            if (step <= 3) { currentSelections.showtime = null; nextButton.disabled = true; }
-        }
+            allSortedDates = Object.keys(allGroupedShowtimes).sort();
+            currentDateIndex = 0;
 
-        function selectMovie(movie) {
-            document.querySelectorAll('.movie-card').forEach(c => c.classList.remove('selected'));
-            document.querySelector(`.movie-card[data-movie-id="${movie.id}"]`)?.classList.add('selected');
-            currentSelections.movie = movie;
-            loadShowtimes(currentSelections.cinema.id, movie.id);
-        }
-
-        function selectShowtime(showtime) {
-            document.querySelectorAll('.showtime-card').forEach(c => c.classList.remove('selected'));
-            const card = document.querySelector(`.showtime-card[data-id="${showtime.id}"]`);
-            if(card) card.classList.add('selected');
+            // 渲染第一批
+            renderShowtimesBatch();
             
-            currentSelections.showtime = showtime;
-            nextButton.disabled = false;
-        }
+            showtimeSelectionSection.classList.remove('hidden');
+            updateStepIndicator(3);
+            
+        } catch (e) { console.error(e); showtimeSelection.innerHTML = '載入失敗'; }
+    }
 
-        function updateStepIndicator(step) {
-            document.querySelectorAll('.step-circle').forEach((c, i) => {
-                c.className = `step-circle ${i < step ? 'step-completed' : (i === step ? 'step-active' : 'step-pending')}`;
+    function renderShowtimesBatch() {
+        const nextIndex = Math.min(currentDateIndex + DAYS_PER_LOAD, allSortedDates.length);
+        const datesToRender = allSortedDates.slice(currentDateIndex, nextIndex);
+        
+        datesToRender.forEach(date => {
+            const section = document.createElement('div'); section.className = 'date-section';
+            section.style.opacity = '0'; section.style.transition = 'opacity 0.5s ease-in';
+            section.innerHTML = `<h4 class="date-header">${date}</h4>`;
+            const grid = document.createElement('div'); grid.className = 'showtime-grid';
+            
+            allGroupedShowtimes[date].forEach(s => {
+                const card = document.createElement('div'); card.className = 'showtime-card';
+                card.dataset.id = s.id;
+                card.innerHTML = `
+                    <div class="showtime-time">${s.time}</div>
+                    <div class="showtime-details">
+                        <div class="showtime-row"><span>影廳:</span><span class="font-medium">${s.theater}</span></div>
+                        <div class="showtime-row"><span>版本:</span><span class="font-medium">${s.format}</span></div>
+                    </div>`;
+                card.onclick = () => selectShowtime(s);
+                grid.appendChild(card);
             });
-        }
-
-        cinemaSelect.addEventListener('change', function() {
-            if (this.value) {
-                currentSelections.cinema = { id: this.value, name: this.options[this.selectedIndex].text };
-                loadMovies(this.value);
-            }
+            section.appendChild(grid);
+            showtimeSelection.appendChild(section);
+            setTimeout(() => { section.style.opacity = '1'; }, 50);
         });
 
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            if (!currentSelections.ticketType || !currentSelections.cinema || !currentSelections.movie || !currentSelections.showtime) {
-                alert('請完成所有選擇'); return;
-            }
-            
-            localStorage.setItem('currentBooking', JSON.stringify({
-                ticketType: currentSelections.ticketType,
-                cinema: currentSelections.cinema,
-                movie: currentSelections.movie,
-                showtime: currentSelections.showtime
-            }));
-            
-            window.location.href = currentSelections.ticketType === 'group' ? 'booking_flow_group.html' : 'booking_flow_2.html';
-        });
+        currentDateIndex = nextIndex;
+        renderLoadMoreButton();
+    }
 
-        window.onload = () => {
-            if (checkLoginStatus()) {
-                setupTicketTypeSelection();
-                localStorage.removeItem('currentBooking');
-            }
+    function renderLoadMoreButton() {
+        loadMoreContainer.innerHTML = ''; 
+        if (currentDateIndex < allSortedDates.length) {
+            const remaining = allSortedDates.length - currentDateIndex;
+            const btn = document.createElement('button');
+            btn.className = 'load-more-btn';
+            btn.textContent = `看更多時間 (${remaining} 天) ▼`;
+            btn.type = 'button'; 
+            btn.onclick = renderShowtimesBatch; 
+            loadMoreContainer.appendChild(btn);
+        }
+    }
+
+    // --- 互動與選擇 ---
+    function setupTicketTypeSelection() {
+        document.querySelectorAll('.ticket-type-card').forEach(card => {
+            card.onclick = function() {
+                document.querySelectorAll('.ticket-type-card').forEach(c => c.classList.remove('selected'));
+                this.classList.add('selected');
+                currentSelections.ticketType = this.dataset.type;
+                
+                document.getElementById('groupTicketInfo').classList.toggle('hidden', currentSelections.ticketType !== 'group');
+                nextButton.textContent = currentSelections.ticketType === 'group' ? '下一步: 填寫團體資訊' : '下一步: 選擇票種與餐點';
+                
+                resetSelection(1);
+                document.getElementById('cinemaSelectionSection').classList.remove('hidden');
+                loadCinemas();
+                updateStepIndicator(1);
+            };
+        });
+    }
+
+    function resetSelection(step) {
+        if (step <= 1) { currentSelections.cinema = null; cinemaSelect.selectedIndex = 0; movieSelectionSection.classList.add('hidden'); }
+        if (step <= 2) { currentSelections.movie = null; showtimeSelectionSection.classList.add('hidden'); }
+        if (step <= 3) { currentSelections.showtime = null; nextButton.disabled = true; }
+    }
+
+    function selectMovie(movie) {
+        document.querySelectorAll('.movie-card').forEach(c => c.classList.remove('selected'));
+        document.querySelector(`.movie-card[data-movie-id="${movie.id}"]`)?.classList.add('selected');
+        currentSelections.movie = movie;
+        loadShowtimes(currentSelections.cinema.id, movie.id);
+    }
+
+    function selectShowtime(showtime) {
+        document.querySelectorAll('.showtime-card').forEach(c => c.classList.remove('selected'));
+        const card = document.querySelector(`.showtime-card[data-id="${showtime.id}"]`);
+        if(card) card.classList.add('selected');
+        
+        currentSelections.showtime = showtime;
+        nextButton.disabled = false;
+    }
+
+    function updateStepIndicator(step) {
+        document.querySelectorAll('.step-circle').forEach((c, i) => {
+            c.className = `step-circle ${i < step ? 'step-completed' : (i === step ? 'step-active' : 'step-pending')}`;
+        });
+    }
+
+    cinemaSelect.addEventListener('change', function() {
+        if (this.value) {
+            currentSelections.cinema = { id: this.value, name: this.options[this.selectedIndex].text };
+            loadMovies(this.value);
+        }
+    });
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!currentSelections.ticketType || !currentSelections.cinema || !currentSelections.movie || !currentSelections.showtime) {
+            alert('請完成所有選擇'); return;
+        }
+        localStorage.setItem('currentBooking', JSON.stringify({
+            ticketType: currentSelections.ticketType,
+            cinema: currentSelections.cinema,
+            movie: currentSelections.movie,
+            showtime: currentSelections.showtime
+        }));
+        // 送出後清除預選電影，避免下次干擾
+        sessionStorage.removeItem('preSelectedMovie');
+        window.location.href = currentSelections.ticketType === 'group' ? 'booking_flow_group.html' : 'booking_flow_2.html';
+    });
+
+    window.onload = () => {
+        if (checkLoginStatus()) {
+            setupTicketTypeSelection();
+            localStorage.removeItem('currentBooking'); // 清除舊訂單
+            // 注意：這裡不要清除 preSelectedMovie，因為我們正要用它
+        }
+    };
+
+    // Custom Alert (保持與您一致)
+    function customAlert(message, callback) { 
+        const existingModal = document.getElementById('custom-alert-modal');
+        if (existingModal) existingModal.remove();
+        const handleConfirm = () => {
+            document.getElementById('custom-alert-modal').remove();
+            if (callback && typeof callback === 'function') { callback(); }
         };
-    </script>
+        window.customAlertConfirm = handleConfirm;
+        const modalHtml = `
+            <div id="custom-alert-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
+                <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform scale-100 transition-all duration-300">
+                    <div class="text-xl font-bold text-gray-900 mb-3 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-vieshow-red mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>系統提示
+                    </div>
+                    <p class="text-gray-700 mb-5">${message}</p>
+                    <div class="flex justify-end">
+                        <button onclick="window.customAlertConfirm()" class="bg-vieshow-red hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-vieshow-red focus:ring-offset-2">確認</button>
+                    </div>
+                </div>
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+    window.alert = customAlert;
+</script>
 </body>
 </html>
+
