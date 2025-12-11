@@ -56,6 +56,7 @@
         .available:hover { background-color: #16a34a; transform: scale(1.1); }
         .occupied { background-color: #9ca3af; border: 2px solid #6b7280; cursor: not-allowed; }
         .selected { background-color: #dc2626; border: 2px solid #b91c1c; transform: scale(1.1); box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3); }
+        .wheelchair { background-color: #3b82f6; border: 2px solid #1d4ed8; }
         
         /* 步驟指示器 */
         .step-indicator { display: flex; align-items: center; justify-content: center; margin-bottom: 2rem; }
@@ -93,7 +94,7 @@
     </div>
 
     <div class="bg-white p-6 md:p-10 rounded-xl shadow-2xl border-t-4 border-vieshow-red relative min-h-[500px]">
-        <div id="seatLoading" class="loading-overlay">正在讀取座位表...</div>
+        <div id="seatLoading" class="loading-overlay">正在連線資料庫讀取座位...</div>
 
         <div class="mb-8 pb-4 border-b border-gray-200">
             <h1 class="text-3xl font-extrabold text-gray-900 mb-2">🎟️ 訂票流程</h1>
@@ -260,13 +261,18 @@
 
         totalPriceDisplay.textContent = `$${(currentBooking.totalPrice || 0).toLocaleString()} TWD`;
 
-        // 【關鍵】從後端取得座位狀態
-        fetchSeatStatus(currentBooking.showtime.id);
+        // 【關鍵】從後端取得座位狀態 (使用 showing.id)
+        if (currentBooking.showtime && currentBooking.showtime.id) {
+            fetchSeatStatus(currentBooking.showtime.id);
+        } else {
+            alert('場次資料錯誤，請重新選擇', () => window.location.href = 'booking_flow_1.html');
+        }
     }
 
     // 【新增】呼叫後端 API 取得真實座位狀態
     async function fetchSeatStatus(showingId) {
         try {
+            console.log("Fetching seats for:", showingId);
             const res = await fetch(`${API_BASE_URL}/booking/seats?showingId=${showingId}`);
             if (!res.ok) throw new Error("API Error");
             const seatData = await res.json();
@@ -275,7 +281,7 @@
             document.getElementById('seatLoading').style.display = 'none';
         } catch (e) {
             console.error("座位載入失敗", e);
-            document.getElementById('seatMap').innerHTML = '<p class="text-red-500">無法讀取座位表</p>';
+            document.getElementById('seatMap').innerHTML = '<p class="text-red-500">無法讀取座位表 (可能伺服器忙碌中)</p>';
             document.getElementById('seatLoading').style.display = 'none';
         }
     }
@@ -285,8 +291,7 @@
         const seatMap = document.getElementById("seatMap");
         seatMap.innerHTML = "";
         
-        // 將一維陣列轉換為二維結構 (假設每排 10 個座位，或者根據後端資料分組)
-        // 這裡為了簡單，假設後端回傳的是已排序好的列表，我們依照 seatNumber 分排 (A1, A2...)
+        // 將一維陣列轉換為二維結構 (A1, A2... 分組)
         const rows = {};
         seatList.forEach(s => {
             const rowLabel = s.seatNumber.charAt(0);
@@ -304,9 +309,16 @@
             label.className = "font-bold w-6 text-center text-gray-700";
             rowDiv.appendChild(label);
 
+            // 對每排的座位進行排序 (1, 2, 3...)
+            rows[rowLabel].sort((a, b) => {
+                const numA = parseInt(a.seatNumber.substring(1));
+                const numB = parseInt(b.seatNumber.substring(1));
+                return numA - numB;
+            });
+
             rows[rowLabel].forEach(s => {
                 const seatDiv = document.createElement("div");
-                seatDiv.textContent = s.seatNumber.substring(1); // 顯示號碼 (1, 2, 3...)
+                seatDiv.textContent = s.seatNumber.substring(1); // 顯示號碼
                 seatDiv.classList.add("seat");
 
                 if (s.status === 0) { // 0 = 佔用
