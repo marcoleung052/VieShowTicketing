@@ -111,10 +111,7 @@
                 
                 <select name="location" id="location-select" class="search-input bg-white">
                     <option value="">請選擇影城 (選填)</option>
-                    <option value="taipei">台北信義</option>
-                    <option value="taichung">台中大遠百</option>
-                    <option value="kaohsiung">高雄大遠百</option>
-                </select>
+                    </select>
                 
                 <input type="date" name="date" class="search-input" value="">
                 
@@ -172,16 +169,15 @@
     </footer>
 
     <script>
-        // 1. 設定後端 API 網址
         const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api';
 
         const LOGIN_PAGE_URL = './pages/auth/login.html';
         const MEMBER_HOME_URL = './pages/member/member_home.html';
         const REGISTER_PAGE_URL = './pages/auth/register.html';
 
-        /**
-         * 渲染未登入狀態
-         */
+        // ------------------------
+        // UI 狀態控制
+        // ------------------------
         function renderLoggedOutState() {
             const headerNavRight = document.getElementById('headerNavRight');
             const heroSection = document.getElementById('heroSection');
@@ -196,7 +192,6 @@
                     🎬 Vieshow 線上訂票系統
                 </h1>
                 <p class="text-lg text-gray-600 mb-6">歡迎！最新的熱門電影正在熱映中，立即訂票享優惠。</p>
-                
                 <a href="${REGISTER_PAGE_URL}" 
                     class="inline-flex items-center justify-center bg-vieshow-red hover:bg-red-700 text-white font-bold py-3 px-8 rounded-full transition duration-300 shadow-xl transform hover:scale-105 hover:shadow-vieshow-red/50">
                     <span class="mr-2">👤</span> 註冊
@@ -204,9 +199,6 @@
             `;
         }
 
-        /**
-         * 渲染已登入狀態
-         */
         function renderLoggedInState() {
             const headerNavRight = document.getElementById('headerNavRight');
             const heroSection = document.getElementById('heroSection');
@@ -229,9 +221,6 @@
             }
         }
 
-        /**
-         * 登出邏輯
-         */
         function handleSignOut(e) {
             e.preventDefault();
             localStorage.removeItem('auth_token');
@@ -240,9 +229,6 @@
             }); 
         }
 
-        /**
-         * 檢查 UI 狀態
-         */
         function renderUI() {
             const token = localStorage.getItem('auth_token');
             if (token) {
@@ -252,9 +238,11 @@
             }
         }
         
-        /**
-         * 填充下拉選單
-         */
+        // ------------------------
+        // 資料載入邏輯
+        // ------------------------
+
+        // 載入電影選單
         function populateMovieSelect(movies) {
             const select = document.getElementById('movie-select');
             if (!select) return;
@@ -266,9 +254,29 @@
             select.innerHTML += options;
         }
 
-        /**
-         * 渲染電影列表
-         */
+        // 【新增】載入影城選單
+        async function loadCinemasForSelect() {
+            const select = document.getElementById('location-select');
+            if (!select) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/info/cinemas`);
+                if (!response.ok) throw new Error('無法載入影城資料');
+                const cinemas = await response.json();
+
+                select.innerHTML = '<option value="">請選擇影城 (選填)</option>';
+                const options = cinemas.map(cinema => 
+                    `<option value="${cinema.id}">${cinema.name}</option>`
+                ).join('');
+                select.innerHTML += options;
+
+            } catch (error) {
+                console.error("載入影城選單失敗:", error);
+                // 失敗時保留預設選項
+            }
+        }
+
+        // 渲染電影列表
         function renderMovieList(movies, containerId, showRatingAndBooking) {
             const container = document.getElementById(containerId);
             if (!container) return;
@@ -329,9 +337,7 @@
             container.innerHTML = html;
         }
 
-        /**
-         * 載入並渲染影城資訊
-         */
+        // 載入影城區塊 (下方列表)
         async function loadCinemas() {
             const container = document.getElementById('cinemaInfo');
             if (!container) return;
@@ -364,9 +370,7 @@
             }
         }
 
-        /**
-         * 載入並渲染餐點資訊
-         */
+        // 載入餐點
         async function loadMeals() {
             const container = document.getElementById('foodInfo');
             if (!container) return;
@@ -409,6 +413,8 @@
                 if (!resNow.ok) throw new Error('無法載入熱映電影');
                 const nowPlayingMovies = await resNow.json();
                 renderMovieList(nowPlayingMovies, 'nowPlayingContainer', true);
+                
+                // 填充電影下拉選單
                 populateMovieSelect(nowPlayingMovies);
 
                 const resSoon = await fetch(`${API_BASE_URL}/movie/coming-soon`);
@@ -420,8 +426,13 @@
                 document.getElementById('nowPlayingContainer').innerHTML = '<p class="col-span-full text-center text-red-500">無法連線至伺服器</p>';
             }
 
-            // 2. 載入影城與餐點
+            // 2. 載入影城 (下方區塊)
             loadCinemas();
+            
+            // 3. 載入快搜影城選單 (上方選單)
+            loadCinemasForSelect();
+
+            // 4. 載入餐點
             loadMeals();
         });
 
