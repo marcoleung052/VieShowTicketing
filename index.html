@@ -375,8 +375,10 @@
             renderUI();
             const dateInput = document.getElementById('date-input');
             const today = new Date().toISOString().split('T')[0];
+            
+            // 【修改點】只設定最小值，不設定 value (預設留空)
             dateInput.min = today;
-            dateInput.value = today;
+            // dateInput.value = today; <--- 這行已移除
 
             loadAllData();
         });
