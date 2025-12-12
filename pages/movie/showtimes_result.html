@@ -269,10 +269,10 @@
                 if (!grouped[key]) {
                     grouped[key] = {
                         ...s,
-                        times: [] // 用來存多個時間
+                        times: [] // 用來存多個時間 (這裡存物件 {time: '...', id: '...'}) 以便區分不同場次ID
                     };
                 }
-                grouped[key].times.push(s.time);
+                grouped[key].times.push({ time: s.time, id: s.id });
             });
 
             // 將分組後的物件轉回陣列
@@ -284,15 +284,15 @@
                         <div class="md:flex md:justify-between md:items-start mb-4">
                             <div>
                                 <h2 class="text-2xl font-extrabold text-gray-900 hover:text-vieshow-red transition duration-300">
-                                    <a href="../movie/movie_info.html?movie_id=${group.movieId}">${group.movieName}</a>
+                                    <a href="pages/movie/movie_info.html?movie_id=${group.movieId}">${group.movieName}</a>
                                 </h2>
                                 <p class="text-sm text-gray-500 mt-1">
-                                    影城：<span class="font-semibold text-gray-700">${group.cinemaName}</span> |
-                                    日期：<span class="font-semibold text-gray-700">${group.date}</span> |
+                                    影城：<span class="font-semibold text-gray-700">${group.cinemaName}</span> | 
+                                    日期：<span class="font-semibold text-gray-700">${group.date}</span> | 
                                     片長: ${group.duration || 120} 分鐘
                                 </p>
                                 <p class="text-sm text-gray-500 mt-1">
-                                    版本：<span class="font-semibold text-vieshow-red">${group.format}</span> |
+                                    版本：<span class="font-semibold text-vieshow-red">${group.format}</span> | 
                                     廳別：<span class="font-semibold text-vieshow-red">${group.theater}</span>
                                 </p>
                             </div>
@@ -301,10 +301,10 @@
                         <div class="mt-4 border-t pt-4 border-gray-200">
                             <h3 class="text-lg font-semibold text-gray-700 mb-3">場次時間：</h3>
                             <div class="flex flex-wrap gap-3">
-                                ${group.times.map(time => `
-                                    <button onclick="selectShowtime('${group.id}', '${group.movieName}', '${time}', '${group.cinemaId}', '${group.date}', '${group.theater}', '${group.format}')" 
+                                ${group.times.map(t => `
+                                    <button onclick="selectShowtime('${t.id}', '${group.movieName}', '${t.time}', '${group.cinemaId}', '${group.date}', '${group.theater}', '${group.format}', '${group.movieId}')" 
                                             class="showtime-button">
-                                        ${time}
+                                        ${t.time}
                                     </button>
                                 `).join('')}
                             </div>
@@ -319,44 +319,52 @@
         /**
          * 選定場次並跳轉 (跳過 booking_flow_1)
          */
-        function selectShowtime(id, movieName, time, cinemaId, date, theater, format) {
+        function selectShowtime(showingId, movieName, time, cinemaId, date, theater, format, movieId) {
             
-            // 由於跳過 Step 1，我們需要構造 Step 2 所需的資料
-            // 這裡傳入的 cinemaId 應該是資料庫 ID (如 '01')
+            // 檢查登入狀態
+            if (!localStorage.getItem('auth_token')) {
+                alert('請先登入才能進行訂票', () => {
+                    const currentUrl = encodeURIComponent(window.location.href);
+                    window.location.href = `${LOGIN_PAGE_URL}?redirect=${currentUrl}`;
+                });
+                return;
+            }
+
             const cinemaName = locationNameMap[cinemaId] || '指定影城';
             
-            // 構造唯一場次 ID (模擬)
-            const showtimeId = `${cinemaId}-${id}-${date}-${time.replace(':', '')}`;
-            
+            // 建構符合 booking_flow_2.html 預期的資料結構
+            // 注意：booking_flow_2.html 預期的是 currentBooking 物件
             const bookingData = {
-                // ID 資訊
-                cinemaId: cinemaId,
-                movieId: id, // 注意：這裡 id 可能是 showingID，但 booking flow 需要 movieId。API 回傳的 group.id 是 showingID。
-                             // 修正：renderShowtimes 中 group.movieId 才是電影 ID。
-                             // 我們需要在呼叫 selectShowtime 時傳遞正確的參數。
-                             // 上面的 HTML template 中傳入的是 group.id (showingID)。
-                             // 為了 booking flow 順暢，我們這裡做個調整：
-                // 其實 booking flow 2 主要需要 showtimeId 來抓座位，我們用 showingID 當作 showtimeId
-                showtimeId: id, // 使用 showingID
-
-                // 顯示資訊
-                cinemaName: cinemaName,
-                movieTitle: movieName,
-                
-                // 摘要字串
-                showtimeDetail: `${date} ${time} ${theater} (${format})`, 
-                
-                theater: theater,
-                format: format
+                cinema: {
+                    id: cinemaId,
+                    name: cinemaName
+                },
+                movie: {
+                    id: movieId,
+                    title: movieName
+                },
+                showtime: {
+                    id: showingId, // 這是後端資料庫的 showingID
+                    date: date,
+                    time: time,
+                    theater: theater,
+                    type: format
+                },
+                // 預設值
+                ticketType: 'general', 
+                tickets: {},
+                combos: {},
+                totalPrice: 0,
+                totalTicketQty: 0
             };
             
             // 儲存至 localStorage
             localStorage.setItem('currentBooking', JSON.stringify(bookingData));
             
-            console.log('已選擇場次:', bookingData);
+            console.log('已選擇場次，跳轉至 Step 2:', bookingData);
             
             // 跳轉到選位頁面 (Booking Flow 2)
-            window.location.href = '../booking/booking_flow_2.html';
+            window.location.href = 'pages/booking/booking_flow_2.html';
         }
         
         // 自定義 Alert
@@ -401,3 +409,4 @@
     </script>
 </body>
 </html>
+
