@@ -368,16 +368,44 @@
             errorMessage.textContent = "";
         }
     }
-
-    document.getElementById("bookingFlow3Form").addEventListener("submit", function(e){
+    document.getElementById("prevLink").addEventListener("click", function(e) {
         e.preventDefault();
-        if (selectedSeats.length !== totalTickets) return;
-
-        // 更新資料
-        currentBooking.selectedSeats = selectedSeats;
+        
+        // 確保 currentBooking 已被載入 (通常在 loadBookingData 中完成)
+        if (Object.keys(currentBooking).length === 0) {
+            window.location.href = 'booking_flow_2.html';
+            return;
+        }
+    
+        // 儲存當前狀態，以便 Step 2 載入
         localStorage.setItem("currentBooking", JSON.stringify(currentBooking));
-        window.location.href = "booking_flow_4.html";
+    
+        // 團體票直接返回團體票頁面，一般票返回票種選擇頁
+        if (currentBooking.ticketType === 'group') {
+            window.location.href = 'booking_flow_group.html'; // 假設團體票有專門的 Step 2
+        } else {
+            window.location.href = 'booking_flow_2.html';
+        }
     });
+    document.getElementById("bookingFlow3Form").addEventListener("submit", function(e){
+    e.preventDefault();
+
+    if (selectedSeats.length !== totalTickets) {
+        errorMessage.textContent = "請先選滿座位數量";
+        errorMessage.className = "font-bold text-center text-red-600 mb-4";
+        return;
+    }
+
+    // 🎯 更新訂票資料：將座位資訊寫入 currentBooking
+    currentBooking.selectedSeats = selectedSeats;
+    currentBooking.seatCount = selectedSeats.length;
+
+    // 儲存到 localStorage
+    localStorage.setItem("currentBooking", JSON.stringify(currentBooking));
+
+    // 正常流程：前往 Step4
+    window.location.href = "booking_flow_4.html";
+});
 
     window.onload = function() {
         renderUI();
@@ -388,3 +416,4 @@
 </script>
 </body>
 </html>
+
