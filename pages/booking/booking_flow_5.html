@@ -381,47 +381,50 @@
 
         const btn = document.getElementById('payButton');
         btn.disabled = true;
-        btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> 處理中...`;
+        btn.innerHTML = `處理中...`;
 
         try {
-            // 準備傳送給後端的資料
+            // 【新增】整理餐點字串
+            let mealsInfoStr = "";
+            if (currentBooking.combos) {
+                const mealsArr = [];
+                Object.values(currentBooking.combos).forEach(c => {
+                    if(c.qty > 0) mealsArr.push(`${c.name}x${c.qty}`);
+                });
+                mealsInfoStr = mealsArr.join(",");
+            }
+
             const payload = {
                 memberId: user.id,
                 showingId: currentBooking.showtime.id,
                 ticketCount: currentBooking.totalTicketQty,
                 totalAmount: currentBooking.totalPrice,
                 seats: currentBooking.selectedSeats,
-                // 可以加入更多欄位如 paymentMethod
+                mealsInfo: mealsInfoStr // 【傳送餐點字串】
             };
 
             const response = await fetch(`${API_BASE_URL}/booking/create`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
             const result = await response.json();
 
             if (response.ok && result.status === "success") {
-                // 成功，顯示成功畫面
                 currentBooking.orderId = result.orderId;
                 switchToSuccessView();
-                
-                // 清除本地暫存
                 localStorage.removeItem('currentBooking');
             } else {
-                alert(`付款失敗: ${result.message || "未知錯誤"}`);
+                alert(`付款失敗: ${result.message}`);
                 btn.disabled = false;
                 btn.textContent = `確認付款 NT$ ${currentBooking.totalPrice}`;
             }
 
         } catch (e) {
             console.error(e);
-            alert("連線錯誤，請稍後再試");
+            alert("連線錯誤");
             btn.disabled = false;
-            btn.textContent = `確認付款 NT$ ${currentBooking.totalPrice}`;
         }
     }
 
@@ -516,3 +519,4 @@
 </footer>
 </body>
 </html>
+
