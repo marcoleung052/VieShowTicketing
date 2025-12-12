@@ -1,380 +1,188 @@
 <!DOCTYPE html>
-
 <html lang="zh-TW">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>歷史訂票紀錄 - Vieshow Ticketing</title>
-
     
-
     <script src="https://cdn.tailwindcss.com"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-
-
     <script>
-
         tailwind.config = {
-
             theme: {
-
                 extend: {
-
                     colors: {
-
                         'vieshow-red': '#e50914',
-
                         'vieshow-gold': '#f7a83d',
-
                         'vieshow-dark': '#1a1a1a',
-
                         'success-green': '#10B981',
-
                     },
-
                     fontFamily: {
-
                         sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
-
                     },
-
                 }
-
             }
-
         }
-
     </script>
-
     
-
     <style>
-
         .status-Upcoming { background-color: #f7a83d; color: #fff; }
-
         .status-Completed { background-color: #10B981; color: #fff; }
-
         .status-Cancelled { background-color: #4b5563; color: #fff; }
-
         .modal { transition: opacity 0.3s ease-out; }
-
         .modal-content { transition: transform 0.3s ease-out, opacity 0.3s ease-out; }
-
     </style>
-
 </head>
-
-<body class="bg-gray-100 font-sans min-h-screen">
-
-
+<body class="bg-gray-100 font-sans min-h-screen flex flex-col">
 
     <header class="bg-gray-800 text-white shadow-md">
-
         <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
-
             <a href="../../index.html" class="text-xl font-bold hover:text-vieshow-red transition duration-300">Vieshow 影城</a>
-
             <div id="headerNavRight" class="space-x-4 flex items-center">
-
             </div>
-
         </nav>
-
     </header>
 
-
-
-    <div class="container mx-auto px-4 py-10 flex-grow max-w-2xl">
-
+    <div class="container mx-auto px-4 py-10 flex-grow max-w-3xl">
         <div class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl border-t-4 border-vieshow-red">
-
             <main class="max-w-7xl mx-auto py-4 px-2">
-
                  <h2 class="text-3xl font-extrabold text-gray-800 mb-2 flex items-center justify-center">
-
                     🧾 歷史訂票紀錄
-
                 </h2>
-
                 <p class="text-gray-600 text-center mb-6">在此查看您所有的訂票紀錄與詳細資訊。</p>
-
                 
-
                 <div class="bg-white p-4 rounded-xl shadow-none">
-
                     
-
                     <div class="flex flex-wrap gap-3 mb-6 border-b pb-4 justify-center sm:justify-start">
-
                         <button class="filter-btn bg-vieshow-red text-white font-medium py-2 px-4 rounded-full text-sm transition" data-status="all">全部訂單</button>
-
                         <button class="filter-btn bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium py-2 px-4 rounded-full text-sm transition" data-status="Upcoming">待觀影</button>
-
                         <button class="filter-btn bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium py-2 px-4 rounded-full text-sm transition" data-status="Completed">已完成</button>
-
                         <button class="filter-btn bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium py-2 px-4 rounded-full text-sm transition" data-status="Cancelled">已取消/退票</button>
-
                     </div>
-
-
 
                     <div id="loadingMessage" class="text-center py-10 text-gray-500 hidden">
-
                         <p>正在載入訂單資料...</p>
-
                     </div>
-
-
 
                     <ul id="ordersList" class="space-y-6">
-
                     </ul>
 
-
-
                     <div id="noOrdersMessage" class="hidden text-center py-10 text-gray-500">
-
                         <p>找不到符合篩選條件的訂單紀錄。</p>
-
                     </div>
-
-
 
                     <div id="pagination" class="flex justify-center mt-8 space-x-2">
-
                     </div>
-
                 </div>
-
             </main>
-
         </div>
-
     </div>
-
         
-
     <div id="detailModal" class="modal fixed inset-0 bg-black bg-opacity-70 z-40 hidden flex items-center justify-center p-4" aria-hidden="true" role="dialog" aria-modal="true">
-
         <div id="detailModalContent" class="bg-white rounded-xl shadow-2xl max-w-xl w-full transform -translate-y-full modal-content p-6 relative max-h-[90vh] overflow-y-auto">
-
             
-
             <button onclick="closeModal('detailModal')" 
-
                 class="absolute top-4 right-4 text-vieshow-red hover:text-red-700 text-3xl leading-none transition-colors" 
-
                 type="button">
-
                 &times;
-
             </button>
-
             <div id="orderDetailContent">
-
-                </div>
-
+            </div>
         </div>
-
     </div>
-
-
 
     <div id="modificationModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-4">
-
         <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full transform scale-95 transition-all duration-300 relative" 
-
             id="modificationModalContent">
-
             
-
             <div class="p-6">
-
                 <h3 class="text-2xl font-bold text-gray-900 mb-4 border-b pb-2">訂單修改與退票申請</h3>
-
                 
-
                 <div id="step1" class="space-y-4">
-
-                    <p class="text-sm text-gray-600 mb-4">請調整您想**取消/退票**的數量。**退票後將無法恢復。**</p>
-
-
+                    <p class="text-sm text-gray-600 mb-4">請選擇您想**退票/取消**的項目。</p>
 
                     <h4 class="font-semibold text-gray-800 mb-2">票券 (目前總數: <span id="totalTicketsQty">0</span> 張)</h4>
-
                     <div id="ticketAdjustments" class="space-y-2">
-
                         <p class="text-gray-500 text-sm p-3">載入中...</p>
-
                     </div>
-
-
 
                     <h4 class="font-semibold text-gray-800 mb-2 pt-4 border-t">餐點 (目前總數: <span id="totalCombosQty">0</span> 份)</h4>
-
                     <div id="comboAdjustments" class="space-y-2">
-
                         <p class="text-gray-500 text-sm p-3">載入中...</p>
-
                     </div>
-
                     
-
                     <div class="text-right font-bold text-lg pt-4 border-t-2 border-vieshow-red">
-
                         預計退款金額：NT$ <span id="expectedRefundAmount">0</span>
-
                     </div>
-
-
 
                     <div class="flex justify-end pt-2">
-
                         <button onclick="goToStep2()" id="nextStepBtn" disabled
-
                                 class="bg-gray-400 text-white font-bold py-2 px-4 rounded-lg transition duration-300 cursor-not-allowed">
-
                             下一步：填寫退款資訊
-
                         </button>
-
                     </div>
-
                 </div>
-
-
 
                 <div id="step2" class="space-y-4 hidden">
-
                     <h4 class="text-xl font-bold text-gray-900 mb-4">退款銀行帳號資訊</h4>
-
                     <p class="text-sm text-red-500 mb-4">請仔細核對，退款將轉入以下帳戶。</p>
-
                     
-
                     <div>
-
                         <label class="block text-sm font-medium text-gray-700">銀行代碼 (e.g. 004 台灣銀行)</label>
-
                         <input type="text" id="bankCode" placeholder="請輸入三碼銀行代碼" maxlength="3" class="mt-1 w-full border border-gray-300 rounded p-2 focus:ring-vieshow-red focus:border-vieshow-red" pattern="\d{3}">
-
                     </div>
-
                     <div>
-
                         <label class="block text-sm font-medium text-gray-700">銀行帳號</label>
-
                         <input type="text" id="bankAccount" placeholder="請輸入完整帳號" class="mt-1 w-full border border-gray-300 rounded p-2 focus:ring-vieshow-red focus:border-vieshow-red">
-
                     </div>
-
                     <div>
-
                         <label class="block text-sm font-medium text-gray-700">戶名 (與帳號一致)</label>
-
                         <input type="text" id="accountName" placeholder="請輸入戶名" class="mt-1 w-full border border-gray-300 rounded p-2 focus:ring-vieshow-red focus:border-vieshow-red">
-
                     </div>
-
                     
-
                     <div class="flex justify-between pt-4">
-
                         <button onclick="goToStep1()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300">
-
                             ← 上一步
-
                         </button>
-
                         <button onclick="submitRefundApplication()"
-
                                 class="bg-vieshow-red hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
-
                             確認送出退票申請
-
                         </button>
-
                     </div>
-
                 </div>
-
-
 
                 <div id="step3" class="space-y-4 hidden text-center">
-
                     <div class="w-16 h-16 bg-vieshow-gold rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-
                         <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-
                     </div>
-
                     <h4 class="text-xl font-bold text-gray-900 mb-2">申請已送出！</h4>
-
                     <p class="text-lg text-vieshow-red font-extrabold">預計退款金額：NT$ <span id="finalRefundAmount">0</span></p>
-
                     
-
                     <p class="text-gray-700 mt-4">
-
                         您的退款申請已成功送出。款項將於 **5 至 7 個工作天** 轉帳至您提供的銀行帳戶。
-
                     </p>
-
-                    <p class="text-sm text-gray-500">
-
-                        實際入帳時間將視銀行處理速度而定，若有疑問請聯繫客服。
-
-                    </p>
-
                     
-
                     <div class="flex justify-center pt-6">
-
                         <button onclick="closeModificationModal()"
-
                                 class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
-
                             關閉視窗
-
                         </button>
-
                     </div>
-
                 </div>
-
                 
-
                 <button onclick="closeModificationModal()" 
-
                         class="absolute top-3 right-3 text-vieshow-red hover:text-red-700 text-3xl leading-none transition-colors" 
-
                         type="button">
-
                     &times;
-
                 </button>
-
             </div>
-
         </div>
-
     </div>
 
-
-
     <footer class="bg-gray-800 text-white p-4 mt-auto text-center text-sm">
-
         <p class="text-gray-400">&copy; 2025 Vieshow Ticketing System.</p>
-
     </footer>
-
-
 
     <script>
         const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api';
@@ -382,9 +190,14 @@
         const MEMBER_HOME_URL = '../member/member_home.html';
         const INDEX_PAGE_URL = '../../index.html';
 
-        // ... (保留 renderLoggedOutState, renderLoggedInState, handleSignOut, renderUI, customAlert 函式) ...
-        function renderLoggedOutState() { document.getElementById('headerNavRight').innerHTML = `<a href="${LOGIN_PAGE_URL}" class="hover:text-vieshow-gold">登入</a>`; }
-        function renderLoggedInState() { document.getElementById('headerNavRight').innerHTML = `<a href="#" id="signOutLink" class="hover:text-vieshow-gold">登出</a> <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold ml-4">會員中心</a>`; document.getElementById('signOutLink').addEventListener('click', handleSignOut); }
+        // --- 登入狀態渲染 ---
+        function renderLoggedOutState() {
+            document.getElementById('headerNavRight').innerHTML = `<a href="${LOGIN_PAGE_URL}" class="hover:text-vieshow-gold transition duration-300">登入</a> <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>`;
+        }
+        function renderLoggedInState() {
+            document.getElementById('headerNavRight').innerHTML = `<a href="#" id="signOutLink" class="hover:text-vieshow-gold transition duration-300">登出</a> <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>`;
+            document.getElementById('signOutLink')?.addEventListener('click', handleSignOut);
+        }
         function handleSignOut(e) { e.preventDefault(); localStorage.removeItem('auth_token'); localStorage.removeItem('user'); alert('已登出', () => window.location.href = INDEX_PAGE_URL); }
         function renderUI() { localStorage.getItem('auth_token') ? renderLoggedInState() : renderLoggedOutState(); }
         function customAlert(msg, cb) { const d=document.createElement('div'); d.innerHTML=`<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div class="bg-white p-6 rounded shadow"><p class="mb-4 font-bold text-gray-800">${msg}</p><button class="bg-red-600 text-white px-4 py-2 rounded" onclick="this.closest('.fixed').remove();if(${cb})${cb}()">OK</button></div></div>`; document.body.appendChild(d.firstChild); }
@@ -398,7 +211,7 @@
 
         // 退票相關變數
         let selectedRefundSeats = [];
-        let refundFoodMap = {}; // { 'Popcorn': 1 }
+        let refundFoodMap = {}; 
 
         async function fetchOrders() {
             const user = JSON.parse(localStorage.getItem('user'));
@@ -412,28 +225,44 @@
                 renderOrders();
             } catch (e) {
                 console.error(e);
+                document.getElementById('loadingMessage').innerHTML = `<p class="text-red-500">載入失敗</p>`;
             }
         }
 
+        // --- 渲染卡片 (列表) ---
         function renderOrderCard(order) {
-            let statusText = { 'Upcoming': '待觀影', 'Completed': '已完成', 'Cancelled': '已取消' }[order.status] || order.status;
-            let btnHtml = order.status === 'Upcoming' ? 
-                `<button onclick="openModificationModal('${order.id}')" class="bg-vieshow-red text-white px-4 py-2 rounded text-sm font-bold">修改/退票</button>` : 
-                `<button onclick="openOrderDetailModal('${order.id}')" class="border border-gray-400 text-gray-500 px-4 py-2 rounded text-sm">查看詳情</button>`;
+            let statusTextMap = { 'Upcoming': '待觀影', 'Completed': '已完成', 'Cancelled': '已取消' };
+            let statusText = statusTextMap[order.status] || order.status;
+            
+            let btnHtml = '';
+            if (order.status === 'Upcoming') {
+                btnHtml = `<button onclick="openModificationModal('${order.id}')" class="bg-vieshow-red text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-red-700 transition">修改/退票</button>`;
+            } else {
+                btnHtml = `<button onclick="openOrderDetailModal('${order.id}')" class="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-100 transition">查看詳情</button>`;
+            }
+
+            // 餐點摘要
+            let foodSummary = '';
+            if (order.food && order.food.length > 0) {
+                foodSummary = `<p class="text-xs text-gray-500 mt-1">餐點: ${order.food.map(f => f.name + 'x' + f.qty).join(', ')}</p>`;
+            }
 
             return `
-                <li class="order-card-container list-none mb-4"> 
-                    <div class="bg-white border border-gray-200 rounded-xl shadow p-5 flex flex-col md:flex-row justify-between items-center">
-                        <div class="flex-grow space-y-1">
-                            <div class="flex items-center space-x-2">
-                                <span class="px-2 py-1 text-xs font-bold rounded text-white status-${order.status}">${statusText}</span>
-                                <span class="text-sm text-gray-500">訂單編號: ${order.id}</span>
+                <li class="order-card-container list-none" data-order-id="${order.id}"> 
+                    <div class="bg-white border border-gray-200 rounded-xl shadow-lg hover:shadow-xl transition duration-300 p-5 flex flex-col md:flex-row justify-between items-start md:items-center">
+                        <div class="flex-grow space-y-2">
+                            <div class="flex items-center space-x-3">
+                                <span class="px-3 py-1 text-xs font-semibold rounded-full status-${order.status}">${statusText}</span>
+                                <span class="text-sm text-gray-400">#${order.id}</span>
                             </div>
-                            <h2 class="text-lg font-bold">${order.title}</h2>
-                            <p class="text-gray-600 text-sm">${order.cinema} | ${order.date} ${order.time}</p>
+                            <h2 class="text-xl font-bold text-gray-900">${order.title}</h2>
+                            <div class="text-gray-600">
+                                <p>${order.cinema} | <span class="font-medium">${order.date} ${order.time}</span></p>
+                                ${foodSummary}
+                            </div>
                         </div>
-                        <div class="mt-4 md:mt-0 text-right">
-                            <p class="text-xl font-extrabold text-vieshow-red mb-2">NT$ ${order.total.toLocaleString()}</p>
+                        <div class="mt-4 md:mt-0 flex flex-col items-start md:items-end space-y-2 min-w-[140px]">
+                            <p class="text-2xl font-extrabold text-vieshow-red">NT$ ${order.total.toLocaleString()}</p>
                             ${btnHtml}
                         </div>
                     </div>
@@ -449,26 +278,49 @@
                 document.getElementById('noOrdersMessage').classList.remove('hidden');
             } else {
                 document.getElementById('noOrdersMessage').classList.add('hidden');
-                filtered.forEach(o => container.innerHTML += renderOrderCard(o));
+                
+                const startIndex = (currentPage - 1) * itemsPerPage;
+                const endIndex = startIndex + itemsPerPage;
+                const paginatedOrders = filtered.slice(startIndex, endIndex);
+
+                paginatedOrders.forEach(o => container.innerHTML += renderOrderCard(o));
+                renderPagination(filtered.length);
             }
         }
 
-        // --- Modification Modal ---
+        function renderPagination(totalItems) { 
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            const container = document.getElementById('pagination');
+            container.innerHTML = '';
+            if (totalPages <= 1) return;
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement('button');
+                btn.textContent = i;
+                btn.className = `px-3 py-1 rounded-lg font-medium transition ${i === currentPage ? 'bg-vieshow-red text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`;
+                btn.onclick = () => { currentPage = i; renderOrders(); };
+                container.appendChild(btn);
+            }
+        }
+
+        // --- Modification Modal (修改/退票) ---
         window.openModificationModal = function(orderId) {
-            currentBookingDetail = orders.find(o => o.id === orderId);
-            if (!currentBookingDetail) return;
+            closeModal('detailModal');
+            const order = orders.find(o => o.id === orderId);
+            if (!order) return;
+            currentBookingDetail = order;
             
-            // 重置退票選擇
             selectedRefundSeats = [];
             refundFoodMap = {};
             
-            renderModificationInputs(currentBookingDetail);
+            renderModificationInputs(order);
             document.getElementById('modificationModal').classList.remove('hidden');
+            document.getElementById('modificationModalContent').classList.remove('scale-95');
             goToStep1();
         }
 
         window.closeModificationModal = function() {
-            document.getElementById('modificationModal').classList.add('hidden');
+            document.getElementById('modificationModalContent').classList.add('scale-95');
+            setTimeout(() => { document.getElementById('modificationModal').classList.add('hidden'); }, 300); 
         }
 
         function renderModificationInputs(order) {
@@ -477,7 +329,8 @@
             ticketContainer.innerHTML = '';
             document.getElementById('totalTicketsQty').textContent = order.seats.length;
             
-            // 計算單票價格 (如果沒餐點，就直接除；有餐點要扣掉餐點價值，這裡簡化處理直接讀 tickets[0].price)
+            // 票單價計算 (倒推)
+            // 這裡後端 API (get_history) 已經幫我們把 tickets[0].price 算好了
             const unitTicketPrice = order.tickets.length > 0 ? order.tickets[0].price : 0;
 
             if (order.seats && order.seats.length > 0 && order.seats[0] !== "現場劃位") {
@@ -488,11 +341,11 @@
                                 <input type="checkbox" id="chk-${seat}" value="${seat}" data-price="${unitTicketPrice}" class="pointer-events-none w-5 h-5 text-red-600 rounded">
                                 <label class="ml-3 font-bold text-gray-800 pointer-events-none">座位 ${seat}</label>
                             </div>
-                            <span class="text-sm text-gray-500">可退: $${unitTicketPrice}</span>
+                            <span class="text-sm text-gray-500">可退: NT$ ${unitTicketPrice}</span>
                         </div>`;
                 });
             } else {
-                ticketContainer.innerHTML = `<p class="text-red-500 text-sm">此訂單無法指定座位退票 (舊資料)，請聯繫客服。</p>`;
+                ticketContainer.innerHTML = `<p class="text-red-500 text-sm">此訂單無法指定座位退票 (舊資料/現場劃位)。</p>`;
             }
 
             // 2. 餐點 (可調整數量)
@@ -503,24 +356,23 @@
             if (order.food && order.food.length > 0) {
                 order.food.forEach(item => {
                     totalCombos += item.qty;
-                    // 初始化退貨數量為 0
-                    refundFoodMap[item.name] = 0;
+                    refundFoodMap[item.name] = 0; // 初始化
                     
                     comboContainer.innerHTML += `
                         <div class="flex items-center justify-between bg-gray-50 p-3 rounded mb-2 border">
                             <div>
                                 <p class="font-bold text-gray-800">${item.name}</p>
-                                <p class="text-xs text-gray-500">單價: $${item.price} | 已購: ${item.qty}</p>
+                                <p class="text-xs text-gray-500">單價: NT$ ${item.price} | 已購: ${item.qty}</p>
                             </div>
                             <div class="flex items-center space-x-2">
                                 <button onclick="changeRefundFood('${item.name}', -1, ${item.price})" class="w-8 h-8 bg-gray-200 rounded-full font-bold text-gray-600 hover:bg-gray-300">-</button>
-                                <span id="refund-qty-${item.name}" class="w-6 text-center font-bold">0</span>
+                                <span id="refund-qty-${item.name}" class="w-6 text-center font-bold text-vieshow-red">0</span>
                                 <button onclick="changeRefundFood('${item.name}', 1, ${item.price}, ${item.qty})" class="w-8 h-8 bg-gray-200 rounded-full font-bold text-gray-600 hover:bg-gray-300">+</button>
                             </div>
                         </div>`;
                 });
             } else {
-                comboContainer.innerHTML = '<p class="text-gray-400 text-sm italic">無選購餐點</p>';
+                comboContainer.innerHTML = '<p class="text-gray-400 text-sm italic">此訂單未加購餐點。</p>';
             }
             document.getElementById('totalCombosQty').textContent = totalCombos;
         }
@@ -549,13 +401,11 @@
 
         window.calculateRefund = function() {
             let total = 0;
-            
             // 票價
             const unitTicketPrice = currentBookingDetail.tickets.length > 0 ? currentBookingDetail.tickets[0].price : 0;
             total += selectedRefundSeats.length * unitTicketPrice;
 
             // 餐點
-            // 需要找到單價，這裡簡單從 DOM 或 currentBookingDetail 找
             currentBookingDetail.food.forEach(f => {
                 const refundQty = refundFoodMap[f.name] || 0;
                 total += refundQty * f.price;
@@ -592,6 +442,7 @@
             const accountName = document.getElementById('accountName').value;
 
             if (!bankCode || !bankAccount || !accountName) return alert('請填寫完整銀行資訊');
+            if (bankCode.length !== 3) return alert('銀行代碼需為3碼');
 
             const user = JSON.parse(localStorage.getItem('user'));
             const btn = document.querySelector('#step2 button:last-child');
@@ -620,6 +471,8 @@
                     document.getElementById('finalRefundAmount').textContent = document.getElementById('expectedRefundAmount').textContent;
                     document.getElementById('step2').classList.add('hidden');
                     document.getElementById('step3').classList.remove('hidden');
+                    
+                    // 【關鍵】重新載入訂單列表，這樣就會看到新的拆單結果
                     fetchOrders();
                 } else {
                     alert(`失敗: ${result.message}`);
@@ -631,7 +484,72 @@
             }
         }
 
-        // 篩選按鈕
+        // --- Detail Modal (唯讀) ---
+        window.openOrderDetailModal = function(orderId) {
+            currentBookingDetail = orders.find(o => o.id === orderId);
+            if (!currentBookingDetail) return;
+            
+            const detailContainer = document.getElementById('orderDetailContent');
+            let statusText = { 'Upcoming': '待觀影', 'Completed': '已完成', 'Cancelled': '已取消' }[currentBookingDetail.status];
+
+            // 票券資訊 HTML
+            const ticketHtml = currentBookingDetail.tickets.map(t => 
+                `<div class="flex justify-between"><span>${t.name} x${t.qty}</span><span>NT$ ${t.price}</span></div>`
+            ).join('');
+
+            // 餐點資訊 HTML
+            const foodHtml = currentBookingDetail.food.length > 0 ? 
+                currentBookingDetail.food.map(f => `<div class="flex justify-between"><span>${f.name} x${f.qty}</span><span>NT$ ${f.price}</span></div>`).join('') :
+                '<div class="text-gray-400">無</div>';
+
+            // 座位
+            const seatsHtml = currentBookingDetail.seats.map(s => `<span class="bg-gray-200 px-2 py-1 rounded text-sm mr-1">${s}</span>`).join('');
+
+            // 顯示 QRCode (僅待觀影)
+            let qrHtml = '';
+            if (currentBookingDetail.status === 'Upcoming') {
+                qrHtml = `<div class="flex flex-col items-center mt-6 pt-4 border-t"><div id="modal-qrcode" class="bg-white p-2 border rounded"></div><p class="text-xs text-gray-500 mt-1">入場憑證</p></div>`;
+            }
+
+            detailContainer.innerHTML = `
+                <div class="space-y-4">
+                    <div class="border-b pb-4">
+                        <h2 class="text-2xl font-bold text-gray-900">${currentBookingDetail.title}</h2>
+                        <p class="text-gray-600">${currentBookingDetail.cinema} | ${currentBookingDetail.theater}</p>
+                        <p class="font-bold text-vieshow-red">${currentBookingDetail.date} ${currentBookingDetail.time}</p>
+                        <span class="inline-block mt-2 px-3 py-1 text-xs rounded-full status-${currentBookingDetail.status}">${statusText}</span>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-700 mb-1">座位</h4>
+                        <div>${seatsHtml || '無'}</div>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded">
+                        <h4 class="font-bold text-gray-700 mb-2 border-b pb-1">明細</h4>
+                        <div class="space-y-1 text-sm text-gray-800">${ticketHtml}</div>
+                        <div class="space-y-1 text-sm text-gray-800 mt-2 pt-2 border-t border-dashed border-gray-300">${foodHtml}</div>
+                        <div class="flex justify-between mt-3 pt-2 border-t font-bold text-lg">
+                            <span>總計</span><span>NT$ ${currentBookingDetail.total.toLocaleString()}</span>
+                        </div>
+                    </div>
+                    ${qrHtml}
+                </div>`;
+
+            openModal('detailModal');
+            if (currentBookingDetail.status === 'Upcoming') {
+                new QRCode(document.getElementById('modal-qrcode'), { text: currentBookingDetail.id, width: 100, height: 100 });
+            }
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+            setTimeout(() => document.getElementById(modalId + 'Content').classList.remove('-translate-y-full'), 10);
+        }
+        function closeModal(modalId) {
+            document.getElementById(modalId + 'Content').classList.add('-translate-y-full');
+            setTimeout(() => document.getElementById(modalId).classList.add('hidden'), 300);
+        }
+
+        // 篩選
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 document.querySelectorAll('.filter-btn').forEach(b => {
@@ -645,21 +563,7 @@
             });
         });
 
-        // 查看詳情 (唯讀 Modal)
-        window.openOrderDetailModal = function(orderId) {
-            const order = orders.find(o => o.id === orderId);
-            if (!order) return;
-            // 這裡可以複用 detailed modal 邏輯，或簡單顯示 alert
-            // 為了簡化，這裡先略過，您可以把上面的 detailModal 邏輯加回來
-            alert(`訂單詳情：\n${order.title}\n${order.date} ${order.time}\n座位: ${order.seats.join(', ')}`);
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            renderUI();
-            fetchOrders();
-        });
+        document.addEventListener('DOMContentLoaded', () => { renderUI(); fetchOrders(); });
     </script>
-
 </body>
-
 </html>
