@@ -1,4 +1,304 @@
-<script>
+<!DOCTYPE html>
+
+<html lang="zh-TW">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>訂票步驟 2: 選擇票種與餐點 - Vieshow Ticketing</title> 
+
+    
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    
+
+    <script>
+
+        tailwind.config = {
+
+            theme: {
+
+                extend: {
+
+                    colors: {
+
+                        'vieshow-red': '#e50914',
+
+                        'vieshow-gold': '#f7a83d',
+
+                        'vieshow-dark': '#1a1a1a',
+
+                    },
+
+                    fontFamily: {
+
+                        sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+
+                    },
+
+                },
+
+            },
+
+        };
+
+
+
+        // 自定義 Alert (必須放在最前面確保可用)
+
+        function customAlert(message, callback) { 
+
+            const existingModal = document.getElementById('custom-alert-modal');
+
+            if (existingModal) existingModal.remove();
+
+
+
+            const handleConfirm = () => {
+
+                document.getElementById('custom-alert-modal').remove();
+
+                if (callback && typeof callback === 'function') { callback(); }
+
+            };
+
+            window.customAlertConfirm = handleConfirm;
+
+
+
+            const modalHtml = `
+
+                <div id="custom-alert-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
+
+                    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform scale-100 transition-all duration-300">
+
+                        <div class="text-xl font-bold text-gray-900 mb-3 flex items-center">
+
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-vieshow-red mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>系統提示
+
+                        </div>
+
+                        <p class="text-gray-700 mb-5">${message}</p>
+
+                        <div class="flex justify-end">
+
+                            <button onclick="window.customAlertConfirm()" class="bg-vieshow-red hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-vieshow-red focus:ring-offset-2">確認</button>
+
+                        </div>
+
+                    </div>
+
+                </div>`;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        }
+
+        window.alert = customAlert;
+
+    </script>
+
+    
+
+    <style>
+
+        /* (CSS 保持不變) */
+
+        :root { --vieshow-red: #e50914; --vieshow-gold: #f7a83d; --gray-300: #D1D5DB; --gray-200: #E5E7EB; }
+
+        .next-step-button { width: 100%; background: var(--vieshow-red); color: #fff; font-weight: 700; padding: 0.75rem 1rem; border-radius: 0.75rem; transition: all 200ms ease; box-shadow: 0 8px 20px rgba(0,0,0,0.12); font-size: 1.125rem; display: inline-block; text-align: center; border: none; cursor: pointer; }
+
+        .next-step-button:hover:not(:disabled) { transform: scale(1.02); background: #c40b10; }
+
+        .next-step-button:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+        .selection-card { border: 1px solid var(--gray-200); padding: 1rem; border-radius: 1rem; background: #fff; box-shadow: 0 6px 18px rgba(13, 14, 15, 0.04); transition: box-shadow 200ms ease; }
+
+        .selection-card:hover { box-shadow: 0 10px 24px rgba(13,14,15,0.06); }
+
+        .price-tag { font-size: 1.125rem; font-weight: 700; color: var(--vieshow-red); }
+
+        .quantity-input { width: 64px; text-align: center; border: 1px solid var(--gray-300); border-radius: 0.5rem; padding: 0.375rem; }
+
+        .quantity-input:focus { outline: none; box-shadow: 0 0 0 4px rgba(247,168,61,0.12); border-color: var(--vieshow-gold); }
+
+        .step-indicator { display: flex; align-items: center; justify-content: center; margin-bottom: 2rem; }
+
+        .step-circle { width: 40px; height: 40px; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; transition: all 200ms ease; }
+
+        .step-line { height: 6px; width: 64px; background: var(--gray-300); transition: background 200ms ease; margin: 0 8px; border-radius: 4px; }
+
+        .step-active { background: var(--vieshow-red); }
+
+        .step-completed { background: var(--vieshow-gold); }
+
+        .step-pending { background: var(--gray-300); }
+
+        .loading-overlay { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.8); z-index: 10; display: flex; justify-content: center; align-items: center; font-weight: bold; color: #666; }
+
+    </style>
+
+</head>
+
+<body class="bg-gray-100 font-sans min-h-screen flex flex-col">
+
+    
+
+    <header class="bg-gray-800 text-white shadow-md">
+
+        <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
+
+            <a href="../../index.html" class="text-xl font-bold hover:text-vieshow-red transition duration-300">Vieshow 影城</a>
+
+            <div id="headerNavRight" class="space-x-4"></div>
+
+        </nav>
+
+    </header>
+
+
+
+    <main class="container mx-auto px-4 py-8 flex-grow max-w-4xl relative">
+
+        <div class="step-indicator">
+
+            <div class="step-circle step-completed">1</div>
+
+            <div class="step-line step-active"></div>
+
+            <div class="step-circle step-active">2</div>
+
+            <div class="step-line step-pending"></div>
+
+            <div class="step-circle step-pending">3</div>
+
+            <div class="step-line step-pending"></div>
+
+            <div class="step-circle step-pending">4</div>
+
+            <div class="step-line step-pending"></div>
+
+            <div class="step-circle step-pending">5</div>
+
+        </div>
+
+        
+
+        <div id="bookingCard" class="bg-white p-6 md:p-10 rounded-xl shadow-2xl border-t-4 border-vieshow-red relative min-h-[400px]">
+
+            
+
+            <div class="mb-8 pb-4 border-b border-gray-200">
+
+                <h1 class="text-3xl font-extrabold text-gray-900 mb-2">🎟️ 訂票流程</h1>
+
+                <p class="text-xl font-semibold text-vieshow-red"> 選擇票種與餐點</p>
+
+                <p class="text-sm text-gray-500 mt-1">請選擇您需要的票種數量與加購餐點。</p>
+
+            </div>
+
+
+
+            <div id="summarySection" class="p-4 rounded-xl bg-vieshow-gold/10 border-l-4 border-vieshow-gold text-sm text-gray-700 mb-6 shadow-inner">
+
+                <h2 class="font-bold text-lg mb-2 text-gray-800 flex items-center">
+
+                    <svg class="w-5 h-5 mr-2 text-vieshow-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+
+                    場次確認
+
+                </h2>
+
+                <div id="cinemaNameDisplay">影城: 載入中...</div>
+
+                <div id="movieTitleDisplay">電影: 載入中...</div>
+
+                <div id="showtimeDetailDisplay" class="font-mono mt-1 text-gray-900 font-semibold">場次: 載入中...</div>
+
+            </div>
+
+
+
+            <form id="bookingFlow2Form" action="#" method="POST" class="space-y-8">
+
+                
+
+                <div id="ticketSelectionSection" class="space-y-4 relative">
+
+                    <div id="ticketLoading" class="loading-overlay">載入票種中...</div>
+
+                    <label class="block text-2xl font-bold text-gray-800 mb-4 border-b pb-2 flex items-center">
+
+                        <span class="mr-2">🎫</span> 選擇票種數量 <span class="text-base font-normal text-red-500 ml-2">(總票數最多 9 張)</span>
+
+                    </label>
+
+                    <div id="ticketContainer"></div>
+
+                </div>
+
+                
+
+                <div id="comboSelectionSection" class="space-y-4 relative">
+
+                    <div id="comboLoading" class="loading-overlay">載入餐點中...</div>
+
+                    <label class="block text-2xl font-bold text-gray-800 mb-4 border-b pb-2 flex items-center">
+
+                        <span class="mr-2">🍿</span> 餐點加購 (可選) <span class="text-base font-normal text-green-600 ml-2">(套餐享 8 折優惠！)</span>
+
+                    </label>
+
+                    <div id="comboContainer"></div>
+
+                </div>
+
+                
+
+                <div class="bg-white pt-6 border-t border-gray-200 sticky bottom-0 z-10">
+
+                    <div class="bg-vieshow-dark text-white p-4 rounded-xl shadow-2xl font-extrabold text-center text-lg mb-4">
+
+                        總計金額: <span id="totalPrice">$0 TWD</span>
+
+                    </div>
+
+
+
+                    <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+
+                        <a href="javascript:void(0)" onclick="handleBackToFlow1()" class="flex-1 text-center bg-gray-500 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-xl transition duration-300 shadow-lg text-base">
+
+                            重新選擇場次 
+
+                        </a>
+
+                        <button type="submit" id="nextStepButton" class="next-step-button flex-1" disabled>
+
+                            下一步: 選擇座位 
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+
+            </form>
+
+        </div>
+
+    </main>
+
+
+
+    <script>
     const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api';
     const INDEX_PAGE_URL = '../../index.html';
     const LOGIN_PAGE_URL = '../auth/login.html';
@@ -296,9 +596,15 @@
         fetchMeals();
     });
 </script>
+
     
-<footer class="bg-vieshow-dark text-white text-center py-4 mt-8 shadow-inner">
-    <p>&copy; 2025 Vieshow Ticketing System</p>
-</footer>
+
+    <footer class="bg-vieshow-dark text-white text-center py-4 mt-8 shadow-inner">
+
+        <p>&copy; 2025 Vieshow Ticketing System</p>
+
+    </footer>
+
 </body>
+
 </html>
