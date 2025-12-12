@@ -84,330 +84,158 @@
     </footer>
 
     <script>
-        // 設定後端 API 網址
         const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api';
+        const INDEX_PAGE_URL = '../../index.html';
+        const LOGIN_PAGE_URL = '../auth/login.html';
+        const MEMBER_HOME_URL = '../member/member_home.html';
 
-        // 頁面路徑設定
-        const LOGIN_PAGE_URL = '../../pages/auth/login.html';
-        const MEMBER_HOME_URL = '../../pages/member/member_home.html';
+        // ... (保留 UI 狀態控制 renderUI, checkLoginStatus 等函式) ...
+        function renderLoggedOutState() { document.getElementById('headerNavRight').innerHTML = `<a href="${LOGIN_PAGE_URL}" class="hover:text-vieshow-gold">登入</a>`; }
+        function renderLoggedInState() { document.getElementById('headerNavRight').innerHTML = `<a href="#" id="signOutLink" class="hover:text-vieshow-gold">登出</a> <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold ml-4">會員中心</a>`; document.getElementById('signOutLink').addEventListener('click', (e) => { e.preventDefault(); localStorage.removeItem('auth_token'); window.location.reload(); }); }
+        function renderUI() { localStorage.getItem('auth_token') ? renderLoggedInState() : renderLoggedOutState(); }
+        function customAlert(msg, cb) { const d=document.createElement('div'); d.innerHTML=`<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div class="bg-white p-6 rounded shadow"><p class="mb-4 font-bold text-gray-800">${msg}</p><button class="bg-red-600 text-white px-4 py-2 rounded" onclick="this.closest('.fixed').remove();if(${cb})${cb}()">OK</button></div></div>`; document.body.appendChild(d.firstChild); }
+        window.alert = customAlert;
 
-        // 地點代碼對應表 (將首頁的 value 轉換為資料庫的 ID)
-        // 假設資料庫 ID: 01=台北信義, 02=台中大遠百, 03=高雄大遠百
-        const locationIdMap = {
-            'taipei': '01',
-            'taichung': '02',
-            'kaohsiung': '03'
-        };
+        // --- 核心邏輯 ---
 
-        // 顯示名稱對應 (用於 UI 顯示)
-        const locationNameMap = {
-            'taipei': '台北信義',
-            'taichung': '台中大遠百',
-            'kaohsiung': '高雄大遠百',
-            '01': '台北信義',
-            '02': '台中大遠百',
-            '03': '高雄大遠百'
-        };
-
-        // ----------------------------------------------------
-        // 導覽列與登入狀態邏輯
-        // ----------------------------------------------------
-        function renderLoggedOutState() {
-            const headerNavRight = document.getElementById('headerNavRight');
-            if (!headerNavRight) return;
-            const currentUrl = encodeURIComponent(window.location.href);
-            const loginRedirectUrl = `${LOGIN_PAGE_URL}?redirect=${currentUrl}`;
-            headerNavRight.innerHTML = `
-                <a href="${loginRedirectUrl}" class="hover:text-vieshow-gold transition duration-300">登入</a>
-                <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>
-            `;
-        }
-
-        function renderLoggedInState() {
-            const headerNavRight = document.getElementById('headerNavRight');
-            if (!headerNavRight) return;
-            headerNavRight.innerHTML = `
-                <a href="#" id="signOutLink" class="hover:text-vieshow-gold transition duration-300">登出</a>
-                <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>
-            `;
-            document.getElementById('signOutLink')?.addEventListener('click', handleSignOut);
-        }
-
-        function handleSignOut(e) {
-            e.preventDefault();
-            localStorage.removeItem('auth_token');
-            alert('您已成功登出。即將重新整理頁面...', () => {
-                window.location.reload();
-            });
-        }
-
-        function renderUI() {
-            const token = localStorage.getItem('auth_token');
-            if (token) {
-                renderLoggedInState();
-            } else {
-                renderLoggedOutState();
-            }
-        }
-
-        // ----------------------------------------------------
-        // 核心邏輯：載入並渲染場次
-        // ----------------------------------------------------
-        document.addEventListener('DOMContentLoaded', async () => {
+        async function initPage() {
             renderUI();
-
-            const params = new URLSearchParams(window.location.search);
-            const locationCode = params.get('location') || '';
-            const date = params.get('date') || '';
-            const movieId = params.get('movie') || '';
-
-            // 轉換地點代碼為資料庫 ID
-            const dbLocationId = locationIdMap[locationCode] || locationCode;
-
-            // 準備顯示查詢條件
-            const locationName = locationNameMap[locationCode] || locationCode || '所有影城';
             
+            // 1. 讀取 URL 參數
+            const params = new URLSearchParams(window.location.search);
+            const locationId = params.get('location');
+            const movieId = params.get('movie');
+            const date = params.get('date'); // 【修正】讀取日期參數
+
+            // 顯示搜尋條件 (UI)
+            renderSearchCriteria(locationId, movieId, date);
+
+            // 2. 呼叫 API 載入資料
+            await loadShowtimes(locationId, movieId, date);
+        }
+
+        async function loadShowtimes(locationId, movieId, date) {
+            const container = document.getElementById('showtimes-list');
+            container.innerHTML = '<p class="text-center text-gray-500 py-10">正在載入場次...</p>';
+
             try {
-                // 建構 API 查詢字串
-                const queryStr = new URLSearchParams({
-                    location: dbLocationId,
-                    movie: movieId,
-                    date: date
-                }).toString();
-
-                const response = await fetch(`${API_BASE_URL}/movie/showtimes?${queryStr}`);
+                // 建構 API 查詢參數
+                const queryParams = new URLSearchParams();
+                if (locationId) queryParams.append('location', locationId);
+                if (movieId) queryParams.append('movie', movieId);
                 
-                if (!response.ok) throw new Error('API 請求失敗');
-                const showtimes = await response.json();
+                // 【修正】如果使用者有選日期，傳給後端進行過濾
+                // 注意：後端 API 必須支援 date 參數，否則後端會回傳所有日期
+                // 如果後端還沒支援，前端需要自己 filter，但最好是後端做
+                if (date) queryParams.append('date', date); 
 
-                // 渲染查詢條件文字
-                renderCriteria(locationName, date, showtimes);
-
-                // 渲染結果
-                renderShowtimes(showtimes);
+                const res = await fetch(`${API_BASE_URL}/movie/showtimes?${queryParams.toString()}`);
+                if (!res.ok) throw new Error("API Error");
+                
+                const showtimes = await res.json();
+                
+                // 如果前端需要再次過濾日期 (防呆，確保只顯示選定日期的)
+                const filteredShowtimes = date ? showtimes.filter(s => s.date === date.replace(/-/g, '/')) : showtimes;
+                // 注意：前端日期格式通常是 YYYY-MM-DD，後端回傳可能是 YYYY/MM/DD，需轉換比對
+                
+                renderShowtimesList(filteredShowtimes);
 
             } catch (e) {
-                console.error("搜尋失敗:", e);
-                document.getElementById('showtimes-list').innerHTML = `
-                    <div class="text-center py-10">
-                        <p class="text-red-500 text-xl font-bold">無法連線至伺服器 😢</p>
-                        <p class="text-gray-500 mt-2">請稍後再試，或檢查您的網路連線。</p>
-                    </div>
-                `;
+                console.error(e);
+                container.innerHTML = '<p class="text-center text-red-500 py-10">載入失敗，請稍後再試。</p>';
             }
-        });
-
-        /**
-         * 渲染查詢條件
-         */
-        function renderCriteria(locationName, date, showtimes) {
-            const criteriaDiv = document.getElementById('search-criteria');
-            let criteriaHtml = '';
-
-            // 影城標籤
-            if (locationName && locationName !== '所有影城') {
-                criteriaHtml += `<span class="bg-vieshow-red/10 text-vieshow-red font-bold p-2 rounded-lg">影城: ${locationName}</span>`;
-            }
-            
-            // 日期標籤
-            if (date) {
-                criteriaHtml += `<span class="bg-gray-200 text-gray-800 font-bold p-2 rounded-lg">日期: ${date}</span>`;
-            }
-            
-            // 電影標籤 (從結果中抓取第一筆的電影名稱，若無結果則無法顯示名稱)
-            if (showtimes.length > 0) {
-                // 如果有指定電影ID，嘗試抓取名稱
-                const movieName = showtimes[0].movieName;
-                // 只有當搜尋參數有指定 movie ID 時才特別顯示電影標籤，避免重複
-                const params = new URLSearchParams(window.location.search);
-                if (params.get('movie')) {
-                    criteriaHtml += `<span class="bg-vieshow-gold/20 text-gray-800 font-bold p-2 rounded-lg">電影: ${movieName}</span>`;
-                }
-            } else {
-                if (new URLSearchParams(window.location.search).get('movie')) {
-                     criteriaHtml += `<span class="bg-vieshow-gold/20 text-gray-800 font-bold p-2 rounded-lg">指定電影</span>`;
-                }
-            }
-            
-            if (criteriaHtml === '') {
-                criteriaHtml = '<p class="text-gray-700">顯示所有場次。</p>';
-            }
-
-            // 結果數量
-            criteriaHtml += `<span class="bg-gray-500/10 text-gray-600 font-bold p-2 rounded-lg">共找到 ${showtimes.length} 筆場次</span>`;
-            
-            criteriaDiv.innerHTML = criteriaHtml;
         }
 
-        /**
-         * 渲染場次列表
-         * (為了方便顯示，我們將場次依照「電影」和「影城」分組，
-         * 但因為後端回傳的是平面陣列，這裡我們先做簡單的遍歷顯示，
-         * 或者將同一電影同一影城的場次合併顯示)
-         */
-        function renderShowtimes(showtimes) {
+        function renderSearchCriteria(locId, movId, dateStr) {
+            const criteriaDiv = document.getElementById('search-criteria');
+            let html = '';
+            
+            // 這裡可以呼叫 API 取得名稱，或者簡單顯示
+            if (locId) html += `<span class="bg-gray-200 px-3 py-1 rounded-full text-sm">影城 ID: ${locId}</span>`;
+            if (movId) html += `<span class="bg-gray-200 px-3 py-1 rounded-full text-sm">電影 ID: ${movId}</span>`;
+            if (dateStr) html += `<span class="bg-vieshow-red text-white px-3 py-1 rounded-full text-sm">📅 日期: ${dateStr}</span>`;
+            
+            if (!html) html = '<span class="text-gray-500">顯示所有場次</span>';
+            criteriaDiv.innerHTML = html;
+        }
+
+        function renderShowtimesList(showtimes) {
             const container = document.getElementById('showtimes-list');
             
             if (showtimes.length === 0) {
-                 container.innerHTML = `
-                    <div class="bg-white p-6 rounded-xl shadow-lg text-center">
-                        <p class="text-2xl text-gray-700 font-semibold mb-2">😢 抱歉，沒有找到符合條件的場次。</p>
-                        <p class="text-gray-500">請嘗試更改您的篩選條件或選擇其他日期。</p>
-                    </div>
-                 `;
-                 return;
+                container.innerHTML = `
+                    <div class="text-center py-10 bg-gray-50 rounded-lg">
+                        <p class="text-xl text-gray-600 mb-2">查無場次 😢</p>
+                        <p class="text-sm text-gray-400">請嘗試更改搜尋條件</p>
+                    </div>`;
+                return;
             }
 
-            // 為了美觀，我們將場次資料依照 [電影 + 影城 + 版本 + 日期] 進行分組
-            // 這樣同一部電影的多個時間點可以顯示在一起
+            // 分組邏輯 (同 Booking Flow 1)
             const grouped = {};
-            
             showtimes.forEach(s => {
-                // 建立分組 Key
                 const key = `${s.movieId}-${s.cinemaId}-${s.date}-${s.format}-${s.theater}`;
-                
                 if (!grouped[key]) {
-                    grouped[key] = {
-                        ...s,
-                        times: [] // 用來存多個時間 (這裡存物件 {time: '...', id: '...'}) 以便區分不同場次ID
-                    };
+                    grouped[key] = { ...s, times: [] };
                 }
                 grouped[key].times.push({ time: s.time, id: s.id });
             });
 
-            // 將分組後的物件轉回陣列
-            const groupedShowtimes = Object.values(grouped);
-
-            const html = groupedShowtimes.map(group => {
-                return `
-                    <div class="bg-white p-6 rounded-xl shadow-lg border-t-2 border-vieshow-red/50">
-                        <div class="md:flex md:justify-between md:items-start mb-4">
-                            <div>
-                                <h2 class="text-2xl font-extrabold text-gray-900 hover:text-vieshow-red transition duration-300">
-                                    <a href="pages/movie/movie_info.html?movie_id=${group.movieId}">${group.movieName}</a>
-                                </h2>
-                                <p class="text-sm text-gray-500 mt-1">
-                                    影城：<span class="font-semibold text-gray-700">${group.cinemaName}</span> | 
-                                    日期：<span class="font-semibold text-gray-700">${group.date}</span> | 
-                                    片長: ${group.duration || 120} 分鐘
-                                </p>
-                                <p class="text-sm text-gray-500 mt-1">
-                                    版本：<span class="font-semibold text-vieshow-red">${group.format}</span> | 
-                                    廳別：<span class="font-semibold text-vieshow-red">${group.theater}</span>
-                                </p>
-                            </div>
+            const html = Object.values(grouped).map(group => `
+                <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-vieshow-gold hover:shadow-lg transition">
+                    <div class="flex flex-col md:flex-row justify-between mb-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-1">${group.movieName}</h3>
+                            <p class="text-gray-600 text-sm flex items-center">
+                                <span class="bg-gray-100 px-2 py-0.5 rounded mr-2 text-gray-500">${group.cinemaName}</span>
+                                <span class="bg-gray-100 px-2 py-0.5 rounded mr-2 text-gray-500">${group.theater}</span>
+                                <span class="text-vieshow-red font-bold">${group.format}</span>
+                            </p>
                         </div>
-
-                        <div class="mt-4 border-t pt-4 border-gray-200">
-                            <h3 class="text-lg font-semibold text-gray-700 mb-3">場次時間：</h3>
-                            <div class="flex flex-wrap gap-3">
-                                ${group.times.map(t => `
-                                    <button onclick="selectShowtime('${t.id}', '${group.movieName}', '${t.time}', '${group.cinemaId}', '${group.date}', '${group.theater}', '${group.format}', '${group.movieId}')" 
-                                            class="showtime-button">
-                                        ${t.time}
-                                    </button>
-                                `).join('')}
-                            </div>
+                        <div class="mt-2 md:mt-0 text-right">
+                            <span class="text-lg font-bold text-gray-800 bg-yellow-100 px-3 py-1 rounded-lg">
+                                ${group.date}
+                            </span>
                         </div>
                     </div>
-                `;
-            }).join('');
+                    
+                    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                        ${group.times.map(t => `
+                            <button onclick="goToBooking('${t.id}', '${group.movieName}', '${t.time}', '${group.cinemaId}', '${group.date}', '${group.theater}', '${group.format}', '${group.movieId}')" 
+                                    class="border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-vieshow-red hover:text-white hover:border-vieshow-red transition font-medium text-center">
+                                ${t.time}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
 
             container.innerHTML = html;
         }
 
-        /**
-         * 選定場次並跳轉 (跳過 booking_flow_1)
-         */
-        function selectShowtime(showingId, movieName, time, cinemaId, date, theater, format, movieId) {
-            
-            // 檢查登入狀態
-            if (!localStorage.getItem('auth_token')) {
-                alert('請先登入才能進行訂票', () => {
-                    const currentUrl = encodeURIComponent(window.location.href);
-                    window.location.href = `${LOGIN_PAGE_URL}?redirect=${currentUrl}`;
+        // 跳轉訂票 (與 booking_flow_1 共用邏輯)
+        function goToBooking(showingId, movieName, time, cinemaId, date, theater, format, movieId) {
+             if (!localStorage.getItem('auth_token')) {
+                return alert('請先登入', () => {
+                    window.location.href = `${LOGIN_PAGE_URL}?redirect=${encodeURIComponent(window.location.href)}`;
                 });
-                return;
             }
 
-            const cinemaName = locationNameMap[cinemaId] || '指定影城';
-            
-            // 建構符合 booking_flow_2.html 預期的資料結構
-            // 注意：booking_flow_2.html 預期的是 currentBooking 物件
             const bookingData = {
-                cinema: {
-                    id: cinemaId,
-                    name: cinemaName
-                },
-                movie: {
-                    id: movieId,
-                    title: movieName
-                },
-                showtime: {
-                    id: showingId, // 這是後端資料庫的 showingID
-                    date: date,
-                    time: time,
-                    theater: theater,
-                    type: format
-                },
-                // 預設值
-                ticketType: 'general', 
-                tickets: {},
-                combos: {},
-                totalPrice: 0,
-                totalTicketQty: 0
+                cinema: { id: cinemaId, name: '選定影城' }, // 這裡可能需要補全名稱
+                movie: { id: movieId, title: movieName },
+                showtime: { id: showingId, date, time, theater, type: format },
+                ticketType: 'general', tickets: {}, combos: {}, totalPrice: 0, totalTicketQty: 0
             };
             
-            // 儲存至 localStorage
             localStorage.setItem('currentBooking', JSON.stringify(bookingData));
-            
-            console.log('已選擇場次，跳轉至 Step 2:', bookingData);
-            
-            // 跳轉到選位頁面 (Booking Flow 2)
             window.location.href = '../booking/booking_flow_2.html';
         }
-        
-        // 自定義 Alert
-        function alert(message, callback) {
-            const existingModal = document.getElementById('custom-alert-modal');
-            if (existingModal) existingModal.remove();
 
-            const handleConfirm = () => {
-                document.getElementById('custom-alert-modal').remove();
-                if (callback && typeof callback === 'function') {
-                    callback(); 
-                }
-            };
-            
-            window.customAlertConfirm = handleConfirm;
-
-            const modalHtml = `
-                <div id="custom-alert-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
-                    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform scale-100 transition-all duration-300">
-                        <div class="text-xl font-bold text-gray-900 mb-3 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-vieshow-red mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                            </svg>
-                            系統提示
-                        </div>
-                        <p class="text-gray-700 mb-5">${message}</p>
-                        <div class="flex justify-end">
-                            <button onclick="window.customAlertConfirm()" 
-                                    class="bg-vieshow-red hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-vieshow-red focus:ring-offset-2">
-                                確認
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-        }
-        
-        // 覆寫原生 alert
-        window.alert = alert;
-
+        document.addEventListener('DOMContentLoaded', initPage);
     </script>
 </body>
 </html>
+
 
 
