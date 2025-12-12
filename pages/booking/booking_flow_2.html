@@ -182,12 +182,12 @@
 
         // --- 全域變數 ---
         let ticketList = []; 
-        let comboList = []; 
+        let comboList = [];  
         const MAX_TICKETS = 9; 
         
         let currentSelections = { tickets: {}, combos: {} };
         let currentBookingData = null;
-        let availableSeats = 0; // 【新增】儲存當前場次的剩餘座位
+        let availableSeats = 0; 
 
         // --- 登入檢查與導覽列 ---
         function renderUI() {
@@ -203,7 +203,6 @@
             }
         }
 
-        // 【修正】統一的登入檢查
         function checkLoginStatus() {
             const token = localStorage.getItem('auth_token');
             if (!token) {
@@ -216,31 +215,24 @@
         }
 
         // --- 資料載入 ---
-        function loadBookingData() {
+        async function loadBookingData() {
             const data = localStorage.getItem('currentBooking');
             if (data) {
                 try {
                     currentBookingData = JSON.parse(data);
                     
-                    // 獲取 Step 1 傳遞的剩餘座位數
-                    availableSeats = currentBookingData.showtime.availableSeats || 0;
-                    
-                    // 顯示場次資訊
                     document.getElementById('cinemaNameDisplay').textContent = `影城: ${currentBookingData.cinema.name}`;
                     document.getElementById('movieTitleDisplay').textContent = `電影: ${currentBookingData.movie.title}`;
                     const st = currentBookingData.showtime;
                     document.getElementById('showtimeDetailDisplay').textContent = `場次: ${st.date} ${st.time} ${st.theater} (${st.type})`;
                     
-                    // 顯示剩餘座位警告
-                    const warningEl = document.getElementById('availableSeatsWarning');
-                    if (availableSeats <= 10) {
-                        warningEl.textContent = `注意：此場次僅剩 ${availableSeats} 個座位！`;
+                    // 【修改點】嘗試從 storage 讀取，若無則呼叫 API 查詢
+                    if (currentBookingData.showtime.availableSeats !== undefined) {
+                        availableSeats = currentBookingData.showtime.availableSeats;
+                        updateSeatWarning();
                     } else {
-                        warningEl.textContent = `此場次有 ${availableSeats} 個座位可供選擇。`;
-                        warningEl.classList.remove('text-red-500');
-                        warningEl.classList.add('text-green-600');
+                        await fetchAvailableSeats(currentBookingData.showtime.id);
                     }
-
 
                 } catch (e) {
                     console.error('資料解析失敗', e);
@@ -248,6 +240,53 @@
                 }
             } else {
                 alert('無訂票資料，請重新選擇', () => window.location.href = 'booking_flow_1.html');
+            }
+        }
+        
+        // 【新增】主動查詢剩餘座位
+        async function fetchAvailableSeats(showingId) {
+            try {
+                // 顯示讀取中提示
+                const warningEl = document.getElementById('availableSeatsWarning');
+                warningEl.textContent = "正在確認剩餘座位...";
+                warningEl.className = "font-bold text-gray-500 mt-2 animate-pulse";
+
+                const res = await fetch(`${API_BASE_URL}/booking/seats?showingId=${showingId}`);
+                if (!res.ok) throw new Error("API Error");
+                
+                const seats = await res.json();
+                // 計算 seatEmpty=1 (空位) 的數量
+                availableSeats = seats.filter(s => s.status === 1).length;
+                
+                // 更新到 currentBookingData 以便後續使用
+                currentBookingData.showtime.availableSeats = availableSeats;
+                localStorage.setItem('currentBooking', JSON.stringify(currentBookingData));
+                
+                updateSeatWarning();
+                // 重新渲染票種選單以更新 max 值
+                if(ticketList.length > 0) renderTicketOptions();
+
+            } catch (e) {
+                console.error("無法取得座位資訊", e);
+                availableSeats = 0;
+                updateSeatWarning();
+            }
+        }
+
+        function updateSeatWarning() {
+            const warningEl = document.getElementById('availableSeatsWarning');
+            warningEl.className = "font-bold mt-2"; // 重置 class
+            
+            if (availableSeats <= 0) {
+                warningEl.textContent = `此場次已無座位！`;
+                warningEl.classList.add('text-red-600');
+                document.getElementById('nextStepButton').disabled = true;
+            } else if (availableSeats <= 10) {
+                warningEl.textContent = `注意：此場次僅剩 ${availableSeats} 個座位！`;
+                warningEl.classList.add('text-red-500');
+            } else {
+                warningEl.textContent = `此場次有 ${availableSeats} 個座位可供選擇。`;
+                warningEl.classList.add('text-green-600');
             }
         }
 
@@ -383,7 +422,12 @@
                 const currentMax = Math.min(MAX_TICKETS, availableSeats);
                 
                 if (isPlus) {
-                    if (totalTickets >= currentMax) return alert(`總票數上限 ${currentMax} 張!`); // 檢查總人數
+                    if (totalTickets >= currentMax) {
+                        if (availableSeats < MAX_TICKETS && totalTickets >= availableSeats) {
+                             return alert(`此場次僅剩 ${availableSeats} 個座位，無法再增加`);
+                        }
+                        return alert(`總票數上限 ${MAX_TICKETS} 張!`);
+                    }
                     val++;
                 } else {
                     if (val > 0) val--;
@@ -414,7 +458,6 @@
             document.getElementById('totalPrice').textContent = `$${total.toLocaleString()} TWD`;
             document.getElementById('nextStepButton').disabled = ticketsCount === 0;
             
-            // 由於票種數量變動，需要同步更新 Step 1 存的總數量，以防返回時不準
             if (currentBookingData) {
                 currentBookingData.totalTicketQty = ticketsCount;
             }
@@ -423,7 +466,6 @@
         // 【新增/修正】返回 Flow 1 時，將當前選擇的票種/影城傳回去
         function handleBackToFlow1() {
             if (currentBookingData?.cinema?.id && currentBookingData.ticketType) {
-                // 儲存當前選擇的票務類型和影城 ID，以便 Flow 1 預設選好
                 sessionStorage.setItem('returnFromStep2Data', JSON.stringify({
                     ticketType: currentBookingData.ticketType,
                     cinemaId: currentBookingData.cinema.id
@@ -438,7 +480,6 @@
             const totalTickets = Object.values(currentSelections.tickets).reduce((a, b) => a + b, 0);
             if (totalTickets === 0) return alert('請至少選擇一張票');
             
-            // 最終的二次檢查
             const currentMax = Math.min(MAX_TICKETS, availableSeats);
             if (totalTickets > currentMax) return alert(`總票數超過當前場次上限 ${currentMax} 張!`);
 
@@ -462,15 +503,12 @@
                 combos: combos,
                 totalPrice: parseInt(document.getElementById('totalPrice').textContent.replace(/\D/g, '')),
                 totalTicketQty: totalTickets,
-                // 確保儲存的 availableSeats 是最新的，雖然在 Step 3 還是會重新檢查
                 availableSeats: availableSeats
             };
             localStorage.setItem('currentBooking', JSON.stringify(newData));
             
-            // 跳轉前清除返回快取
             sessionStorage.removeItem('returnFromStep2Data');
 
-            // 根據 totalTicketQty 和 ticketType 決定跳轉目標
             if (newData.ticketType === 'group' || newData.totalTicketQty >= 10) {
                  window.location.href = 'booking_flow_group.html';
             } else {
@@ -484,20 +522,50 @@
             
             if (!checkLoginStatus()) return; 
 
-            loadBookingData();
-            
-            // 綁定「重新選擇場次」的點擊事件
-            document.querySelector('.container a[href="javascript:void(0)"]').onclick = handleBackToFlow1;
-            document.getElementById('ticketSelectionSection').addEventListener('click', handleQuantityChange);
-            document.getElementById('comboSelectionSection').addEventListener('click', handleQuantityChange);
+            // 這裡使用 async wrapper 確保執行順序
+            (async () => {
+                await loadBookingData(); // 確保先載入並獲取 availableSeats
+                
+                document.querySelector('.container a[href="javascript:void(0)"]').onclick = handleBackToFlow1;
+                document.getElementById('ticketSelectionSection').addEventListener('click', handleQuantityChange);
+                document.getElementById('comboSelectionSection').addEventListener('click', handleQuantityChange);
 
-            fetchTicketTypes();
-            fetchMeals();
+                fetchTicketTypes();
+                fetchMeals();
+            })();
         });
+        
+        // Custom Alert (保持與您一致)
+        function customAlert(message, callback) { 
+            const existingModal = document.getElementById('custom-alert-modal');
+            if (existingModal) existingModal.remove();
+            const handleConfirm = () => {
+                document.getElementById('custom-alert-modal').remove();
+                if (callback && typeof callback === 'function') { callback(); }
+            };
+            window.customAlertConfirm = handleConfirm;
+            const modalHtml = `
+                <div id="custom-alert-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
+                    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform scale-100 transition-all duration-300">
+                        <div class="text-xl font-bold text-gray-900 mb-3 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-vieshow-red mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>系統提示
+                        </div>
+                        <p class="text-gray-700 mb-5">${message}</p>
+                        <div class="flex justify-end">
+                            <button onclick="window.customAlertConfirm()" class="bg-vieshow-red hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-vieshow-red focus:ring-offset-2">確認</button>
+                        </div>
+                    </div>
+                </div>`;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+        window.alert = customAlert;
     </script>
+</body>
+</html>
     
     <footer class="bg-vieshow-dark text-white text-center py-4 mt-8 shadow-inner">
         <p>&copy; 2025 Vieshow Ticketing System</p>
     </footer>
 </body>
 </html>
+
