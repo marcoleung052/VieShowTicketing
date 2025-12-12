@@ -326,15 +326,42 @@
             localStorage.removeItem('user'); 
             sessionStorage.removeItem('memberDataCache'); 
             
-            showNotification('✅ 登出成功！即將導向首頁...', false);
-            setTimeout(() => { window.location.href = INDEX_PAGE_URL; }, 2000);
+            // 使用 alert 並在 callback 中跳轉
+            alert('✅ 登出成功！即將導向首頁...', () => {
+                window.location.href = INDEX_PAGE_URL;
+            });
         });
         
-        // --- 自定義 Alert ---
+        // --- 修正後的自定義 Alert 函式 ---
         function alert(message, callback) { 
+            // 1. 建立外層容器
             const d = document.createElement('div');
-            d.innerHTML = `<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div class="bg-white p-6 rounded-lg shadow-xl"><p class="mb-4 font-bold text-gray-800">${message}</p><button class="bg-vieshow-red text-white px-4 py-2 rounded" onclick="this.closest('.fixed').remove(); if(${callback}) ${callback}()">確定</button></div></div>`;
-            document.body.appendChild(d.firstChild);
+            
+            // 2. 設定 HTML 內容 (移除 onclick 中的 JS 邏輯)
+            d.innerHTML = `
+                <div id="custom-alert-overlay" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div class="bg-white p-6 rounded-lg shadow-xl min-w-[300px]">
+                        <p class="mb-6 font-bold text-gray-800 text-lg">${message}</p>
+                        <div class="flex justify-end">
+                            <button id="custom-alert-btn" class="bg-vieshow-red text-white px-6 py-2 rounded hover:bg-red-700 transition duration-200">
+                                確定
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+            
+            // 3. 將生成的元素加入 DOM
+            const modalElement = d.firstElementChild;
+            document.body.appendChild(modalElement);
+
+            // 4. 使用 addEventListener 綁定事件 (解決 callback 無法執行的問題)
+            const confirmBtn = modalElement.querySelector('#custom-alert-btn');
+            confirmBtn.addEventListener('click', function() {
+                modalElement.remove(); // 移除視窗
+                if (callback && typeof callback === 'function') {
+                    callback(); // 執行跳轉
+                }
+            });
         }
 
         // --- 初始化 ---
