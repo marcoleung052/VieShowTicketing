@@ -87,26 +87,27 @@
         .group-ticket-title { font-weight: 600; color: #16a34a; margin-bottom: 0.5rem; }
         .group-ticket-list { list-style: none; padding-left: 0; font-size: 0.9rem; color: #16a34a; }
         .movie-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
-        .movie-card { border: 1px solid #e5e5e5; border-radius: 0.75rem; overflow: hidden; transition: all 0.2s; background-color: #fafafa; position: relative; }
-        .movie-card:hover { box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15); transform: translateY(-2px); }
-        .movie-card.selected { border-color: #e50914; box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2); }
-        /* 隱藏的電影卡片樣式 */
-        .movie-card.hidden-movie { display: none; }
         
-        .movie-content { padding: 1rem; }
-        .movie-layout { display: flex; gap: 1rem; }
-        .movie-poster-container { flex-shrink: 0; width: 100px; height: 150px; }
-        .movie-poster { width: 100%; height: 100%; object-fit: cover; border-radius: 0.5rem; }
-        .movie-details { flex-grow: 1; }
-        .movie-title { font-size: 1.125rem; font-weight: 700; color: #1a1a1a; margin-bottom: 0.25rem; }
-        .movie-tags { margin-bottom: 0.5rem; }
-        .movie-tag { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 600; margin-right: 0.5rem; }
-        .tag-red { background-color: #fee2e2; color: #ef4444; }
-        .tag-gray { background-color: #e5e7eb; color: #4b5563; }
-        .movie-description { font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;}
+        /* 電影卡片新樣式 (橫向) */
+        .movie-card { border: 1px solid #e5e5e5; border-radius: 0.75rem; overflow: hidden; transition: all 0.2s; background-color: #fafafa; position: relative; display: flex; flex-direction: row; }
+        .movie-card:hover { box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15); transform: translateY(-2px); border-color: #f7a83d; }
+        .movie-card.selected { border-color: #e50914; box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2); background-color: #fff1f2; }
+        .movie-card.hidden-movie { display: none; } /* 用於過濾 */
+        
+        .movie-content { padding: 1rem; flex-grow: 1; display: flex; flex-direction: column; justify-content: center; }
+        .movie-poster-container { flex-shrink: 0; width: 100px; height: 140px; }
+        .movie-poster { width: 100%; height: 100%; object-fit: cover; }
+        .movie-title { font-size: 1.25rem; font-weight: 700; color: #1a1a1a; margin-bottom: 0.5rem; }
+        .movie-tags { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
+        .movie-tag { display: inline-block; padding: 0.1rem 0.6rem; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 600; }
+        .tag-grade { background-color: #fee2e2; color: #ef4444; }
+        .tag-genre { background-color: #e5e7eb; color: #374151; }
+        .tag-duration { background-color: #e5e7eb; color: #374151; }
+        .movie-description { font-size: 0.875rem; color: #6b7280; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; }
+
         .showtime-section { padding: 1rem 0; background-color: #f9fafb; border-radius: 0.75rem; }
         .date-section { padding: 0 1rem 1rem 1rem; }
-        .date-header { font-size: 1.125rem; font-weight: 700; color: #1a1a1a; background-color: #f3f4f6; padding: 0.5rem 1rem; margin: 1rem -1rem 1rem -1rem; border-bottom: 1px solid #e5e7eb; }
+        .date-header { font-size: 1.125rem; font-weight: 700; color: #1a1a1a; background-color: #f3f4f6; padding: 0.5rem 1rem; margin: 1rem -1rem 1rem -1rem; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
         .showtime-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
         .showtime-card { border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 1rem; cursor: pointer; transition: all 0.2s; background-color: white; position: relative; }
         .showtime-card:hover { border-color: #f7a83d; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
@@ -125,29 +126,15 @@
         .next-step-button { background-color: #e50914; color: white; padding: 0.8rem 2rem; font-size: 1.125rem; font-weight: 700; border-radius: 0.5rem; transition: background-color 0.2s; }
         .next-step-button:hover:not(:disabled) { background-color: #c50711; }
         .next-step-button:disabled { background-color: #fda4af; cursor: not-allowed; }
-        .loading-message { text-align: center; margin-top: 1.5rem; font-size: 0.95rem; color: #6b7280; }
+        
+        /* 隱藏的 Loading */
+        .loading-message { text-align: center; margin-top: 1.5rem; font-size: 0.95rem; color: #6b7280; display: none; }
+        
         footer { text-align: center; padding: 1.5rem; background-color: #1a1a1a; color: #9ca3af; font-size: 0.875rem; margin-top: 2rem; }
         
-        /* 載入更多按鈕樣式 */
-        .load-more-btn {
-            display: block;
-            width: 100%;
-            max-width: 200px;
-            margin: 1.5rem auto 0;
-            padding: 0.75rem;
-            background-color: white;
-            color: #6b7280;
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            text-align: center;
-            transition: all 0.2s;
-        }
-        .load-more-btn:hover {
-            color: #e50914;
-            border-color: #e50914;
-            background-color: #fff1f2;
-        }
+        .load-more-btn { display: block; width: 100%; max-width: 250px; margin: 1.5rem auto 0; padding: 0.75rem; background-color: white; color: #6b7280; border: 1px solid #d1d5db; border-radius: 0.5rem; font-weight: 600; text-align: center; transition: all 0.2s; }
+        .load-more-btn:hover { color: #e50914; border-color: #e50914; background-color: #fff1f2; }
+        .load-more-btn:disabled { opacity: 0.5; cursor: wait; }
     </style>
 </head>
 <body>
@@ -235,8 +222,7 @@
                     <div id="showtimeSelectionSection" class="hidden">
                         <label class="section-label"><span style="margin-right: 0.5rem;">🕒</span> 選擇場次</label>
                         <div id="showtimeSelection" class="showtime-section">
-                            <div style="text-align: center; padding: 2rem 0; color: var(--gray-500);">請先選擇電影以顯示場次資訊</div>
-                        </div>
+                            </div>
                         <div id="loadMoreContainer"></div>
                     </div>
                     
@@ -262,13 +248,13 @@
     let currentSelections = { ticketType: null, cinema: null, movie: null, showtime: null };
     
     // 資料暫存
-    let cinemaRawShowtimes = []; // 存下該影城所有場次 (raw data)
-    let currentMovieShowtimesGrouped = {}; // 當前選中電影的場次 (按日期分組)
-    let allSortedDates = [];       // 日期排序列表
-    let currentDateIndex = 0;      // 目前顯示到第幾個日期
+    let cinemaRawShowtimes = [];     // 該影城所有場次 (raw data)
+    let allMoviesData = [];          // 初始載入的所有電影 (含詳細資訊)
     
-    const DAYS_PER_LOAD = 1;       // 【修改】每次只顯示 1 天
-
+    let currentMovieShowtimesGrouped = {}; // 當前選中電影的場次 (按日期分組)
+    let allSortedDates = [];         // 日期排序列表
+    let currentDateIndex = 0;        // 目前顯示到第幾個日期
+    
     // DOM 元素
     const cinemaSelect = document.getElementById('cinema_location');
     const movieSelection = document.getElementById('movieSelection');
@@ -305,14 +291,12 @@
 
     // --- 核心邏輯 ---
 
-    // 1. 初始化：載入影城列表 + 載入所有電影(預先渲染但可能隱藏)
+    // 1. 初始化：載入影城列表 + 載入所有電影(包含詳細資訊)
     async function initPage() {
         if (!checkLoginStatus()) return;
         
-        loadingStatus.textContent = '初始化中...';
         try {
-            await Promise.all([loadCinemas(), loadAllMovies()]);
-            loadingStatus.textContent = '';
+            await Promise.all([loadCinemas(), prefetchMovies()]);
             setupTicketTypeSelection();
             
             // 檢查是否有預選資料 (返回修改)
@@ -328,7 +312,6 @@
             }
         } catch (e) {
             console.error(e);
-            loadingStatus.textContent = '系統初始化失敗';
         }
     }
 
@@ -343,44 +326,62 @@
         });
     }
 
-    // 新增：一次載入所有電影並渲染 (初始狀態不隱藏，等選影城後再過濾)
-    async function loadAllMovies() {
+    // 新增：背景預載所有電影 (包含詳細資訊)
+    async function prefetchMovies() {
+        // 先取得列表
         const res = await fetch(`${API_BASE_URL}/movie/now-playing`);
-        const movies = await res.json();
+        let movies = await res.json();
         
+        // 再並行載入詳細資訊 (片長、級別等)
+        const detailedMovies = await Promise.all(movies.map(async (m) => {
+            try {
+                // 嘗試讀取 sessionStorage 快取
+                const cacheKey = `movie_cache_${m.id}`;
+                const cached = sessionStorage.getItem(cacheKey);
+                if (cached) return { ...m, ...JSON.parse(cached) };
+
+                // 沒快取則呼叫 API
+                const detailRes = await fetch(`${API_BASE_URL}/movie/${m.id}`);
+                const detail = await detailRes.json();
+                sessionStorage.setItem(cacheKey, JSON.stringify(detail));
+                return { ...m, ...detail };
+            } catch {
+                return m; // 失敗則回傳基本資訊
+            }
+        }));
+        
+        allMoviesData = detailedMovies; // 存入記憶體
+        renderAllMovies(allMoviesData);
+    }
+
+    function renderAllMovies(movies) {
         movieSelection.innerHTML = '';
         if (movies.length === 0) {
             movieSelection.innerHTML = '<div style="grid-column:1/-1; text-align:center;">暫無電影</div>';
             return;
         }
-
-        movies.forEach(m => {
-            // 渲染電影卡片
-            renderSingleMovieCard(m);
-        });
+        movies.forEach(m => renderSingleMovieCard(m));
     }
 
     function renderSingleMovieCard(movie) {
         const card = document.createElement('div');
-        card.className = 'movie-card cursor-pointer';
+        card.className = 'movie-card cursor-pointer hidden-movie'; // 預設隱藏，等選影城後顯示
         card.dataset.movieId = movie.id;
-        // 預設可能需要隱藏，等選了影城才顯示？ 
-        // 依照您的需求：先載入所有，選影城後過濾。所以初始可以先顯示，或者先隱藏。
-        // 這裡我們先讓它們在 "選擇電影" 區塊出現時預設都顯示，但在 updateMoviesVisibility 會控制
         
         let poster = movie.posterUrl || 'https://placehold.co/300x450?text=No+Poster';
         if (poster && !poster.startsWith('http') && !poster.startsWith('data:')) poster = '../../' + poster; 
         
-        // 簡單的電影卡片內容
+        // 豐富的卡片內容
         card.innerHTML = `
+            <div class="movie-poster-container"><img src="${poster}" class="movie-poster"></div>
             <div class="movie-content">
-                <div class="movie-layout">
-                    <div class="movie-poster-container"><img src="${poster}" class="movie-poster"></div>
-                    <div class="movie-details">
-                        <h3 class="movie-title">${movie.name}</h3>
-                        <p class="movie-description text-xs text-gray-500">ID: ${movie.id}</p>
-                    </div>
+                <h3 class="movie-title">${movie.name}</h3>
+                <div class="movie-tags">
+                    <span class="movie-tag tag-red">${movie.grade || '普遍級'}</span>
+                    <span class="movie-tag tag-genre">${movie.genre || '劇情'}</span>
+                    <span class="movie-tag tag-duration">${movie.duration || '未知片長'}</span>
                 </div>
+                <p class="movie-description">${movie.info || '暫無簡介'}</p>
             </div>`;
         card.onclick = () => selectMovie(movie);
         movieSelection.appendChild(card);
@@ -392,45 +393,35 @@
         if (!cinemaId) return;
 
         currentSelections.cinema = { id: cinemaId, name: this.options[this.selectedIndex].text };
-        
-        // 重置後續步驟
         resetSelection(2);
         
-        loadingStatus.textContent = '載入影城場次中...';
+        // 背後偷偷載入該影城的所有場次
         try {
-            // 【關鍵】一次載入該影城所有場次
             const res = await fetch(`${API_BASE_URL}/movie/showtimes?location=${cinemaId}`);
-            cinemaRawShowtimes = await res.json(); // 存入全域變數
+            cinemaRawShowtimes = await res.json(); 
             
-            // 根據場次資料，找出有哪些電影ID
             const availableMovieIds = new Set(cinemaRawShowtimes.map(s => s.movieId));
-            
-            // 更新電影列表顯示狀態
             updateMoviesVisibility(availableMovieIds);
             
             movieSelectionSection.classList.remove('hidden');
-            loadingStatus.textContent = '';
             
-            // 如果有預選電影 (從首頁跳轉)，嘗試自動選擇
+            // 嘗試自動選擇預選電影
             const preSelectedMovieStr = sessionStorage.getItem('preSelectedMovie');
             if (preSelectedMovieStr) {
                 const preMovie = JSON.parse(preSelectedMovieStr);
                 if (availableMovieIds.has(preMovie.id)) {
-                    selectMovie(preMovie);
-                    // 滾動到該電影
+                    // 找到對應的完整電影物件 (包含詳細資訊)
+                    const fullMovieData = allMoviesData.find(m => m.id === preMovie.id) || preMovie;
+                    selectMovie(fullMovieData);
                     setTimeout(() => {
                         const card = document.querySelector(`.movie-card[data-movie-id="${preMovie.id}"]`);
                         if(card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }, 100);
                 } else {
-                    sessionStorage.removeItem('preSelectedMovie'); // 該影城沒這部片
+                    sessionStorage.removeItem('preSelectedMovie'); 
                 }
             }
-
-        } catch (e) {
-            console.error(e);
-            loadingStatus.textContent = '載入場次失敗';
-        }
+        } catch (e) { console.error(e); }
     });
 
     function updateMoviesVisibility(availableIds) {
@@ -447,7 +438,9 @@
         });
         
         if (visibleCount === 0) {
-            movieSelection.innerHTML += '<div id="no-movie-msg" style="grid-column:1/-1; text-align:center;">此影城目前無上映電影</div>';
+            // 如果該影城完全沒場次，顯示提示
+             if(!document.getElementById('no-movie-msg'))
+                movieSelection.innerHTML += '<div id="no-movie-msg" style="grid-column:1/-1; text-align:center; padding:2rem;">此影城目前無上映電影</div>';
         } else {
             const msg = document.getElementById('no-movie-msg');
             if(msg) msg.remove();
@@ -456,14 +449,13 @@
 
     // 3. 選擇電影後：過濾場次資料，顯示第一天
     function selectMovie(movie) {
-        // UI 狀態更新
         document.querySelectorAll('.movie-card').forEach(c => c.classList.remove('selected'));
         document.querySelector(`.movie-card[data-movie-id="${movie.id}"]`)?.classList.add('selected');
         currentSelections.movie = movie;
 
-        resetSelection(3); // 清除已選場次
+        resetSelection(3);
         
-        // 從 cinemaRawShowtimes 過濾出該電影的場次
+        // 從記憶體變數中過濾
         const myShowtimes = cinemaRawShowtimes.filter(s => s.movieId === movie.id);
         
         if (myShowtimes.length === 0) {
@@ -481,37 +473,34 @@
         
         allSortedDates = Object.keys(currentMovieShowtimesGrouped).sort();
         currentDateIndex = 0;
+        
+        // 初始清空
+        showtimeSelection.innerHTML = ''; 
 
         // 渲染第一天 (這會觸發查詢座位)
         renderNextDay();
         
         showtimeSelectionSection.classList.remove('hidden');
         updateStepIndicator(3);
-        
-        // 清除預選 (任務完成)
         sessionStorage.removeItem('preSelectedMovie');
     }
 
-    // 4. 渲染日期場次 (含異步查位)
+    // 4. 渲染日期場次 (Lazy Loading + 異步查位)
     async function renderNextDay() {
         if (currentDateIndex >= allSortedDates.length) return;
 
-        // 取得今天要渲染的日期
-        // 這裡邏輯改為：每次按按鈕，只渲染「下一個日期」
-        // 初始載入時 currentDateIndex = 0，渲染第一個日期
-        
         const date = allSortedDates[currentDateIndex];
         const rawShowtimes = currentMovieShowtimesGrouped[date];
         
         // 建立日期區塊
         const section = document.createElement('div'); 
         section.className = 'date-section';
-        section.innerHTML = `<h4 class="date-header">${date} <span class="text-sm font-normal text-gray-500 ml-2">(載入座位中...)</span></h4>`;
+        // 初始顯示 Loading
+        section.innerHTML = `<h4 class="date-header">${date} <span class="text-sm font-normal text-gray-500 ml-2 animate-pulse">(查詢座位中...)</span></h4>`;
         const grid = document.createElement('div'); 
         grid.className = 'showtime-grid';
         section.appendChild(grid);
         
-        // 先把區塊加進去 (讓用戶看到日期)
         showtimeSelection.appendChild(section);
 
         // 【背景載入】查詢這些場次的剩餘座位
@@ -519,6 +508,7 @@
         const GROUP_MIN_SEATS = 10;
 
         try {
+            // 平行查詢所有場次的座位
             const showtimesWithSeats = await Promise.all(rawShowtimes.map(async (s) => {
                 let availableSeats = 0;
                 try {
@@ -540,15 +530,10 @@
                 card.dataset.id = s.id;
 
                 let seatsStatusHTML = '';
-                if (isTooFew) {
-                     seatsStatusHTML = `<div class="showtime-row text-xs text-vieshow-red font-bold">剩餘座位不足 (需 ${GROUP_MIN_SEATS} 張)</div>`;
-                } else if (isFull) {
-                     seatsStatusHTML = `<div class="showtime-row text-xs text-gray-500 font-bold">已售完</div>`;
-                } else if (available <= 10) {
-                     seatsStatusHTML = `<div class="showtime-row text-xs text-red-500 font-bold">⚠️ 僅剩 ${available} 張</div>`;
-                } else {
-                     seatsStatusHTML = `<div class="showtime-row text-xs text-green-500 font-bold">剩餘 ${available} 席</div>`;
-                }
+                if (isTooFew) seatsStatusHTML = `<div class="showtime-row text-xs text-vieshow-red font-bold">剩餘座位不足 (需 ${GROUP_MIN_SEATS} 張)</div>`;
+                else if (isFull) seatsStatusHTML = `<div class="showtime-row text-xs text-gray-500 font-bold">已售完</div>`;
+                else if (available <= 10) seatsStatusHTML = `<div class="showtime-row text-xs text-red-500 font-bold">⚠️ 僅剩 ${available} 張</div>`;
+                else seatsStatusHTML = `<div class="showtime-row text-xs text-green-500 font-bold">剩餘 ${available} 席</div>`;
 
                 card.innerHTML = `
                     <div class="showtime-time">${s.time}</div>
@@ -563,19 +548,18 @@
                 } else if (isTooFew) {
                      card.onclick = () => alert(`選擇團體票時，此場次剩餘座位 (${available} 張) 不足 ${GROUP_MIN_SEATS} 張。`);
                 }
-
                 grid.appendChild(card);
             });
 
-            // 更新標題狀態
-            section.querySelector('.date-header span').remove(); // 移除 loading 文字
+            // 移除 Loading 文字
+            const loadingSpan = section.querySelector('.date-header span');
+            if(loadingSpan) loadingSpan.remove();
 
         } catch (e) {
             console.error(e);
             section.querySelector('.date-header span').textContent = "(座位載入失敗)";
         }
 
-        // 更新索引與按鈕
         currentDateIndex++;
         renderLoadMoreButton();
     }
@@ -586,15 +570,19 @@
             const nextDate = allSortedDates[currentDateIndex];
             const btn = document.createElement('button');
             btn.className = 'load-more-btn';
-            btn.textContent = `顯示下一天 (${nextDate}) ▼`; // 顯示具體日期
+            btn.textContent = `顯示下一天 (${nextDate}) ▼`;
             btn.type = 'button'; 
-            btn.onclick = renderNextDay; // 點擊只載入下一天
+            btn.onclick = () => {
+                // 點擊按鈕時，載入下一天
+                btn.textContent = "載入中...";
+                btn.disabled = true;
+                renderNextDay(); 
+            };
             loadMoreContainer.appendChild(btn);
         }
     }
 
-    // ... (保留 selectShowtime, updateStepIndicator, setupTicketTypeSelection, resetSelection 等輔助函式) ...
-
+    // --- 輔助函式 (保持不變) ---
     function selectShowtime(showtime) {
         document.querySelectorAll('.showtime-card').forEach(c => c.classList.remove('selected'));
         const card = document.querySelector(`.showtime-card[data-id="${showtime.id}"]`);
@@ -626,7 +614,12 @@
 
     function resetSelection(step) {
         if (step <= 1) { currentSelections.cinema = null; cinemaSelect.selectedIndex = 0; movieSelectionSection.classList.add('hidden'); }
-        if (step <= 2) { currentSelections.movie = null; showtimeSelectionSection.classList.add('hidden'); showtimeSelection.innerHTML = ''; loadMoreContainer.innerHTML = ''; }
+        if (step <= 2) { 
+            currentSelections.movie = null; 
+            showtimeSelectionSection.classList.add('hidden'); 
+            showtimeSelection.innerHTML = ''; 
+            loadMoreContainer.innerHTML = ''; 
+        }
         if (step <= 3) { currentSelections.showtime = null; nextButton.disabled = true; }
     }
 
@@ -665,7 +658,6 @@
             window.location.href = currentSelections.ticketType === 'group' ? 'booking_flow_group.html' : 'booking_flow_2.html';
     });
 
-    // 啟動
     document.addEventListener('DOMContentLoaded', initPage);
 
     // Alert
