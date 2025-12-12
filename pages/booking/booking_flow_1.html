@@ -890,138 +890,103 @@
 
 
 
-    // 3. 載入場次 (分頁載入邏輯)
-
+    // 3. 載入場次 (優化版：直接使用後端回傳的 availableSeats)
     async function loadShowtimes(cinemaId, movieId) {
-
         showtimeSelection.innerHTML = '<div style="text-align:center; padding:2rem; color:#6b7280;">正在查詢場次...</div>';
-
         loadMoreContainer.innerHTML = ''; 
-
         resetSelection(3);
-
         
-
         try {
-
             const res = await fetch(`${API_BASE_URL}/movie/showtimes?location=${cinemaId}&movie=${movieId}`);
-
             const showtimes = await res.json();
-
             
-
             showtimeSelection.innerHTML = '';
-
             if (showtimes.length === 0) {
-
-                showtimeSelection.innerHTML = `
-
-                    <div style="text-align:center; padding:2rem; color:#6b7280;">
-
-                        <p class="text-lg font-bold mb-2">此影城目前沒有《${currentSelections.movie?.name || '此電影'}》的場次</p>
-
-                        <p class="text-sm">請嘗試選擇其他影城，或回到首頁選擇其他電影。</p>
-
-                    </div>`; 
-
+                showtimeSelection.innerHTML = `<div style="text-align:center; padding:2rem; color:#6b7280;">此影城目前沒有《${currentSelections.movie?.name || '此電影'}》的場次</div>`; 
                 return;
-
             }
 
-
-
+            // 資料分組
             allGroupedShowtimes = {};
-
             showtimes.forEach(s => {
-
                 if (!allGroupedShowtimes[s.date]) allGroupedShowtimes[s.date] = [];
-
                 allGroupedShowtimes[s.date].push(s);
-
             });
-
-
 
             allSortedDates = Object.keys(allGroupedShowtimes).sort();
-
             currentDateIndex = 0;
 
-
-
             renderShowtimesBatch();
-
             
-
             showtimeSelectionSection.classList.remove('hidden');
-
             updateStepIndicator(3);
-
             
-
-        } catch (e) { console.error(e); showtimeSelection.innerHTML = '載入失敗'; }
-
+        } catch (e) { 
+            console.error(e); 
+            showtimeSelection.innerHTML = '<div style="text-align:center; padding:2rem; color:red;">載入失敗，請稍後再試</div>'; 
+        }
     }
 
-
-
     function renderShowtimesBatch() {
-
         const nextIndex = Math.min(currentDateIndex + DAYS_PER_LOAD, allSortedDates.length);
-
         const datesToRender = allSortedDates.slice(currentDateIndex, nextIndex);
-
         
+        const isGroupTicket = currentSelections.ticketType === 'group';
+        const GROUP_MIN_SEATS = 10;
 
         datesToRender.forEach(date => {
-
             const section = document.createElement('div'); section.className = 'date-section';
-
-            section.style.opacity = '0'; section.style.transition = 'opacity 0.5s ease-in';
-
             section.innerHTML = `<h4 class="date-header">${date}</h4>`;
-
             const grid = document.createElement('div'); grid.className = 'showtime-grid';
-
             
-
             allGroupedShowtimes[date].forEach(s => {
-
-                const card = document.createElement('div'); card.className = 'showtime-card';
+                // 直接讀取後端給的 availableSeats，不用再 fetch 了
+                const available = s.availableSeats !== undefined ? s.availableSeats : 96; // 防呆預設
+                const isTooFew = isGroupTicket && available < GROUP_MIN_SEATS;
+                const isFull = available <= 0;
+                
+                const card = document.createElement('div'); 
+                card.className = `showtime-card ${isFull || isTooFew ? 'disabled-group' : ''}`;
+                // 如果已滿，加上 disabled class 讓外觀變灰
+                if (isFull) card.classList.add('disabled');
 
                 card.dataset.id = s.id;
+                
+                let seatsStatusHTML = '';
+                if (isFull) {
+                     seatsStatusHTML = `<div class="showtime-row text-xs text-gray-500 font-bold">已售完</div>`;
+                } else if (isTooFew) {
+                     seatsStatusHTML = `<div class="showtime-row text-xs text-vieshow-red font-bold">剩餘 ${available} 席 (不足團體票需求)</div>`;
+                } else if (available <= 10) {
+                     seatsStatusHTML = `<div class="showtime-row text-xs text-red-500 font-bold">🔥 僅剩 ${available} 席</div>`;
+                } else {
+                     seatsStatusHTML = `<div class="showtime-row text-xs text-green-500 font-bold">剩餘 ${available} 席</div>`;
+                }
 
                 card.innerHTML = `
-
                     <div class="showtime-time">${s.time}</div>
-
                     <div class="showtime-details">
-
                         <div class="showtime-row"><span>影廳:</span><span class="font-medium">${s.theater}</span></div>
-
                         <div class="showtime-row"><span>版本:</span><span class="font-medium">${s.format}</span></div>
-
+                        ${seatsStatusHTML}
                     </div>`;
 
-                card.onclick = () => selectShowtime(s);
+                if (!isFull && !isTooFew) {
+                    card.onclick = () => selectShowtime(s);
+                } else if (isTooFew) {
+                    card.onclick = () => alert(`團體票需至少 10 個座位，此場次僅剩 ${available} 席。`);
+                } else if (isFull) {
+                    card.onclick = () => alert(`此場次已售完。`);
+                }
 
                 grid.appendChild(card);
-
             });
-
             section.appendChild(grid);
-
             showtimeSelection.appendChild(section);
-
-            setTimeout(() => { section.style.opacity = '1'; }, 50);
-
         });
 
-
-
         currentDateIndex = nextIndex;
-
         renderLoadMoreButton();
-
     }
 
 
@@ -1273,3 +1238,4 @@
 </body>
 
 </html>
+
