@@ -142,7 +142,7 @@
 
         <div class="bg-white p-6 rounded-xl shadow-lg mb-10 border-t-4 border-vieshow-gold">
             <h3 class="text-2xl font-bold text-gray-800 mb-4">✨ 快搜</h3>
-            <form id="showtime-search-form" action="pages/movie/showtimes_result.html" method="GET" 
+            <form id="showtime-search-form" action="./pages/movie/showtimes_result.html" method="GET" 
                     class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
                 
                 <select name="location" id="location-select" class="search-input bg-white">
@@ -167,7 +167,7 @@
                 🔥 熱售中
             </h3>
             <div id="nowPlayingContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-                </div>
+            </div>
         </div>
 
         <div class="mb-12">
@@ -175,7 +175,7 @@
                 📅 即將上映
             </h3>
             <div id="comingSoonContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-                </div>
+            </div>
         </div>
         
         <div class="mb-12">
@@ -183,7 +183,7 @@
                 📍 影城資訊
             </h3>
             <div id="cinemaInfo" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                </div>
+            </div>
         </div>
 
         <div class="mb-8">
@@ -191,7 +191,7 @@
                 🍿 餐點資訊
             </h3>
             <div id="foodInfo" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                </div>
+            </div>
         </div>
 
     </main>
@@ -237,16 +237,13 @@
         }
 
         // ------------------------
-        // 核心載入邏輯 (優化版)
+        // 核心載入邏輯
         // ------------------------
         
         async function fetchAndCacheMovieDetails(movies) {
             console.log("🚀 背景開始預載電影詳情...");
-            // 使用 Promise.allSettled 避免一個失敗卡住全部，且不使用 await 阻擋主線程 (在 loadAllData 外部呼叫)
             const promises = movies.map(async (movie) => {
-                // 檢查是否已有快取，避免重複請求
                 if (sessionStorage.getItem(`movie_cache_${movie.id}`)) return;
-                
                 try {
                     const res = await fetch(`${API_BASE_URL}/movie/${movie.id}`);
                     if (res.ok) {
@@ -257,7 +254,6 @@
                     console.warn(`預載電影 ${movie.id} 失敗`);
                 }
             });
-            
             await Promise.allSettled(promises);
             console.log("✅ 背景預載完成！");
         }
@@ -266,7 +262,6 @@
             const loadingText = document.getElementById('loadingText');
             
             try {
-                // 1. 取得「必要」的列表資料
                 loadingText.textContent = "正在載入影城與電影列表...";
                 
                 const pCinemas = fetch(`${API_BASE_URL}/info/cinemas`).then(res => res.json());
@@ -274,10 +269,8 @@
                 const pNow = fetch(`${API_BASE_URL}/movie/now-playing`).then(res => res.json());
                 const pSoon = fetch(`${API_BASE_URL}/movie/coming-soon`).then(res => res.json());
 
-                // 等待這 4 個 API 回來 (通常很快，因為資料量小)
                 const [cinemas, meals, nowPlaying, comingSoon] = await Promise.all([pCinemas, pMeals, pNow, pSoon]);
 
-                // 2. 渲染頁面
                 renderCinemas(cinemas);
                 renderMeals(meals);
                 renderMovieList(nowPlaying, 'nowPlayingContainer', true);
@@ -285,17 +278,13 @@
                 populateMovieSelect(nowPlaying);
                 populateCinemaSelect(cinemas);
 
-                // 3. 【關鍵修改】立刻隱藏載入畫面！不等待詳細資料！
                 hideLoader();
 
-                // 4. 【背景執行】偷偷去抓詳細資料
                 const allMovies = [...nowPlaying, ...comingSoon];
-                // 注意：這裡不加 await，讓它在背景跑
                 fetchAndCacheMovieDetails(allMovies);
 
             } catch (error) {
                 console.error("初始化失敗:", error);
-                // 就算失敗也要把載入畫面關掉，顯示錯誤訊息
                 hideLoader();
                 alert("連線伺服器失敗，請檢查網路連線。");
             }
@@ -319,8 +308,17 @@
                 const ratingHtml = showRatingAndBooking ? 
                     `<span class="flex items-center font-semibold text-vieshow-gold">★ ${movie.rating ? movie.rating.toFixed(1) : '0.0'}</span>` : 
                     `<span class="text-sm font-semibold text-gray-500">尚無評分</span>`;
+                
+                // 【修正】使用 encodeURIComponent 和 goToBooking 函式
+                // 這樣可以確保點擊時，資料正確存入 SessionStorage，並清除舊資料
+                const movieDataStr = encodeURIComponent(JSON.stringify(movie));
                 const bookingHtml = showRatingAndBooking ? 
-                    `<div class="mt-3"><button onclick="event.preventDefault(); window.location.href='pages/booking/booking_flow_1.html?movie_id=${movie.id}'" class="w-full bg-vieshow-red text-white font-bold py-2 rounded-lg hover:bg-red-700 text-sm">立即訂票</button></div>` : ``;
+                    `<div class="mt-3">
+                        <button onclick="event.preventDefault(); goToBooking('${movieDataStr}')" 
+                                class="w-full bg-vieshow-red text-white font-bold py-2 rounded-lg hover:bg-red-700 text-sm transition">
+                            立即訂票
+                        </button>
+                    </div>` : ``;
 
                 return `
                     <div class="movie-poster-card block rounded-lg shadow-lg hover:shadow-2xl">
@@ -377,12 +375,31 @@
             const dateInput = document.getElementById('date-input');
             const today = new Date().toISOString().split('T')[0];
             
-            // 【修改點】設定 min 為今天，value 預設也為今天
             dateInput.min = today;
             dateInput.value = today;
 
             loadAllData();
         });
+
+        // 【新增】跳轉邏輯函式
+        function goToBooking(movieDataStr) {
+            try {
+                const movie = JSON.parse(decodeURIComponent(movieDataStr));
+                
+                // 1. 清除可能存在的舊訂單資料
+                localStorage.removeItem('currentBooking');
+                sessionStorage.removeItem('returnFromStep2Data');
+
+                // 2. 設定新的預選電影
+                sessionStorage.setItem('preSelectedMovie', JSON.stringify(movie));
+                
+                // 3. 跳轉
+                window.location.href = './pages/booking/booking_flow_1.html';
+            } catch (e) {
+                console.error("跳轉失敗", e);
+                alert("系統錯誤，請稍後再試");
+            }
+        }
 
         // 自定義 Alert
         function alert(message, callback) {
