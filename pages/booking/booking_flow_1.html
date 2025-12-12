@@ -1161,74 +1161,46 @@
 
 
     form.addEventListener('submit', (e) => {
-
-        e.preventDefault();
-
-        if (!currentSelections.ticketType || !currentSelections.cinema || !currentSelections.movie || !currentSelections.showtime) {
-
-            alert('請完成所有選擇'); return;
-
-        }
-
-        
-
-        // 【優化點】將當前選擇的影城和票務類型存入 sessionStorage
-
-        sessionStorage.setItem('returnFromStep2Data', JSON.stringify({
-
-            ticketType: currentSelections.ticketType,
-
-            cinemaId: currentSelections.cinema.id
-
-        }));
-
-        
-
-        // 【修正重點】確保資料欄位名稱統一
-
-        localStorage.setItem('currentBooking', JSON.stringify({
-
-            ticketType: currentSelections.ticketType,
-
-            cinema: currentSelections.cinema,
-
-            movie: {
-
-                id: currentSelections.movie.id,
-
-                title: currentSelections.movie.name, // 確保有 title
-
-                ...currentSelections.movie 
-
-            },
-
-            showtime: {
-
-                id: currentSelections.showtime.id,
-
-                date: currentSelections.showtime.date,
-
-                time: currentSelections.showtime.time,
-
-                theater: currentSelections.showtime.theater,
-
-                type: currentSelections.showtime.format, // 確保有 type
-
-                ...currentSelections.showtime
-
+            e.preventDefault();
+            if (!currentSelections.ticketType || !currentSelections.cinema || !currentSelections.movie || !currentSelections.showtime) {
+                alert('請完成所有選擇'); return;
+            }
+            
+            // 【優化點】將當前選擇的影城和票務類型存入 sessionStorage
+            sessionStorage.setItem('returnFromStep2Data', JSON.stringify({
+                ticketType: currentSelections.ticketType,
+                cinemaId: currentSelections.cinema.id
+            }));
+            
+            // 【修正重點：傳遞剩餘座位數】
+            const availableSeats = currentSelections.showtime.availableSeats || 0;
+            if (currentSelections.ticketType === 'general' && availableSeats < 1) {
+                return alert('該場次已無座位，請重新選擇場次');
             }
 
-        }));
-
-        
-
-        // 送出後清除預選電影，避免下次干擾
-
-        sessionStorage.removeItem('preSelectedMovie');
-
-        window.location.href = currentSelections.ticketType === 'group' ? 'booking_flow_group.html' : 'booking_flow_2.html';
-
-    });
+            localStorage.setItem('currentBooking', JSON.stringify({
+                ticketType: currentSelections.ticketType,
+                cinema: currentSelections.cinema,
+                movie: {
+                    id: currentSelections.movie.id,
+                    title: currentSelections.movie.name, // 確保有 title
+                    ...currentSelections.movie 
+                },
+                showtime: {
+                    id: currentSelections.showtime.id,
+                    date: currentSelections.showtime.date,
+                    time: currentSelections.showtime.time,
+                    theater: currentSelections.showtime.theater,
+                    type: currentSelections.showtime.format, // 確保有 type
+                    availableSeats: availableSeats, // <-- 儲存剩餘座位數
+                    ...currentSelections.showtime
+                }
+            }));
+            
+            // 送出後清除預選電影，避免下次干擾
+            sessionStorage.removeItem('preSelectedMovie');
+            window.location.href = currentSelections.ticketType === 'group' ? 'booking_flow_group.html' : 'booking_flow_2.html';
+    });
 
 
 
@@ -1301,3 +1273,4 @@
 </body>
 
 </html>
+
