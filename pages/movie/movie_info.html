@@ -60,7 +60,6 @@
         const MEMBER_HOME_URL = '../member/member_home.html';
         const INDEX_PAGE_URL = '../../index.html';
 
-        // 登入狀態渲染
         function renderUI() {
             const token = localStorage.getItem('auth_token');
             const headerNavRight = document.getElementById('headerNavRight');
@@ -75,13 +74,13 @@
             }
         }
 
-        // 渲染資料
+        // 渲染電影資訊 (通用)
         function renderMovieInfo(movie) {
             const releaseDate = new Date(movie.releaseTime);
             const today = new Date(); today.setHours(0,0,0,0);
             const isReleased = releaseDate <= today;
-            const displayRating = movie.averageRating ? Number(movie.averageRating).toFixed(1) : '0.0';
-
+            
+            // 靜態資訊
             document.getElementById('pageTitle').textContent = `《${movie.name}》電影資訊`;
             document.getElementById('movieTitle').textContent = `《${movie.name}》電影介紹`;
             document.getElementById('releaseTime').textContent = movie.releaseTime;
@@ -91,18 +90,10 @@
             document.getElementById('duration').textContent = movie.duration;
             document.getElementById('synopsis').textContent = movie.info || "暫無簡介";
 
-            const ratingDisplay = document.getElementById('averageRatingDisplay');
-            const bookingButtonWrapper = document.getElementById('bookingButtonWrapper'); 
-
+            // 訂票按鈕
+            const bookingButtonWrapper = document.getElementById('bookingButtonWrapper');
             if (isReleased) {
-                ratingDisplay.innerHTML = `
-                    <p class="text-xl font-semibold text-gray-800 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-vieshow-gold mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.817 2.045a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.817-2.045a1 1 0 00-1.175 0l-2.817 2.045c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.02 8.729c-.783-.57-.381-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                        平均觀眾評分：<span id="scoreValue" class="text-vieshow-red text-4xl font-extrabold ml-2">${displayRating}</span> / 5.0
-                    </p>
-                    <p class="text-sm text-gray-500 mt-1 text-center">(共 <span id="voteCount">${movie.totalVotes}</span> 位觀眾評分)</p>`;
                 const movieDataStr = encodeURIComponent(JSON.stringify(movie));
-                
                 if (bookingButtonWrapper) {
                     bookingButtonWrapper.innerHTML = `
                         <button onclick="goToBooking('${movieDataStr}')" 
@@ -111,11 +102,32 @@
                         </button>`;
                 }
             } else {
-                ratingDisplay.textContent = "此電影尚未上映，暫無評分資料。";
                 if (bookingButtonWrapper) bookingButtonWrapper.innerHTML = `<button disabled class="inline-block px-8 py-3 bg-gray-400 text-white font-bold rounded-full shadow-lg cursor-not-allowed">🎟️ 尚未開放訂票</button>`;
             }
 
+            // 更新評分區塊 (這是我們會動態更新的部分)
+            updateRatingUI(movie, isReleased);
+
             renderRatingSection(localStorage.getItem('auth_token'), movie.id, isReleased);
+        }
+
+        // 獨立出的評分 UI 更新函式
+        function updateRatingUI(movie, isReleased) {
+            const ratingDisplay = document.getElementById('averageRatingDisplay');
+            // 確保顯示一位小數
+            const displayRating = movie.averageRating ? Number(movie.averageRating).toFixed(1) : '0.0';
+            const totalVotes = movie.totalVotes || 0;
+
+            if (isReleased) {
+                ratingDisplay.innerHTML = `
+                    <p class="text-xl font-semibold text-gray-800 flex items-center justify-center transition-all duration-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-vieshow-gold mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.817 2.045a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.817-2.045a1 1 0 00-1.175 0l-2.817 2.045c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.02 8.729c-.783-.57-.381-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                        平均觀眾評分：<span id="scoreValue" class="text-vieshow-red text-4xl font-extrabold ml-2">${displayRating}</span> / 5.0
+                    </p>
+                    <p class="text-sm text-gray-500 mt-1 text-center">(共 <span id="voteCount">${totalVotes}</span> 位觀眾評分)</p>`;
+            } else {
+                ratingDisplay.textContent = "此電影尚未上映，暫無評分資料。";
+            }
         }
 
         function renderRatingSection(isLoggedIn, movieId, isReleased) {
@@ -125,40 +137,48 @@
             const ratingSection = document.getElementById('ratingSection');
             
             if (isLoggedIn) {
-                ratingSection.innerHTML = `
-                    <form id="ratingForm" class="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-                        <select id="userRating" class="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-vieshow-gold focus:border-vieshow-gold w-full sm:w-auto"><option value="5">⭐⭐⭐⭐⭐ 5 顆星</option><option value="4">⭐⭐⭐⭐ 4 顆星</option><option value="3" selected>⭐⭐⭐ 3 顆星</option><option value="2">⭐⭐ 2 顆星</option><option value="1">⭐ 1 顆星</option></select>
-                        <button type="submit" id="submitRatingBtn" class="bg-vieshow-gold text-gray-900 font-semibold py-2 px-4 rounded-md shadow-md hover:bg-yellow-500 transition duration-300 w-full sm:w-auto">送出評分</button>
-                    </form>`;
-                document.getElementById('ratingForm').addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const btn = document.getElementById('submitRatingBtn');
-                    btn.disabled = true; btn.textContent = '提交中...';
-                    try {
-                        const user = JSON.parse(localStorage.getItem('user'));
-                        const res = await fetch(`${API_BASE_URL}/movie/rate`, {
-                            method: 'POST', headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ movieId, memberId: user.id, rating: document.getElementById('userRating').value })
-                        });
-                        const result = await res.json();
-                        if (res.ok) {
-                            alert(result.message);
-                            document.getElementById('scoreValue').textContent = result.newAverage.toFixed(1);
-                            document.getElementById('voteCount').textContent = result.newTotalVotes;
-                            
-                            // 更新 SessionStorage 中的快取，以免回到列表頁看到舊資料
-                            sessionStorage.removeItem(`movie_cache_${movieId}`);
-                        } else alert(result.message);
-                    } catch (err) { alert('連線錯誤'); }
-                    finally { btn.disabled = false; btn.textContent = '送出評分'; }
-                });
+                // 只有當內容為空時才渲染表單，避免重複渲染導致輸入中斷
+                if (!ratingSection.innerHTML.trim() || ratingSection.innerHTML.includes('前往登入')) {
+                    ratingSection.innerHTML = `
+                        <form id="ratingForm" class="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+                            <select id="userRating" class="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-vieshow-gold focus:border-vieshow-gold w-full sm:w-auto"><option value="5">⭐⭐⭐⭐⭐ 5 顆星</option><option value="4">⭐⭐⭐⭐ 4 顆星</option><option value="3" selected>⭐⭐⭐ 3 顆星</option><option value="2">⭐⭐ 2 顆星</option><option value="1">⭐ 1 顆星</option></select>
+                            <button type="submit" id="submitRatingBtn" class="bg-vieshow-gold text-gray-900 font-semibold py-2 px-4 rounded-md shadow-md hover:bg-yellow-500 transition duration-300 w-full sm:w-auto">送出評分</button>
+                        </form>`;
+                    
+                    document.getElementById('ratingForm').addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const btn = document.getElementById('submitRatingBtn');
+                        btn.disabled = true; btn.textContent = '提交中...';
+                        try {
+                            const user = JSON.parse(localStorage.getItem('user'));
+                            const res = await fetch(`${API_BASE_URL}/movie/rate`, {
+                                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ movieId, memberId: user.id, rating: document.getElementById('userRating').value })
+                            });
+                            const result = await res.json();
+                            if (res.ok) {
+                                alert(result.message);
+                                // 即時更新當前頁面數值
+                                document.getElementById('scoreValue').textContent = Number(result.newAverage).toFixed(1);
+                                document.getElementById('voteCount').textContent = result.newTotalVotes;
+                                
+                                // 更新 SessionStorage，確保下次進來也是新的
+                                const currentCache = JSON.parse(sessionStorage.getItem(`movie_cache_${movieId}`) || '{}');
+                                currentCache.averageRating = result.newAverage;
+                                currentCache.totalVotes = result.newTotalVotes;
+                                sessionStorage.setItem(`movie_cache_${movieId}`, JSON.stringify(currentCache));
+                                
+                            } else alert(result.message);
+                        } catch (err) { alert('連線錯誤'); }
+                        finally { btn.disabled = false; btn.textContent = '送出評分'; }
+                    });
+                }
             } else {
                 const url = encodeURIComponent(window.location.href);
                 ratingSection.innerHTML = `<p class="text-gray-600 mb-4">需登入才能評分</p><a href="${LOGIN_PAGE_URL}?redirect=${url}" class="bg-vieshow-gold text-gray-900 font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-yellow-500">前往登入</a>`;
             }
         }
 
-        // 自定義 Alert
         function alert(message, callback) {
             const existing = document.getElementById('custom-alert'); if(existing) existing.remove();
             const html = `<div id="custom-alert" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50"><div class="bg-white rounded-xl p-6 shadow-2xl max-w-sm"><p class="text-gray-700 font-bold mb-4">${message}</p><div class="flex justify-end"><button id="alertOK" class="bg-vieshow-red text-white py-2 px-4 rounded font-bold">確認</button></div></div></div>`;
@@ -173,7 +193,7 @@
                 window.location.href = '../booking/booking_flow_1.html';
             } catch (e) {
                 console.error("跳轉失敗", e);
-                alert("系統錯誤，請稍後再試");
+                alert("系統錯誤");
             }
         }
 
@@ -184,21 +204,42 @@
             const movieId = urlParams.get('movie_id');
             if (!movieId) return;
 
-            // 【修改點】為了保證評分是最新的，這裡取消使用快取，直接呼叫 API
-            console.log("正在從伺服器載入最新電影資料:", movieId);
+            const cacheKey = `movie_cache_${movieId}`;
+            const cachedDataStr = sessionStorage.getItem(cacheKey);
+            
+            // 1. 如果有快取，先渲染 (秒開)
+            if (cachedDataStr) {
+                console.log("⚡ 使用快取渲染靜態資訊");
+                const cachedData = JSON.parse(cachedDataStr);
+                renderMovieInfo(cachedData);
+            }
+
+            // 2. 無論有無快取，都在背景發送 API 請求最新資料 (更新評分)
+            console.log("🔄 背景更新最新電影資料...");
             try {
                 const response = await fetch(`${API_BASE_URL}/movie/${movieId}`);
                 if (!response.ok) throw new Error("電影不存在");
-                const movieData = await response.json();
+                const latestData = await response.json();
                 
-                // 更新快取 (讓回到列表頁時也能盡量新)
-                sessionStorage.setItem(`movie_cache_${movieId}`, JSON.stringify(movieData));
+                // 比較評分是否變動，若變動則更新 UI
+                // 或者簡單起見，直接更新評分區塊 (因為 renderMovieInfo 成本低)
+                updateRatingUI(latestData, new Date(latestData.releaseTime) <= new Date());
                 
-                renderMovieInfo(movieData);
+                // 如果是第一次載入 (無快取)，則需要渲染全部
+                if (!cachedDataStr) {
+                    renderMovieInfo(latestData);
+                }
+
+                // 更新快取
+                sessionStorage.setItem(cacheKey, JSON.stringify(latestData));
+                
             } catch (e) {
-                document.getElementById('movieInfoCard').innerHTML = '<p class="text-center p-10 text-red-500">無法載入電影資訊</p>';
+                if (!cachedDataStr) {
+                    document.getElementById('movieInfoCard').innerHTML = '<p class="text-center p-10 text-red-500">無法載入電影資訊</p>';
+                }
             }
         });
     </script>
 </body>
 </html>
+
