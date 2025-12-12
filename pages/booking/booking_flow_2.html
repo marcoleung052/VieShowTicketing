@@ -157,7 +157,7 @@
         // --- 全域變數 ---
         let ticketList = []; 
         let comboList = [];  
-        const MAX_TICKETS = 9; // 【修正點】上限改為 9
+        const MAX_TICKETS = 9; 
         
         let currentSelections = { tickets: {}, combos: {} };
         let currentBookingData = null;
@@ -210,18 +210,46 @@
             try {
                 await new Promise(r => setTimeout(r, 300));
                 ticketList = [
-                    { id: '801', name: '全票', price: 300, limit: MAX_TICKETS, description: '一般成人票' }, // 【修正點】移除單一上限，設為總上限
-                    { id: '802', name: '學生票', price: 250, limit: MAX_TICKETS, description: '憑有效學生證入場' }, // 【修正點】移除單一上限，設為總上限
-                    { id: '803', name: '愛心敬老票', price: 220, limit: MAX_TICKETS, description: '65歲以上長者或身心障礙者' }, // 【修正點】移除單一上限，設為總上限
-                    { id: '806', name: '套票', price: 450, limit: MAX_TICKETS, description: '含電影票+餐點優惠' } // 【修正點】移除單一上限，設為總上限
+                    { id: '801', name: '全票', price: 300, limit: MAX_TICKETS, description: '一般成人票' }, 
+                    { id: '802', name: '學生票', price: 250, limit: MAX_TICKETS, description: '憑有效學生證入場' }, 
+                    { id: '803', name: '愛心敬老票', price: 220, limit: MAX_TICKETS, description: '65歲以上長者或身心障礙者' }, 
+                    { id: '806', name: '套票', price: 450, limit: MAX_TICKETS, description: '含電影票+餐點優惠' }
                 ];
                 renderTicketOptions();
                 document.getElementById('ticketLoading').style.display = 'none';
+                
+                // 【新增/修正】從 Step 3 返回時，預設填入數量
+                restoreSelections();
+
             } catch (e) {
                 console.error("載入票種失敗", e);
                 document.getElementById('ticketContainer').innerHTML = '<p class="text-red-500">載入失敗</p>';
             }
         }
+        
+        // 【新增】還原已選的票種數量
+        function restoreSelections() {
+            if (currentBookingData.tickets) {
+                Object.values(currentBookingData.tickets).forEach(t => {
+                    const inputEl = document.getElementById(`ticket-${t.id}`);
+                    if (inputEl && t.qty > 0) {
+                        inputEl.value = t.qty;
+                        currentSelections.tickets[t.id] = t.qty;
+                    }
+                });
+            }
+            if (currentBookingData.combos) {
+                Object.values(currentBookingData.combos).forEach(c => {
+                    const inputEl = document.getElementById(`combo-${c.id}`);
+                    if (inputEl && c.qty > 0) {
+                        inputEl.value = c.qty;
+                        currentSelections.combos[c.id] = c.qty;
+                    }
+                });
+            }
+            updateTotal(); // 更新總價和按鈕狀態
+        }
+
 
         async function fetchMeals() {
             try {
@@ -247,7 +275,6 @@
         // --- 渲染 UI ---
         function renderTicketOptions() {
             const container = document.getElementById('ticketContainer');
-            // 【修正點】顯示上限為 MAX_TICKETS (9張)
             container.innerHTML = ticketList.map(ticket => `
                 <div class="selection-card flex justify-between items-center mb-4">
                     <div class="flex-1">
@@ -257,7 +284,7 @@
                         <p class="text-sm text-gray-500 mt-1">${ticket.description}</p>
                         <div class="flex justify-between items-center mt-2">
                             <span class="price-tag">TWD ${ticket.price}</span>
-                            </div>
+                        </div>
                     </div>
                     <div class="flex items-center space-x-2 ml-4">
                         <button type="button" class="btn-minus bg-gray-200 hover:bg-gray-300 p-2 rounded-full transition duration-150 active:scale-95" data-id="${ticket.id}" data-type="ticket">
@@ -313,8 +340,7 @@
             if (type === 'ticket') {
                 const item = ticketList.find(t => t.id == id);
                 if (isPlus) {
-                    // 【修正點】移除單一票種上限檢查 (item.limit)
-                    if (totalTickets >= MAX_TICKETS) return alert(`總票數上限 ${MAX_TICKETS} 張`);
+                    if (totalTickets >= MAX_TICKETS) return alert(`總票數上限 ${MAX_TICKETS} 張!`);
                     val++;
                 } else {
                     if (val > 0) val--;
@@ -346,7 +372,7 @@
             document.getElementById('nextStepButton').disabled = ticketsCount === 0;
         }
 
-        // 【新增】返回 Flow 1 時，將當前選擇的票種/影城傳回去
+        // 【新增/修正】返回 Flow 1 時，將當前選擇的票種/影城傳回去
         function handleBackToFlow1() {
             // 只有在 cinema 和 ticketType 已選時才存
             if (currentBookingData?.cinema?.id && currentBookingData.ticketType) {
@@ -368,14 +394,26 @@
             const tickets = [];
             ticketList.forEach(t => {
                 if (currentSelections.tickets[t.id] > 0) {
-                    tickets.push({ ...t, qty: currentSelections.tickets[t.id] });
+                    // 只儲存需要的欄位，包括價格和數量
+                    tickets.push({ 
+                        id: t.id, 
+                        name: t.name, 
+                        price: t.price, 
+                        qty: currentSelections.tickets[t.id] 
+                    });
                 }
             });
 
             const combos = [];
             comboList.forEach(c => {
                 if (currentSelections.combos[c.id] > 0) {
-                    combos.push({ ...c, qty: currentSelections.combos[c.id] });
+                     // 只儲存需要的欄位
+                    combos.push({ 
+                        id: c.id, 
+                        name: c.name, 
+                        price: c.price, 
+                        qty: currentSelections.combos[c.id] 
+                    });
                 }
             });
 
@@ -391,7 +429,12 @@
             // 跳轉前清除返回快取
             sessionStorage.removeItem('returnFromStep2Data');
 
-            window.location.href = 'booking_flow_3.html';
+            // 【關鍵修正】如果是團體票，跳轉到團體資訊頁；否則跳轉到選位頁
+            if (currentBookingData.ticketType === 'group') {
+                 window.location.href = 'booking_flow_group.html';
+            } else {
+                 window.location.href = 'booking_flow_3.html';
+            }
         });
 
         // 初始化
@@ -402,7 +445,8 @@
 
             loadBookingData();
             
-            document.querySelector('.container a[href="booking_flow_1.html"]').onclick = handleBackToFlow1;
+            // 綁定「重新選擇場次」的點擊事件
+            document.querySelector('.container a[href="javascript:void(0)"]').onclick = handleBackToFlow1;
             document.getElementById('ticketSelectionSection').addEventListener('click', handleQuantityChange);
             document.getElementById('comboSelectionSection').addEventListener('click', handleQuantityChange);
 
