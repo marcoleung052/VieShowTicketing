@@ -116,7 +116,7 @@
                 <div id="ticketSelectionSection" class="space-y-4 relative">
                     <div id="ticketLoading" class="loading-overlay">載入票種中...</div>
                     <label class="block text-2xl font-bold text-gray-800 mb-4 border-b pb-2 flex items-center">
-                        <span class="mr-2">🎫</span> 選擇票種數量 <span class="text-base font-normal text-red-500 ml-2">(總票數最多 8 張)</span>
+                        <span class="mr-2">🎫</span> 選擇票種數量 <span class="text-base font-normal text-red-500 ml-2">(總票數最多 9 張)</span>
                     </label>
                     <div id="ticketContainer"></div>
                 </div>
@@ -135,7 +135,7 @@
                     </div>
 
                     <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
-                        <a href="booking_flow_1.html" class="flex-1 text-center bg-gray-500 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-xl transition duration-300 shadow-lg text-base">
+                        <a href="javascript:void(0)" onclick="handleBackToFlow1()" class="flex-1 text-center bg-gray-500 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-xl transition duration-300 shadow-lg text-base">
                             重新選擇場次 
                         </a>
                         <button type="submit" id="nextStepButton" class="next-step-button flex-1" disabled>
@@ -157,7 +157,7 @@
         // --- 全域變數 ---
         let ticketList = []; 
         let comboList = [];  
-        const MAX_TICKETS = 8;
+        const MAX_TICKETS = 9; // 【修正點】上限改為 9
         
         let currentSelections = { tickets: {}, combos: {} };
         let currentBookingData = null;
@@ -176,13 +176,10 @@
             }
         }
 
-        // 【修正】使用 Alert 提示未登入，然後跳轉
         function checkLoginStatus() {
             const token = localStorage.getItem('auth_token');
             if (!token) {
                 alert('請先登入才能進行訂票', () => {
-                    // 將當前頁面作為 redirect 參數，雖然這裡其實還沒開始選票種，通常會導回 flow_1 或 flow_2
-                    // 為了方便，我們直接導向登入頁，登入後使用者可能需要重新操作
                     window.location.href = `${LOGIN_PAGE_URL}?redirect=${encodeURIComponent(window.location.href)}`;
                 });
                 return false;
@@ -213,10 +210,10 @@
             try {
                 await new Promise(r => setTimeout(r, 300));
                 ticketList = [
-                    { id: '801', name: '全票', price: 300, limit: 8, description: '一般成人票' },
-                    { id: '802', name: '學生票', price: 250, limit: 4, description: '憑有效學生證入場' },
-                    { id: '803', name: '愛心敬老票', price: 220, limit: 2, description: '65歲以上長者或身心障礙者' },
-                    { id: '806', name: '套票', price: 450, limit: 4, description: '含電影票+餐點優惠' }
+                    { id: '801', name: '全票', price: 300, limit: MAX_TICKETS, description: '一般成人票' }, // 【修正點】移除單一上限，設為總上限
+                    { id: '802', name: '學生票', price: 250, limit: MAX_TICKETS, description: '憑有效學生證入場' }, // 【修正點】移除單一上限，設為總上限
+                    { id: '803', name: '愛心敬老票', price: 220, limit: MAX_TICKETS, description: '65歲以上長者或身心障礙者' }, // 【修正點】移除單一上限，設為總上限
+                    { id: '806', name: '套票', price: 450, limit: MAX_TICKETS, description: '含電影票+餐點優惠' } // 【修正點】移除單一上限，設為總上限
                 ];
                 renderTicketOptions();
                 document.getElementById('ticketLoading').style.display = 'none';
@@ -250,6 +247,7 @@
         // --- 渲染 UI ---
         function renderTicketOptions() {
             const container = document.getElementById('ticketContainer');
+            // 【修正點】顯示上限為 MAX_TICKETS (9張)
             container.innerHTML = ticketList.map(ticket => `
                 <div class="selection-card flex justify-between items-center mb-4">
                     <div class="flex-1">
@@ -259,14 +257,13 @@
                         <p class="text-sm text-gray-500 mt-1">${ticket.description}</p>
                         <div class="flex justify-between items-center mt-2">
                             <span class="price-tag">TWD ${ticket.price}</span>
-                            <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">上限: ${ticket.limit} 張</span>
-                        </div>
+                            </div>
                     </div>
                     <div class="flex items-center space-x-2 ml-4">
                         <button type="button" class="btn-minus bg-gray-200 hover:bg-gray-300 p-2 rounded-full transition duration-150 active:scale-95" data-id="${ticket.id}" data-type="ticket">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
                         </button>
-                        <input type="number" id="ticket-${ticket.id}" class="quantity-input" value="0" min="0" max="${ticket.limit}" readonly>
+                        <input type="number" id="ticket-${ticket.id}" class="quantity-input" value="0" min="0" max="${MAX_TICKETS}" readonly>
                         <button type="button" class="btn-plus bg-vieshow-red hover:bg-red-700 text-white p-2 rounded-full transition duration-150 active:scale-95" data-id="${ticket.id}" data-type="ticket">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                         </button>
@@ -316,7 +313,7 @@
             if (type === 'ticket') {
                 const item = ticketList.find(t => t.id == id);
                 if (isPlus) {
-                    if (val >= item.limit) return alert(`單種票限購 ${item.limit} 張`);
+                    // 【修正點】移除單一票種上限檢查 (item.limit)
                     if (totalTickets >= MAX_TICKETS) return alert(`總票數上限 ${MAX_TICKETS} 張`);
                     val++;
                 } else {
@@ -349,10 +346,24 @@
             document.getElementById('nextStepButton').disabled = ticketsCount === 0;
         }
 
+        // 【新增】返回 Flow 1 時，將當前選擇的票種/影城傳回去
+        function handleBackToFlow1() {
+            // 只有在 cinema 和 ticketType 已選時才存
+            if (currentBookingData?.cinema?.id && currentBookingData.ticketType) {
+                sessionStorage.setItem('returnFromStep2Data', JSON.stringify({
+                    ticketType: currentBookingData.ticketType,
+                    cinemaId: currentBookingData.cinema.id
+                }));
+            }
+            window.location.href = 'booking_flow_1.html';
+        }
+
+
         document.getElementById('bookingFlow2Form').addEventListener('submit', (e) => {
             e.preventDefault();
             const totalTickets = Object.values(currentSelections.tickets).reduce((a, b) => a + b, 0);
             if (totalTickets === 0) return alert('請至少選擇一張票');
+            if (totalTickets > MAX_TICKETS) return alert(`總票數超過上限 ${MAX_TICKETS} 張!`);
 
             const tickets = [];
             ticketList.forEach(t => {
@@ -377,6 +388,9 @@
             };
             localStorage.setItem('currentBooking', JSON.stringify(newData));
             
+            // 跳轉前清除返回快取
+            sessionStorage.removeItem('returnFromStep2Data');
+
             window.location.href = 'booking_flow_3.html';
         });
 
@@ -384,14 +398,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             renderUI();
             
-            // 【修正重點】在這裡執行登入檢查
-            if (!checkLoginStatus()) {
-                // 如果未登入，checkLoginStatus 內部會觸發 alert 和跳轉，這裡直接 return 中斷後續邏輯
-                return; 
-            }
+            if (!checkLoginStatus()) return; 
 
             loadBookingData();
             
+            document.querySelector('.container a[href="booking_flow_1.html"]').onclick = handleBackToFlow1;
             document.getElementById('ticketSelectionSection').addEventListener('click', handleQuantityChange);
             document.getElementById('comboSelectionSection').addEventListener('click', handleQuantityChange);
 
