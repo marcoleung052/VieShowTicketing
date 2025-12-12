@@ -80,6 +80,7 @@
             const releaseDate = new Date(movie.releaseTime);
             const today = new Date(); today.setHours(0,0,0,0);
             const isReleased = releaseDate <= today;
+            const displayRating = movie.averageRating ? movie.averageRating.toFixed(1) : '0.0';
 
             document.getElementById('pageTitle').textContent = `《${movie.name}》電影資訊`;
             document.getElementById('movieTitle').textContent = `《${movie.name}》電影介紹`;
@@ -204,4 +205,5 @@
     </script>
 </body>
 </html>
+
 
