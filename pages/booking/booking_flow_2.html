@@ -22,10 +22,37 @@
                 },
             },
         };
+
+        // 自定義 Alert (必須放在最前面確保可用)
+        function customAlert(message, callback) { 
+            const existingModal = document.getElementById('custom-alert-modal');
+            if (existingModal) existingModal.remove();
+
+            const handleConfirm = () => {
+                document.getElementById('custom-alert-modal').remove();
+                if (callback && typeof callback === 'function') { callback(); }
+            };
+            window.customAlertConfirm = handleConfirm;
+
+            const modalHtml = `
+                <div id="custom-alert-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
+                    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform scale-100 transition-all duration-300">
+                        <div class="text-xl font-bold text-gray-900 mb-3 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-vieshow-red mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>系統提示
+                        </div>
+                        <p class="text-gray-700 mb-5">${message}</p>
+                        <div class="flex justify-end">
+                            <button onclick="window.customAlertConfirm()" class="bg-vieshow-red hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-vieshow-red focus:ring-offset-2">確認</button>
+                        </div>
+                    </div>
+                </div>`;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+        window.alert = customAlert;
     </script>
     
     <style>
-        /* (CSS 保持不變，直接沿用) */
+        /* (CSS 保持不變) */
         :root { --vieshow-red: #e50914; --vieshow-gold: #f7a83d; --gray-300: #D1D5DB; --gray-200: #E5E7EB; }
         .next-step-button { width: 100%; background: var(--vieshow-red); color: #fff; font-weight: 700; padding: 0.75rem 1rem; border-radius: 0.75rem; transition: all 200ms ease; box-shadow: 0 8px 20px rgba(0,0,0,0.12); font-size: 1.125rem; display: inline-block; text-align: center; border: none; cursor: pointer; }
         .next-step-button:hover:not(:disabled) { transform: scale(1.02); background: #c40b10; }
@@ -41,8 +68,6 @@
         .step-active { background: var(--vieshow-red); }
         .step-completed { background: var(--vieshow-gold); }
         .step-pending { background: var(--gray-300); }
-        
-        /* 載入中遮罩 */
         .loading-overlay { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.8); z-index: 10; display: flex; justify-content: center; align-items: center; font-weight: bold; color: #666; }
     </style>
 </head>
@@ -130,8 +155,8 @@
         const MEMBER_HOME_URL = '../member/member_home.html';
 
         // --- 全域變數 ---
-        let ticketList = []; // 從 API 獲取的票種
-        let comboList = [];  // 從 API 獲取的餐點
+        let ticketList = []; 
+        let comboList = [];  
         const MAX_TICKETS = 8;
         
         let currentSelections = { tickets: {}, combos: {} };
@@ -151,9 +176,15 @@
             }
         }
 
+        // 【修正】使用 Alert 提示未登入，然後跳轉
         function checkLoginStatus() {
-            if (!localStorage.getItem('auth_token')) {
-                alert('請先登入', () => window.location.href = LOGIN_PAGE_URL);
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                alert('請先登入才能進行訂票', () => {
+                    // 將當前頁面作為 redirect 參數，雖然這裡其實還沒開始選票種，通常會導回 flow_1 或 flow_2
+                    // 為了方便，我們直接導向登入頁，登入後使用者可能需要重新操作
+                    window.location.href = `${LOGIN_PAGE_URL}?redirect=${encodeURIComponent(window.location.href)}`;
+                });
                 return false;
             }
             return true;
@@ -165,7 +196,6 @@
             if (data) {
                 try {
                     currentBookingData = JSON.parse(data);
-                    // 顯示場次摘要
                     document.getElementById('cinemaNameDisplay').textContent = `影城: ${currentBookingData.cinema.name}`;
                     document.getElementById('movieTitleDisplay').textContent = `電影: ${currentBookingData.movie.title}`;
                     const st = currentBookingData.showtime;
@@ -179,15 +209,8 @@
             }
         }
 
-        // 【關鍵】從後端取得票種
         async function fetchTicketTypes() {
             try {
-                // 這裡模擬從後端取得票種，實際上應該要有 /api/info/tickets API
-                // 暫時使用寫死資料，但架構已改為非同步，未來接 API 只要改 fetch URL 即可
-                // const res = await fetch(`${API_BASE_URL}/info/tickets`);
-                // ticketList = await res.json();
-                
-                // 模擬 API 回傳
                 await new Promise(r => setTimeout(r, 300));
                 ticketList = [
                     { id: '801', name: '全票', price: 300, limit: 8, description: '一般成人票' },
@@ -195,7 +218,6 @@
                     { id: '803', name: '愛心敬老票', price: 220, limit: 2, description: '65歲以上長者或身心障礙者' },
                     { id: '806', name: '套票', price: 450, limit: 4, description: '含電影票+餐點優惠' }
                 ];
-                
                 renderTicketOptions();
                 document.getElementById('ticketLoading').style.display = 'none';
             } catch (e) {
@@ -204,22 +226,18 @@
             }
         }
 
-        // 【關鍵】從後端取得餐點
         async function fetchMeals() {
             try {
                 const res = await fetch(`${API_BASE_URL}/info/meals`);
                 if (!res.ok) throw new Error("API Error");
                 const rawMeals = await res.json();
-                
-                // 轉換格式以符合前端邏輯
                 comboList = rawMeals.map(m => ({
                     id: m.id,
                     name: m.name,
                     price: m.price,
                     description: m.info,
-                    icon: '🍿' // 後端若無 icon，前端統一給預設
+                    icon: '🍿' 
                 }));
-
                 renderComboOptions();
                 document.getElementById('comboLoading').style.display = 'none';
             } catch (e) {
@@ -255,8 +273,6 @@
                     </div>
                 </div>
             `).join('');
-            
-            // 初始化計數
             ticketList.forEach(t => currentSelections.tickets[t.id] = 0);
         }
 
@@ -282,12 +298,9 @@
                     </div>
                 </div>
             `).join('');
-            
-            // 初始化計數
             comboList.forEach(c => currentSelections.combos[c.id] = 0);
         }
 
-        // --- 數量增減與計算 ---
         function handleQuantityChange(e) {
             const btn = e.target.closest('button');
             if (!btn) return;
@@ -298,7 +311,6 @@
             const input = document.getElementById(`${type}-${id}`);
             let val = parseInt(input.value);
 
-            // 計算目前總票數
             let totalTickets = Object.values(currentSelections.tickets).reduce((a, b) => a + b, 0);
 
             if (type === 'ticket') {
@@ -323,15 +335,11 @@
         function updateTotal() {
             let total = 0;
             let ticketsCount = 0;
-
-            // 票價
             ticketList.forEach(t => {
                 const qty = currentSelections.tickets[t.id] || 0;
                 total += qty * t.price;
                 ticketsCount += qty;
             });
-
-            // 餐點 (8折)
             comboList.forEach(c => {
                 const qty = currentSelections.combos[c.id] || 0;
                 total += Math.round(qty * c.price * 0.8);
@@ -341,13 +349,11 @@
             document.getElementById('nextStepButton').disabled = ticketsCount === 0;
         }
 
-        // --- 提交 ---
         document.getElementById('bookingFlow2Form').addEventListener('submit', (e) => {
             e.preventDefault();
             const totalTickets = Object.values(currentSelections.tickets).reduce((a, b) => a + b, 0);
             if (totalTickets === 0) return alert('請至少選擇一張票');
 
-            // 整理資料
             const tickets = [];
             ticketList.forEach(t => {
                 if (currentSelections.tickets[t.id] > 0) {
@@ -362,7 +368,6 @@
                 }
             });
 
-            // 更新 localStorage
             const newData = {
                 ...currentBookingData,
                 tickets: tickets,
@@ -372,31 +377,27 @@
             };
             localStorage.setItem('currentBooking', JSON.stringify(newData));
             
-            // 跳轉
             window.location.href = 'booking_flow_3.html';
         });
 
         // 初始化
         document.addEventListener('DOMContentLoaded', () => {
-            if (!checkLoginStatus()) return;
             renderUI();
+            
+            // 【修正重點】在這裡執行登入檢查
+            if (!checkLoginStatus()) {
+                // 如果未登入，checkLoginStatus 內部會觸發 alert 和跳轉，這裡直接 return 中斷後續邏輯
+                return; 
+            }
+
             loadBookingData();
             
-            // 綁定事件委派
             document.getElementById('ticketSelectionSection').addEventListener('click', handleQuantityChange);
             document.getElementById('comboSelectionSection').addEventListener('click', handleQuantityChange);
 
-            // 並行載入資料
             fetchTicketTypes();
             fetchMeals();
         });
-
-        // Custom Alert
-        function alert(msg, cb) {
-            const d = document.createElement('div');
-            d.innerHTML = `<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div class="bg-white p-6 rounded-lg shadow-xl"><p class="mb-4 font-bold text-gray-800">${msg}</p><button class="bg-vieshow-red text-white px-4 py-2 rounded" onclick="this.closest('.fixed').remove(); if(${cb}) ${cb}()">確定</button></div></div>`;
-            document.body.appendChild(d.firstChild);
-        }
     </script>
     
     <footer class="bg-vieshow-dark text-white text-center py-4 mt-8 shadow-inner">
