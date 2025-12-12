@@ -80,7 +80,7 @@
             const releaseDate = new Date(movie.releaseTime);
             const today = new Date(); today.setHours(0,0,0,0);
             const isReleased = releaseDate <= today;
-            const displayRating = movie.averageRating ? movie.averageRating.toFixed(1) : '0.0';
+            const displayRating = movie.averageRating ? Number(movie.averageRating).toFixed(1) : '0.0';
 
             document.getElementById('pageTitle').textContent = `《${movie.name}》電影資訊`;
             document.getElementById('movieTitle').textContent = `《${movie.name}》電影介紹`;
@@ -98,7 +98,7 @@
                 ratingDisplay.innerHTML = `
                     <p class="text-xl font-semibold text-gray-800 flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-vieshow-gold mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.817 2.045a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.817-2.045a1 1 0 00-1.175 0l-2.817 2.045c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.02 8.729c-.783-.57-.381-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                        平均觀眾評分：<span id="scoreValue" class="text-vieshow-red text-4xl font-extrabold ml-2">${movie.averageRating ? movie.averageRating.toFixed(1) : '0.0'}</span> / 5.0
+                        平均觀眾評分：<span id="scoreValue" class="text-vieshow-red text-4xl font-extrabold ml-2">${displayRating}</span> / 5.0
                     </p>
                     <p class="text-sm text-gray-500 mt-1 text-center">(共 <span id="voteCount">${movie.totalVotes}</span> 位觀眾評分)</p>`;
                 const movieDataStr = encodeURIComponent(JSON.stringify(movie));
@@ -145,6 +145,9 @@
                             alert(result.message);
                             document.getElementById('scoreValue').textContent = result.newAverage.toFixed(1);
                             document.getElementById('voteCount').textContent = result.newTotalVotes;
+                            
+                            // 更新 SessionStorage 中的快取，以免回到列表頁看到舊資料
+                            sessionStorage.removeItem(`movie_cache_${movieId}`);
                         } else alert(result.message);
                     } catch (err) { alert('連線錯誤'); }
                     finally { btn.disabled = false; btn.textContent = '送出評分'; }
@@ -162,14 +165,11 @@
             document.body.insertAdjacentHTML('beforeend', html);
             document.getElementById('alertOK').onclick = () => { document.getElementById('custom-alert').remove(); if(callback) callback(); };
         }
+
         function goToBooking(movieDataStr) {
             try {
                 const movie = JSON.parse(decodeURIComponent(movieDataStr));
-                
-                // 1. 將電影資料存入 Session Storage
                 sessionStorage.setItem('preSelectedMovie', JSON.stringify(movie));
-                
-                // 2. 跳轉到訂票頁面 (不需要再帶 URL 參數了，因為資料在 storage 裡)
                 window.location.href = '../booking/booking_flow_1.html';
             } catch (e) {
                 console.error("跳轉失敗", e);
@@ -184,26 +184,21 @@
             const movieId = urlParams.get('movie_id');
             if (!movieId) return;
 
-            // 【關鍵修改】優先讀取快取
-            const cachedData = sessionStorage.getItem(`movie_cache_${movieId}`);
-            
-            if (cachedData) {
-                console.log("從快取讀取電影資料:", movieId);
-                renderMovieInfo(JSON.parse(cachedData));
-            } else {
-                console.log("快取無資料，發送 API 請求:", movieId);
-                try {
-                    const response = await fetch(`${API_BASE_URL}/movie/${movieId}`);
-                    if (!response.ok) throw new Error("電影不存在");
-                    const movieData = await response.json();
-                    renderMovieInfo(movieData);
-                } catch (e) {
-                    document.getElementById('movieInfoCard').innerHTML = '<p class="text-center p-10 text-red-500">無法載入電影資訊</p>';
-                }
+            // 【修改點】為了保證評分是最新的，這裡取消使用快取，直接呼叫 API
+            console.log("正在從伺服器載入最新電影資料:", movieId);
+            try {
+                const response = await fetch(`${API_BASE_URL}/movie/${movieId}`);
+                if (!response.ok) throw new Error("電影不存在");
+                const movieData = await response.json();
+                
+                // 更新快取 (讓回到列表頁時也能盡量新)
+                sessionStorage.setItem(`movie_cache_${movieId}`, JSON.stringify(movieData));
+                
+                renderMovieInfo(movieData);
+            } catch (e) {
+                document.getElementById('movieInfoCard').innerHTML = '<p class="text-center p-10 text-red-500">無法載入電影資訊</p>';
             }
         });
     </script>
 </body>
 </html>
-
-
