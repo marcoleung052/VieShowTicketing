@@ -25,15 +25,63 @@
     </script>
 
     <style>
-        .menu-card { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 120px; border-radius: 0.75rem; font-weight: 700; font-size: 1.125rem; transition: all 0.2s ease-in-out; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-        .menu-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15); }
-        .card-white { background-color: white; color: #374151; border: 1px solid #e5e7eb; }
-        .card-white:hover { border-color: #d1d5db; background-color: #f9fafb; }
-        .card-red { background-color: #e50914; color: white; border: 1px solid #e50914; }
-        .card-red:hover { background-color: #b91c1c; }
+        /* 卡片基礎樣式 */
+        .menu-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 120px;
+            border-radius: 0.75rem;
+            font-weight: 700;
+            font-size: 1.125rem;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            text-decoration: none; /* 確保連結無底線 */
+        }
+        .menu-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15);
+        }
+
+        /* 白底按鈕 */
+        .card-white {
+            background-color: white;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+        }
+        .card-white:hover {
+            border-color: #d1d5db;
+            background-color: #f9fafb;
+        }
+
+        /* 紅底按鈕 */
+        .card-red {
+            background-color: #e50914;
+            color: white;
+            border: 1px solid #e50914;
+        }
+        .card-red:hover {
+            background-color: #b91c1c;
+        }
+
         .card-icon { font-size: 2rem; margin-bottom: 0.5rem; }
-        .barcode-container { min-height: 8rem; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #ccc; border-radius: 0.5rem; padding: 1rem; background-color: white; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
         
+        /* 條碼容器 */
+        .barcode-container {
+            min-height: 8rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #ccc;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            background-color: white;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 通知動畫 */
         @keyframes fadeInDown { from { opacity: 0; transform: translate(-50%, -20px); } to { opacity: 1; transform: translate(-50%, 0); } }
         @keyframes fadeOutUp { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, -20px); } }
         .animate-fade-in-down { animation: fadeInDown 0.5s ease-out forwards; }
@@ -51,7 +99,9 @@
         </nav>
     </header>
 
-    <div class="container mx-auto px-4 py-10 flex-grow max-w-7xl"> <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+    <div class="container mx-auto px-4 py-10 flex-grow max-w-7xl">
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
             
             <div class="lg:col-span-1">
                 <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-vieshow-gold sticky top-4">
@@ -161,6 +211,7 @@
         const LOGIN_PAGE_URL = '../auth/login.html';
         const INDEX_PAGE_URL = '../../index.html';
 
+        // --- 通知系統 ---
         function showNotification(message, isError = false) {
             const notification = document.createElement('div');
             notification.innerHTML = message;
@@ -173,13 +224,19 @@
             }, 3000);
         }
 
+        // --- 登入檢查 (修正版：未登入時跳 Alert) ---
         function checkLoginStatus() {
             const token = localStorage.getItem('auth_token');
             const userStr = localStorage.getItem('user');
+
             if (!token || !userStr) {
-                forceLogout("您尚未登入，請重新登入");
+                // 【關鍵修正】使用 Alert 提示並跳轉
+                alert('請先登入才能查看會員中心', () => {
+                    window.location.href = `${LOGIN_PAGE_URL}?redirect=${encodeURIComponent(window.location.href)}`;
+                });
                 return null;
             }
+
             try {
                 const user = JSON.parse(userStr);
                 if (!user.id) {
@@ -200,6 +257,7 @@
             alert(msg, () => { window.location.href = LOGIN_PAGE_URL; });
         }
         
+        // --- 資料載入 ---
         async function fetchAndRenderMemberData(userId) {
             // 優先檢查 Session Storage 快取
             const cachedDataStr = sessionStorage.getItem('memberDataCache');
@@ -257,22 +315,29 @@
             });
         }
 
+        // --- 登出按鈕 ---
         document.getElementById('signOutButton').addEventListener('click', function(e) {
             e.preventDefault(); 
-            this.disabled = true; this.innerHTML = '<span class="mr-2">...</span> 登出中';
+            this.disabled = true; 
+            // 避免圖標消失，保留結構
+            this.innerHTML = `<span class="card-icon animate-spin">⏳</span><span>登出中...</span>`;
+            
             localStorage.removeItem('auth_token'); 
             localStorage.removeItem('user'); 
             sessionStorage.removeItem('memberDataCache'); 
+            
             showNotification('✅ 登出成功！即將導向首頁...', false);
             setTimeout(() => { window.location.href = INDEX_PAGE_URL; }, 2000);
         });
         
+        // --- 自定義 Alert ---
         function alert(message, callback) { 
             const d = document.createElement('div');
             d.innerHTML = `<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div class="bg-white p-6 rounded-lg shadow-xl"><p class="mb-4 font-bold text-gray-800">${message}</p><button class="bg-vieshow-red text-white px-4 py-2 rounded" onclick="this.closest('.fixed').remove(); if(${callback}) ${callback}()">確定</button></div></div>`;
             document.body.appendChild(d.firstChild);
         }
 
+        // --- 初始化 ---
         document.addEventListener('DOMContentLoaded', async () => {
             const user = checkLoginStatus();
             if (user) {
