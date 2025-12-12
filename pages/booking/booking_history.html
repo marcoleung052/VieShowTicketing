@@ -1,4 +1,382 @@
-<script>
+<!DOCTYPE html>
+
+<html lang="zh-TW">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>歷史訂票紀錄 - Vieshow Ticketing</title>
+
+    
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+
+
+    <script>
+
+        tailwind.config = {
+
+            theme: {
+
+                extend: {
+
+                    colors: {
+
+                        'vieshow-red': '#e50914',
+
+                        'vieshow-gold': '#f7a83d',
+
+                        'vieshow-dark': '#1a1a1a',
+
+                        'success-green': '#10B981',
+
+                    },
+
+                    fontFamily: {
+
+                        sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+
+                    },
+
+                }
+
+            }
+
+        }
+
+    </script>
+
+    
+
+    <style>
+
+        .status-Upcoming { background-color: #f7a83d; color: #fff; }
+
+        .status-Completed { background-color: #10B981; color: #fff; }
+
+        .status-Cancelled { background-color: #4b5563; color: #fff; }
+
+        .modal { transition: opacity 0.3s ease-out; }
+
+        .modal-content { transition: transform 0.3s ease-out, opacity 0.3s ease-out; }
+
+    </style>
+
+</head>
+
+<body class="bg-gray-100 font-sans min-h-screen">
+
+
+
+    <header class="bg-gray-800 text-white shadow-md">
+
+        <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
+
+            <a href="../../index.html" class="text-xl font-bold hover:text-vieshow-red transition duration-300">Vieshow 影城</a>
+
+            <div id="headerNavRight" class="space-x-4 flex items-center">
+
+            </div>
+
+        </nav>
+
+    </header>
+
+
+
+    <div class="container mx-auto px-4 py-10 flex-grow max-w-2xl">
+
+        <div class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl border-t-4 border-vieshow-red">
+
+            <main class="max-w-7xl mx-auto py-4 px-2">
+
+                 <h2 class="text-3xl font-extrabold text-gray-800 mb-2 flex items-center justify-center">
+
+                    🧾 歷史訂票紀錄
+
+                </h2>
+
+                <p class="text-gray-600 text-center mb-6">在此查看您所有的訂票紀錄與詳細資訊。</p>
+
+                
+
+                <div class="bg-white p-4 rounded-xl shadow-none">
+
+                    
+
+                    <div class="flex flex-wrap gap-3 mb-6 border-b pb-4 justify-center sm:justify-start">
+
+                        <button class="filter-btn bg-vieshow-red text-white font-medium py-2 px-4 rounded-full text-sm transition" data-status="all">全部訂單</button>
+
+                        <button class="filter-btn bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium py-2 px-4 rounded-full text-sm transition" data-status="Upcoming">待觀影</button>
+
+                        <button class="filter-btn bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium py-2 px-4 rounded-full text-sm transition" data-status="Completed">已完成</button>
+
+                        <button class="filter-btn bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium py-2 px-4 rounded-full text-sm transition" data-status="Cancelled">已取消/退票</button>
+
+                    </div>
+
+
+
+                    <div id="loadingMessage" class="text-center py-10 text-gray-500 hidden">
+
+                        <p>正在載入訂單資料...</p>
+
+                    </div>
+
+
+
+                    <ul id="ordersList" class="space-y-6">
+
+                    </ul>
+
+
+
+                    <div id="noOrdersMessage" class="hidden text-center py-10 text-gray-500">
+
+                        <p>找不到符合篩選條件的訂單紀錄。</p>
+
+                    </div>
+
+
+
+                    <div id="pagination" class="flex justify-center mt-8 space-x-2">
+
+                    </div>
+
+                </div>
+
+            </main>
+
+        </div>
+
+    </div>
+
+        
+
+    <div id="detailModal" class="modal fixed inset-0 bg-black bg-opacity-70 z-40 hidden flex items-center justify-center p-4" aria-hidden="true" role="dialog" aria-modal="true">
+
+        <div id="detailModalContent" class="bg-white rounded-xl shadow-2xl max-w-xl w-full transform -translate-y-full modal-content p-6 relative max-h-[90vh] overflow-y-auto">
+
+            
+
+            <button onclick="closeModal('detailModal')" 
+
+                class="absolute top-4 right-4 text-vieshow-red hover:text-red-700 text-3xl leading-none transition-colors" 
+
+                type="button">
+
+                &times;
+
+            </button>
+
+            <div id="orderDetailContent">
+
+                </div>
+
+        </div>
+
+    </div>
+
+
+
+    <div id="modificationModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-4">
+
+        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full transform scale-95 transition-all duration-300 relative" 
+
+            id="modificationModalContent">
+
+            
+
+            <div class="p-6">
+
+                <h3 class="text-2xl font-bold text-gray-900 mb-4 border-b pb-2">訂單修改與退票申請</h3>
+
+                
+
+                <div id="step1" class="space-y-4">
+
+                    <p class="text-sm text-gray-600 mb-4">請調整您想**取消/退票**的數量。**退票後將無法恢復。**</p>
+
+
+
+                    <h4 class="font-semibold text-gray-800 mb-2">票券 (目前總數: <span id="totalTicketsQty">0</span> 張)</h4>
+
+                    <div id="ticketAdjustments" class="space-y-2">
+
+                        <p class="text-gray-500 text-sm p-3">載入中...</p>
+
+                    </div>
+
+
+
+                    <h4 class="font-semibold text-gray-800 mb-2 pt-4 border-t">餐點 (目前總數: <span id="totalCombosQty">0</span> 份)</h4>
+
+                    <div id="comboAdjustments" class="space-y-2">
+
+                        <p class="text-gray-500 text-sm p-3">載入中...</p>
+
+                    </div>
+
+                    
+
+                    <div class="text-right font-bold text-lg pt-4 border-t-2 border-vieshow-red">
+
+                        預計退款金額：NT$ <span id="expectedRefundAmount">0</span>
+
+                    </div>
+
+
+
+                    <div class="flex justify-end pt-2">
+
+                        <button onclick="goToStep2()" id="nextStepBtn" disabled
+
+                                class="bg-gray-400 text-white font-bold py-2 px-4 rounded-lg transition duration-300 cursor-not-allowed">
+
+                            下一步：填寫退款資訊
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+
+                <div id="step2" class="space-y-4 hidden">
+
+                    <h4 class="text-xl font-bold text-gray-900 mb-4">退款銀行帳號資訊</h4>
+
+                    <p class="text-sm text-red-500 mb-4">請仔細核對，退款將轉入以下帳戶。</p>
+
+                    
+
+                    <div>
+
+                        <label class="block text-sm font-medium text-gray-700">銀行代碼 (e.g. 004 台灣銀行)</label>
+
+                        <input type="text" id="bankCode" placeholder="請輸入三碼銀行代碼" maxlength="3" class="mt-1 w-full border border-gray-300 rounded p-2 focus:ring-vieshow-red focus:border-vieshow-red" pattern="\d{3}">
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-medium text-gray-700">銀行帳號</label>
+
+                        <input type="text" id="bankAccount" placeholder="請輸入完整帳號" class="mt-1 w-full border border-gray-300 rounded p-2 focus:ring-vieshow-red focus:border-vieshow-red">
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-medium text-gray-700">戶名 (與帳號一致)</label>
+
+                        <input type="text" id="accountName" placeholder="請輸入戶名" class="mt-1 w-full border border-gray-300 rounded p-2 focus:ring-vieshow-red focus:border-vieshow-red">
+
+                    </div>
+
+                    
+
+                    <div class="flex justify-between pt-4">
+
+                        <button onclick="goToStep1()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300">
+
+                            ← 上一步
+
+                        </button>
+
+                        <button onclick="submitRefundApplication()"
+
+                                class="bg-vieshow-red hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+
+                            確認送出退票申請
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+
+                <div id="step3" class="space-y-4 hidden text-center">
+
+                    <div class="w-16 h-16 bg-vieshow-gold rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+
+                    </div>
+
+                    <h4 class="text-xl font-bold text-gray-900 mb-2">申請已送出！</h4>
+
+                    <p class="text-lg text-vieshow-red font-extrabold">預計退款金額：NT$ <span id="finalRefundAmount">0</span></p>
+
+                    
+
+                    <p class="text-gray-700 mt-4">
+
+                        您的退款申請已成功送出。款項將於 **5 至 7 個工作天** 轉帳至您提供的銀行帳戶。
+
+                    </p>
+
+                    <p class="text-sm text-gray-500">
+
+                        實際入帳時間將視銀行處理速度而定，若有疑問請聯繫客服。
+
+                    </p>
+
+                    
+
+                    <div class="flex justify-center pt-6">
+
+                        <button onclick="closeModificationModal()"
+
+                                class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+
+                            關閉視窗
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+                
+
+                <button onclick="closeModificationModal()" 
+
+                        class="absolute top-3 right-3 text-vieshow-red hover:text-red-700 text-3xl leading-none transition-colors" 
+
+                        type="button">
+
+                    &times;
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <footer class="bg-gray-800 text-white p-4 mt-auto text-center text-sm">
+
+        <p class="text-gray-400">&copy; 2025 Vieshow Ticketing System.</p>
+
+    </footer>
+
+
+
+    <script>
         const API_BASE_URL = 'https://marcoleung052-vieshow-backend.hf.space/api';
         const LOGIN_PAGE_URL = '../auth/login.html';
         const MEMBER_HOME_URL = '../member/member_home.html';
@@ -281,3 +659,7 @@
             fetchOrders();
         });
     </script>
+
+</body>
+
+</html>
