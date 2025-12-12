@@ -162,7 +162,7 @@
                         <span>首頁</span>
                     </a>
 
-                    <a href="../booking/booking_flow_1.html" onclick="sessionStorage.removeItem('preSelectedMovie');" class="menu-card card-red">
+                    <a href="javascript:void(0)" onclick="goToBookingReset()" class="menu-card card-red">
                         <span class="card-icon">🎫</span>
                         <span>立即訂票</span>
                     </a>
@@ -331,7 +331,17 @@
                 window.location.href = INDEX_PAGE_URL;
             });
         });
-        
+        function goToBookingReset() {
+            // 1. 清除預選電影 (關鍵)
+            sessionStorage.removeItem('preSelectedMovie');
+            
+            // 2. 清除之前的訂單暫存 (可選，視需求而定，但清除比較乾淨)
+            localStorage.removeItem('currentBooking');
+            sessionStorage.removeItem('returnFromStep2Data');
+
+            // 3. 跳轉
+            window.location.href = '../booking/booking_flow_1.html';
+        }
         // --- 修正後的自定義 Alert 函式 ---
         function alert(message, callback) { 
             // 1. 建立外層容器
@@ -371,6 +381,8 @@
                 await fetchAndRenderMemberData(user.id);
             }
         });
+        
     </script>
 </body>
 </html>
+
