@@ -208,24 +208,40 @@
         function renderShowtimesList(showtimes) {
             const container = document.getElementById('showtimes-list');
             
-            if (showtimes.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-10 bg-gray-50 rounded-lg border border-gray-200">
-                        <p class="text-xl text-gray-600 mb-2 font-bold">😢 查無場次</p>
-                        <p class="text-sm text-gray-500">請嘗試更改搜尋條件或選擇其他日期。</p>
-                    </div>`;
-                return;
-            }
+            // 1. 取得現在時間 (為了精確比對，我們需要完整的 Date 物件)
+            const now = new Date();
 
             // 分組邏輯
             const grouped = {};
             showtimes.forEach(s => {
+                // 檢查此場次是否已過期
+                // 假設 s.date 格式為 'YYYY/MM/DD'，s.time 格式為 'HH:mm'
+                // 如果是今天，才需要比對時間；如果是未來的日期，全部保留
+                // 為了保險，我們統一轉成 Date 物件比對
+                const showtimeDateStr = s.date.replace(/\//g, '-') + 'T' + s.time + ':00'; 
+                const showtimeDate = new Date(showtimeDateStr);
+                
+                // 如果場次時間 < 現在時間，則跳過 (不顯示)
+                if (showtimeDate < now) {
+                    return; 
+                }
+
                 const key = `${s.movieId}-${s.cinemaId}-${s.date}-${s.format}-${s.theater}`;
                 if (!grouped[key]) {
                     grouped[key] = { ...s, times: [] };
                 }
                 grouped[key].times.push({ time: s.time, id: s.id });
             });
+
+            // 如果過濾後沒有任何場次
+            if (Object.keys(grouped).length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-10 bg-gray-50 rounded-lg border border-gray-200">
+                        <p class="text-xl text-gray-600 mb-2 font-bold">😢 查無場次</p>
+                        <p class="text-sm text-gray-500">可能今日場次已播映完畢，請嘗試選擇其他日期。</p>
+                    </div>`;
+                return;
+            }
 
             const html = Object.values(grouped).map(group => `
                 <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-vieshow-red hover:shadow-lg transition duration-300">
@@ -325,4 +341,5 @@
     </script>
 </body>
 </html>
+
 
