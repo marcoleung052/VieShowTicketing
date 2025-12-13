@@ -229,6 +229,7 @@
             document.getElementById('signOutLink')?.addEventListener('click', (e) => {
                 e.preventDefault(); 
                 localStorage.removeItem('auth_token'); 
+                window.location.reload();
                 // ★★★ 在登出時呼叫 Chatbot 的重置函式 ★★★
                 if (window.resetChatSession) window.resetChatSession(); 
                 alert('已登出', () => window.location.href = INDEX_PAGE_URL);
@@ -415,5 +416,6 @@
     </script>
 </body>
 </html>
+
 
 
