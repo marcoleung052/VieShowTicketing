@@ -263,15 +263,10 @@
         }
 
         function goToBooking(showingId, movieName, time, cinemaId, date, theater, format, movieId) {
-             if (!localStorage.getItem('auth_token')) {
-                return alert('請先登入', () => {
-                    const currentUrl = encodeURIComponent(window.location.href);
-                    window.location.href = `${LOGIN_PAGE_URL}?redirect=${currentUrl}`;
-                });
-            }
-
+            
             const cinemaName = locationMap[cinemaId] || '指定影城';
 
+            // 1. 先建立訂票資料物件
             const bookingData = {
                 cinema: { id: cinemaId, name: cinemaName }, 
                 movie: { id: movieId, title: movieName },
@@ -279,11 +274,25 @@
                 ticketType: 'general', tickets: {}, combos: {}, totalPrice: 0, totalTicketQty: 0
             };
             
+            // 2. 存入 localStorage (無論是否登入都要存，因為登入後需要讀取)
             localStorage.setItem('currentBooking', JSON.stringify(bookingData));
             
-            // 清除之前的返回標記，確保是新訂單
+            // 3. 清除舊的返回標記
             sessionStorage.removeItem('returnFromStep2Data');
+
+            // 4. 檢查登入狀態
+            if (!localStorage.getItem('auth_token')) {
+                return alert('請先登入', () => {
+                    // 設定登入後的跳轉目標為 booking_flow_2.html
+                    // 注意路徑層級：login.html 在 pages/auth/，booking_flow_2 在 pages/booking/
+                    // 相對路徑應為 ../booking/booking_flow_2.html
+                    const targetUrl = '../booking/booking_flow_2.html';
+                    const redirectUrl = encodeURIComponent(targetUrl);
+                    window.location.href = `${LOGIN_PAGE_URL}?redirect=${redirectUrl}`;
+                });
+            }
             
+            // 5. 已登入，直接跳轉
             window.location.href = '../../pages/booking/booking_flow_2.html';
         }
 
@@ -316,3 +325,4 @@
     </script>
 </body>
 </html>
+
