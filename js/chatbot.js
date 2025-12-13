@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => {
                     chatWindow.classList.remove('scale-95', 'opacity-0');
                     chatWindow.classList.add('scale-100', 'opacity-100');
-                    scrollToBottom(); // 打開時也要捲到底部
+                    scrollToBottom(); // ★★★ 打開時也要捲到底部 ★★★
                 }, 10);
             }
         }
