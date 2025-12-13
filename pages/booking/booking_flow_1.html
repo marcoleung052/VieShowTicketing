@@ -348,7 +348,7 @@
                 
                 // 【關鍵修正】檢查是否有海報，如果沒有，自動從後端補齊資料
                 // 這解決了「上一步」或從首頁快搜進來時，電影卡片沒有圖片的問題
-                if (!preMovie.posterUrl) {
+                if (!preMovie.posterUrl || !preMovie.grade || !preMovie.genre || !preMovie.duration) {
                     try {
                         console.log("正在補齊電影詳細資料...");
                         const res = await fetch(`${API_BASE_URL}/movie/${preMovie.id}`);
@@ -787,3 +787,4 @@
     </script>
 </body>
 </html>
+
