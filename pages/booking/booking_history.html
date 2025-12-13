@@ -263,18 +263,32 @@
 
         // --- 渲染卡片 (列表) ---
         function renderOrderCard(order) {
+            // ---【修改開始】前端時間判斷邏輯 ---
+            // 取得現在時間
+            const now = new Date();
+            
+            // 嘗試解析訂單的場次時間 (格式通常是 YYYY/MM/DD HH:mm)
+            // 為了安全起見，我們將日期分隔符統一轉為標準格式
+            const showtimeStr = `${order.date} ${order.time}`.replace(/\//g, '-');
+            const showtimeDate = new Date(showtimeStr);
+
+            // 如果原本狀態是 Upcoming (待觀影)，但時間已經過了，就強制改為 Completed (已完成)
+            let displayStatus = order.status;
+            if (displayStatus === 'Upcoming' && !isNaN(showtimeDate) && showtimeDate < now) {
+                displayStatus = 'Completed';
+            }
+            // ---【修改結束】---
+
             let statusConfig = { 
                 'Upcoming': { text: '待觀影', class: 'bg-vieshow-gold text-white', icon: '🕒' }, 
                 'Completed': { text: '已完成', class: 'bg-green-500 text-white', icon: '✅' }, 
                 'Cancelled': { text: '已取消', class: 'bg-gray-400 text-white', icon: '🚫' } 
-            }[order.status] || { text: order.status, class: 'bg-gray-500 text-white', icon: '?' };
+            }[displayStatus] || { text: displayStatus, class: 'bg-gray-500 text-white', icon: '?' };
             
-            // 【修改點】按鈕樣式與行為統一
             let actionBtn = `<button onclick="openOrderDetailModal('${order.id}')" class="bg-white border border-gray-200 text-gray-600 hover:text-vieshow-red hover:border-vieshow-red px-5 py-2 rounded-lg text-sm font-bold transition shadow-sm flex items-center">
                     查看詳情
                 </button>`;
 
-            // 餐點摘要
             let foodSummary = '';
             if (order.food && order.food.length > 0) {
                 foodSummary = `<div class="flex items-center text-xs text-gray-500 mt-2 bg-gray-50 p-2 rounded w-fit">
@@ -285,7 +299,7 @@
             return `
                 <li class="order-card-container list-none mb-6"> 
                     <div class="bg-white border border-gray-100 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden flex flex-col md:flex-row relative">
-                        <div class="absolute left-0 top-0 bottom-0 w-2 ${order.status === 'Upcoming' ? 'bg-vieshow-gold' : (order.status === 'Completed' ? 'bg-green-500' : 'bg-gray-400')}"></div>
+                        <div class="absolute left-0 top-0 bottom-0 w-2 ${displayStatus === 'Upcoming' ? 'bg-vieshow-gold' : (displayStatus === 'Completed' ? 'bg-green-500' : 'bg-gray-400')}"></div>
                         
                         <div class="p-6 pl-8 flex-grow">
                             <div class="flex flex-wrap items-center gap-3 mb-3">
@@ -696,6 +710,7 @@
     </script>
 </body>
 </html>
+
 
 
 
