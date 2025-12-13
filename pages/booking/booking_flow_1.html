@@ -611,16 +611,14 @@
         const date = allSortedDates[currentDateIndex];
         const rawShowtimes = currentMovieShowtimesGrouped[date];
         
-        // 1. Get current date and time for comparison
+        // 1. 取得現在的時間資訊
         const now = new Date();
-        // Format today's date as YYYY/MM/DD to match the data format if necessary, 
-        // or rely on date object comparison.
-        // Creating a "start of today" date string for comparison might be safer depending on format
+        // 將今天格式化為 YYYY/MM/DD (注意月份從0開始所以要+1，並補0)
         const todayStr = now.getFullYear() + '/' + 
                          (now.getMonth() + 1).toString().padStart(2, '0') + '/' + 
                          now.getDate().toString().padStart(2, '0');
         
-        // Convert current time to minutes for easy integer comparison
+        // 計算現在是今天的第幾分鐘 (例如 10:30 = 10*60 + 30 = 630)
         const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
         const section = document.createElement('div'); 
@@ -629,25 +627,25 @@
         const grid = document.createElement('div'); 
         grid.className = 'showtime-grid';
         
-        let hasVisibleShowtimes = false; // Flag to track if we render any showtimes for this date
+        let hasVisibleShowtimes = false; // 用來追蹤這一天是否有「未過期」的場次
 
         const isGroupTicket = currentSelections.ticketType === 'group';
         const GROUP_MIN_SEATS = 10;
 
         rawShowtimes.forEach(s => {
-            // Check if the showtime is for today
-            // Assuming s.date is formatted like "YYYY/MM/DD" or similar consistent string
+            // 2. 時間過濾邏輯
+            // 假設 s.date 的格式是 "YYYY/MM/DD"
             if (s.date === todayStr) {
                 const [hours, minutes] = s.time.split(':').map(Number);
                 const showtimeMinutes = hours * 60 + minutes;
 
-                // If showtime is earlier than current time, skip it
+                // 如果場次時間早於現在時間，就跳過這個場次
                 if (showtimeMinutes < currentMinutes) {
-                    return;
+                    return; 
                 }
             }
 
-            // If we make it here, the showtime is valid to display
+            // 只要程式跑到這裡，代表這個場次是有效的（未來的或是今天的晚點場次）
             hasVisibleShowtimes = true;
 
             const available = s.availableSeats !== undefined ? s.availableSeats : 96; 
@@ -688,7 +686,8 @@
             grid.appendChild(card);
         });
 
-        // Only append the section if there are visible showtimes
+        // 3. 只有當這一天有場次顯示時，才把這區塊加到頁面上
+        // 避免顯示了日期標題，下面卻沒有任何場次（因為都過期了）
         if (hasVisibleShowtimes) {
             section.appendChild(grid);
             showtimeSelection.appendChild(section);
@@ -697,6 +696,7 @@
         currentDateIndex++;
         renderLoadMoreButton();
     }
+        
     function renderLoadMoreButton() {
         loadMoreContainer.innerHTML = ''; 
         if (currentDateIndex < allSortedDates.length) {
@@ -818,6 +818,7 @@
     </script>
 </body>
 </html>
+
 
 
 
