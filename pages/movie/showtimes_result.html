@@ -85,19 +85,11 @@
         const LOGIN_PAGE_URL = '../../pages/auth/login.html';
         const MEMBER_HOME_URL = '../../pages/member/member_home.html';
 
-        // 地點名稱對應表 (ID -> 中文名)
+        // 地點名稱對應表 (ID -> 中文名，僅作後備用)
         const locationMap = {
-            '01': '台北信義威秀影城',
-            '02': '台北京站威秀影城',
-            '03': '板橋大遠百威秀影城',
-            '04': '新竹巨城威秀影城',
-            '05': '台中大遠百威秀影城',
-            '06': '台中TIGER CITY威秀影城',
-            '07': '台南南紡威秀影城',
-            '08': '高雄大遠百威秀影城',
-            'taipei': '台北信義威秀影城', // 容錯
-            'taichung': '台中大遠百威秀影城',
-            'kaohsiung': '高雄大遠百威秀影城'
+            '01': '台北信義威秀影城', '02': '台北京站威秀影城', '03': '板橋大遠百威秀影城',
+            '04': '新竹巨城威秀影城', '05': '台中大遠百威秀影城', '06': '台中TIGER CITY威秀影城',
+            '07': '台南南紡威秀影城', '08': '高雄大遠百威秀影城'
         };
 
         // --- UI 狀態 ---
@@ -123,10 +115,10 @@
             const movieId = params.get('movie');
             const date = params.get('date');
 
-            // 1. 先渲染基本的搜尋條件 (如果還不知道電影名，先不顯示電影 ID，或顯示載入中)
+            // 1. 先渲染基本的搜尋條件
             renderSearchCriteria(locationId, null, date); 
 
-            // 2. 載入資料並更新 UI (包含獲取正確電影名稱)
+            // 2. 載入資料
             await loadShowtimes(locationId, movieId, date);
         }
 
@@ -135,7 +127,6 @@
             container.innerHTML = '<div class="text-center py-10"><div class="animate-spin h-8 w-8 border-4 border-vieshow-red border-t-transparent rounded-full mx-auto mb-2"></div><p class="text-gray-500">正在搜尋場次...</p></div>';
 
             try {
-                // 建構 API 參數
                 const queryParams = new URLSearchParams();
                 if (locationId) queryParams.append('location', locationId);
                 if (movieId) queryParams.append('movie', movieId);
@@ -148,16 +139,9 @@
                 
                 // --- 智慧更新標題 ---
                 let movieName = null;
-
-                if (showtimes.length > 0) {
-                    // 如果有場次，直接拿第一筆資料的電影名稱
-                    // 如果有篩選電影ID，所有結果的電影名稱應該都一樣
-                    // 如果沒篩選電影ID，這裡顯示「多部電影」或不顯示
-                    if (movieId) {
-                        movieName = showtimes[0].movieName;
-                    }
+                if (showtimes.length > 0 && movieId) {
+                    movieName = showtimes[0].movieName;
                 } else if (movieId) {
-                    // 如果查無場次但有指定電影 ID，額外呼叫 API 查片名，以免顯示 ID
                     try {
                         const mRes = await fetch(`${API_BASE_URL}/movie/${movieId}`);
                         if (mRes.ok) {
@@ -167,12 +151,9 @@
                     } catch(e) {}
                 }
 
-                // 重新渲染標題，這次帶入正確的電影名稱
                 renderSearchCriteria(locationId, movieName, date);
-
-                // 過濾日期 (如果後端沒支援日期過濾，前端補強)
-                const filteredShowtimes = date ? showtimes.filter(s => s.date === date.replace(/-/g, '/')) : showtimes;
                 
+                const filteredShowtimes = date ? showtimes.filter(s => s.date === date.replace(/-/g, '/')) : showtimes;
                 renderShowtimesList(filteredShowtimes);
 
             } catch (e) {
@@ -185,22 +166,16 @@
             const criteriaDiv = document.getElementById('search-criteria');
             let html = '';
             
-            // 顯示影城名稱 (查表)
             if (locId) {
                 const name = locationMap[locId] || `影城(${locId})`;
                 html += `<span class="bg-gray-100 text-gray-700 font-bold px-3 py-1 rounded-full text-sm border border-gray-200">📍 ${name}</span>`;
             }
-            
-            // 顯示電影名稱 (如果有的話)
             if (movieName) {
                 html += `<span class="bg-red-50 text-vieshow-red font-bold px-3 py-1 rounded-full text-sm border border-red-100">🎬 ${movieName}</span>`;
             }
-            
-            // 顯示日期
             if (dateStr) {
                 html += `<span class="bg-yellow-50 text-yellow-700 font-bold px-3 py-1 rounded-full text-sm border border-yellow-200">📅 ${dateStr}</span>`;
             }
-            
             if (!html) html = '<span class="text-gray-500">顯示所有場次</span>';
             criteriaDiv.innerHTML = html;
         }
@@ -208,23 +183,17 @@
         function renderShowtimesList(showtimes) {
             const container = document.getElementById('showtimes-list');
             
-            // 1. 取得現在時間 (為了精確比對，我們需要完整的 Date 物件)
+            // 1. 取得現在時間 (為了精確比對)
             const now = new Date();
 
             // 分組邏輯
             const grouped = {};
             showtimes.forEach(s => {
-                // 檢查此場次是否已過期
-                // 假設 s.date 格式為 'YYYY/MM/DD'，s.time 格式為 'HH:mm'
-                // 如果是今天，才需要比對時間；如果是未來的日期，全部保留
-                // 為了保險，我們統一轉成 Date 物件比對
+                // 時間過濾
                 const showtimeDateStr = s.date.replace(/\//g, '-') + 'T' + s.time + ':00'; 
                 const showtimeDate = new Date(showtimeDateStr);
                 
-                // 如果場次時間 < 現在時間，則跳過 (不顯示)
-                if (showtimeDate < now) {
-                    return; 
-                }
+                if (showtimeDate < now) { return; }
 
                 const key = `${s.movieId}-${s.cinemaId}-${s.date}-${s.format}-${s.theater}`;
                 if (!grouped[key]) {
@@ -233,7 +202,6 @@
                 grouped[key].times.push({ time: s.time, id: s.id });
             });
 
-            // 如果過濾後沒有任何場次
             if (Object.keys(grouped).length === 0) {
                 container.innerHTML = `
                     <div class="text-center py-10 bg-gray-50 rounded-lg border border-gray-200">
@@ -266,7 +234,7 @@
                     <h4 class="font-bold text-gray-700 mb-3 text-sm uppercase tracking-wider">選擇場次時間</h4>
                     <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
                         ${group.times.map(t => `
-                            <button onclick="goToBooking('${t.id}', '${group.movieName}', '${t.time}', '${group.cinemaId}', '${group.date}', '${group.theater}', '${group.format}', '${group.movieId}')" 
+                            <button onclick="goToBooking('${t.id}', '${group.movieName}', '${t.time}', '${group.cinemaId}', '${group.date}', '${group.theater}', '${group.format}', '${group.movieId}', '${group.cinemaName}')" 
                                     class="showtime-button py-2 rounded-lg font-bold text-lg hover:bg-vieshow-red hover:text-white hover:border-vieshow-red transition shadow-sm border border-gray-300 text-gray-700">
                                 ${t.time}
                             </button>
@@ -278,11 +246,12 @@
             container.innerHTML = html;
         }
 
-        function goToBooking(showingId, movieName, time, cinemaId, date, theater, format, movieId) {
+        // 【修正】增加 passedCinemaName 參數
+        function goToBooking(showingId, movieName, time, cinemaId, date, theater, format, movieId, passedCinemaName) {
             
-            const cinemaName = locationMap[cinemaId] || '指定影城';
+            // 優先使用後端回傳的名稱，如果沒有則查表，再沒有則顯示預設
+            const cinemaName = passedCinemaName || locationMap[cinemaId] || '指定影城';
 
-            // 1. 先建立訂票資料物件
             const bookingData = {
                 cinema: { id: cinemaId, name: cinemaName }, 
                 movie: { id: movieId, title: movieName },
@@ -290,29 +259,20 @@
                 ticketType: 'general', tickets: {}, combos: {}, totalPrice: 0, totalTicketQty: 0
             };
             
-            // 2. 存入 localStorage (無論是否登入都要存，因為登入後需要讀取)
             localStorage.setItem('currentBooking', JSON.stringify(bookingData));
-            
-            // 3. 清除舊的返回標記
             sessionStorage.removeItem('returnFromStep2Data');
 
-            // 4. 檢查登入狀態
             if (!localStorage.getItem('auth_token')) {
                 return alert('請先登入', () => {
-                    // 設定登入後的跳轉目標為 booking_flow_2.html
-                    // 注意路徑層級：login.html 在 pages/auth/，booking_flow_2 在 pages/booking/
-                    // 相對路徑應為 ../booking/booking_flow_2.html
                     const targetUrl = '../booking/booking_flow_2.html';
                     const redirectUrl = encodeURIComponent(targetUrl);
                     window.location.href = `${LOGIN_PAGE_URL}?redirect=${redirectUrl}`;
                 });
             }
             
-            // 5. 已登入，直接跳轉
             window.location.href = '../../pages/booking/booking_flow_2.html';
         }
 
-        // 自定義 Alert
         function customAlert(message, callback) { 
             const existingModal = document.getElementById('custom-alert-modal');
             if (existingModal) existingModal.remove();
@@ -341,5 +301,6 @@
     </script>
 </body>
 </html>
+
 
 
