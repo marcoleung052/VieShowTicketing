@@ -464,11 +464,14 @@
         }
 
         // 【新增/修正】返回 Flow 1 時，將當前選擇的票種/影城傳回去
+        // 在 booking_flow_2.html 中
         function handleBackToFlow1() {
             if (currentBookingData?.cinema?.id && currentBookingData.ticketType) {
+                // 儲存當前選擇的票務類型、影城 ID、以及電影 ID (新增 movieId)
                 sessionStorage.setItem('returnFromStep2Data', JSON.stringify({
                     ticketType: currentBookingData.ticketType,
-                    cinemaId: currentBookingData.cinema.id
+                    cinemaId: currentBookingData.cinema.id,
+                    movieId: currentBookingData.movie.id // <--- 關鍵新增
                 }));
             }
             window.location.href = 'booking_flow_1.html';
@@ -568,3 +571,4 @@
     </footer>
 </body>
 </html>
+
