@@ -593,7 +593,28 @@
             currentMovieShowtimesGrouped[s.date].push(s);
         });
         
-        allSortedDates = Object.keys(currentMovieShowtimesGrouped).sort();
+        // ---【修改開始】日期排序與過濾邏輯 ---
+        
+        // 1. 取得今天的日期物件 (時間設為 00:00:00 以便比較日期)
+        const todayDate = new Date();
+        todayDate.setHours(0, 0, 0, 0);
+
+        // 2. 取得所有日期 -> 排序 -> 過濾掉早於今天的日期
+        allSortedDates = Object.keys(currentMovieShowtimesGrouped).sort().filter(dateStr => {
+            // 將日期字串 (YYYY-MM-DD 或 YYYY/MM/DD) 轉為 Date 物件
+            const d = new Date(dateStr.replace(/\//g, '-')); 
+            // 只保留 今天 或 未來 的日期
+            return d >= todayDate;
+        });
+
+        // 3. 防呆：如果過濾後發現沒有任何將來的場次
+        if (allSortedDates.length === 0) {
+            showtimeSelection.innerHTML = '<div style="text-align:center; padding:2rem;">此電影近日無場次</div>';
+            showtimeSelectionSection.classList.remove('hidden');
+            return;
+        }
+        // ---【修改結束】---
+
         currentDateIndex = 0;
         
         showtimeSelection.innerHTML = ''; 
@@ -602,7 +623,6 @@
         showtimeSelectionSection.classList.remove('hidden');
         updateStepIndicator(3);
     }
-
     function renderNextDay() {
         if (currentDateIndex >= allSortedDates.length) return;
 
@@ -816,6 +836,7 @@
     </script>
 </body>
 </html>
+
 
 
 
