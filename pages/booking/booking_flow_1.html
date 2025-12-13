@@ -611,19 +611,40 @@
         const date = allSortedDates[currentDateIndex];
         const rawShowtimes = currentMovieShowtimesGrouped[date];
         
+        // 1. 取得現在的時間 (精確到分鐘)
+        const now = new Date();
+        const nowDateTime = now.getFullYear() + '/' + (now.getMonth() + 1).toString().padStart(2, '0') + '/' + now.getDate().toString().padStart(2, '0') + ' ' + now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
         const section = document.createElement('div'); 
         section.className = 'date-section';
         section.innerHTML = `<h4 class="date-header">${date}</h4>`;
         const grid = document.createElement('div'); 
         grid.className = 'showtime-grid';
-        section.appendChild(grid);
         
-        showtimeSelection.appendChild(section);
+        let hasVisibleShowtimes = false; // 追蹤是否有未過期的場次
 
         const isGroupTicket = currentSelections.ticketType === 'group';
         const GROUP_MIN_SEATS = 10;
 
         rawShowtimes.forEach(s => {
+            
+            // 2. 判斷場次是否已過期 (只過濾今天的場次)
+            const showtimeDateTimeStr = s.date + ' ' + s.time;
+            const isToday = showtimeDateTimeStr.split(' ')[0] === nowDateTime.split(' ')[0];
+            
+            if (isToday) {
+                const showtimeTimeParts = s.time.split(':');
+                const showtimeMinutes = parseInt(showtimeTimeParts[0]) * 60 + parseInt(showtimeTimeParts[1]);
+                
+                // 如果是今天，且場次時間早於現在時間，則跳過
+                if (showtimeMinutes < nowMinutes) {
+                    return; 
+                }
+            }
+            
+            hasVisibleShowtimes = true; // 發現一個未過期場次，設置標記
+
             const available = s.availableSeats !== undefined ? s.availableSeats : 96; 
             const isTooFew = isGroupTicket && available < GROUP_MIN_SEATS;
             const isFull = available <= 0;
@@ -661,11 +682,17 @@
             }
             grid.appendChild(card);
         });
+        
+        section.appendChild(grid);
+        
+        // 3. 只有當該日期有未過期場次時才顯示區塊
+        if (hasVisibleShowtimes) {
+            showtimeSelection.appendChild(section);
+        }
 
         currentDateIndex++;
         renderLoadMoreButton();
     }
-
     function renderLoadMoreButton() {
         loadMoreContainer.innerHTML = ''; 
         if (currentDateIndex < allSortedDates.length) {
@@ -787,4 +814,5 @@
     </script>
 </body>
 </html>
+
 
