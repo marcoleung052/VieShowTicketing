@@ -565,6 +565,7 @@
     }
 
     function selectMovie(movie) {
+        // UI 狀態更新
         document.querySelectorAll('.movie-card').forEach(c => c.classList.remove('selected'));
         let card = document.querySelector(`.movie-card[data-movie-id="${movie.id}"]`);
         if (!card) { renderSingleMovieCard(movie); card = document.querySelector(`.movie-card[data-movie-id="${movie.id}"]`); }
@@ -579,6 +580,7 @@
         
         if (!currentSelections.cinema) return;
 
+        // 取得該電影在該影城的所有場次
         const myShowtimes = cinemaRawShowtimes.filter(s => s.movieId === movie.id);
         
         if (myShowtimes.length === 0) {
@@ -587,38 +589,83 @@
             return;
         }
 
+        // 分組
         currentMovieShowtimesGrouped = {};
         myShowtimes.forEach(s => {
             if (!currentMovieShowtimesGrouped[s.date]) currentMovieShowtimesGrouped[s.date] = [];
             currentMovieShowtimesGrouped[s.date].push(s);
         });
         
-        // ---【修改開始】日期排序與過濾邏輯 ---
+        // ---【修改重點開始】日期過濾與跳轉邏輯 ---
         
-        // 1. 取得今天的日期物件 (時間設為 00:00:00 以便比較日期)
-        const todayDate = new Date();
-        todayDate.setHours(0, 0, 0, 0);
+        // 1. 準備時間物件
+        const now = new Date();
+        // 取得今天的 "日期" (時間歸零，用於比較日期)
+        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        // 取得現在的分鐘數 (用於比較同日期的時間)
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-        // 2. 取得所有日期 -> 排序 -> 過濾掉早於今天的日期
-        allSortedDates = Object.keys(currentMovieShowtimesGrouped).sort().filter(dateStr => {
-            // 將日期字串 (YYYY-MM-DD 或 YYYY/MM/DD) 轉為 Date 物件
+        // 2. 取得所有日期並排序
+        let rawDates = Object.keys(currentMovieShowtimesGrouped).sort();
+        
+        allSortedDates = [];
+        let isTodaySkipped = false; // 標記：今天是否因為沒場次而被跳過
+
+        rawDates.forEach(dateStr => {
+            // 將 dateStr (YYYY/MM/DD) 轉為 Date 物件
             const d = new Date(dateStr.replace(/\//g, '-')); 
-            // 只保留 今天 或 未來 的日期
-            return d >= todayDate;
+            
+            // 情況 A: 過去的日期 -> 直接捨棄
+            if (d < todayDate) return;
+
+            // 情況 B: 未來的日期 -> 保留
+            if (d > todayDate) {
+                allSortedDates.push(dateStr);
+                return;
+            }
+
+            // 情況 C: 就是今天 -> 檢查是否還有剩餘場次
+            if (d.getTime() === todayDate.getTime()) {
+                const shows = currentMovieShowtimesGrouped[dateStr];
+                // 檢查是否至少有一個場次的時間晚於現在
+                const hasFutureShow = shows.some(s => {
+                    const [h, m] = s.time.split(':').map(Number);
+                    return (h * 60 + m) > currentMinutes;
+                });
+
+                if (hasFutureShow) {
+                    allSortedDates.push(dateStr); // 還有場次，保留今天
+                } else {
+                    isTodaySkipped = true; // 今天場次都過了，標記跳過
+                }
+            }
         });
 
-        // 3. 防呆：如果過濾後發現沒有任何將來的場次
+        // 3. UI 顯示處理
+        showtimeSelection.innerHTML = ''; 
+
         if (allSortedDates.length === 0) {
-            showtimeSelection.innerHTML = '<div style="text-align:center; padding:2rem;">此電影近日無場次</div>';
+            showtimeSelection.innerHTML = '<div style="text-align:center; padding:2rem;">此電影近日已無可預訂場次</div>';
             showtimeSelectionSection.classList.remove('hidden');
             return;
         }
-        // ---【修改結束】---
+
+        // 如果今天被跳過了 (代表今天原本有資料但過期了)，顯示提示訊息
+        if (isTodaySkipped) {
+            showtimeSelection.innerHTML = `
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4 rounded shadow-sm flex items-center animate-pulse">
+                    <svg class="w-6 h-6 text-yellow-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div>
+                        <p class="font-bold text-yellow-700">今日場次已播映完畢</p>
+                        <p class="text-sm text-yellow-600">系統已自動為您顯示 <span class="font-bold text-yellow-800">${allSortedDates[0]}</span> 的場次。</p>
+                    </div>
+                </div>
+            `;
+        }
+        // ---【修改重點結束】---
 
         currentDateIndex = 0;
-        
-        showtimeSelection.innerHTML = ''; 
-        renderNextDay();
+        renderNextDay(); // 這裡會直接渲染 allSortedDates 的第一天 (可能是今天或明天)
         
         showtimeSelectionSection.classList.remove('hidden');
         updateStepIndicator(3);
@@ -836,6 +883,7 @@
     </script>
 </body>
 </html>
+
 
 
 
