@@ -259,13 +259,19 @@
         }
 
         // --- 獨立檢查身分證 (純前端格式驗證) ---
-        function checkIdCard() {
+        async function checkIdCard() {
+            const checkBtn = document.getElementById('checkIdButton');
             const idInput = document.getElementById('memberCardID');
             const idError = document.getElementById('idError');
             const idCard = idInput.value.trim().toUpperCase();
             
+            // 重置狀態
             idError.textContent = '';
+            idError.classList.remove('text-success-green');
+            idError.classList.add('text-vieshow-red');
+            isIdChecked = false;
             
+            // 1. 本地格式驗證
             if (idCard.length !== 10) {
                 idError.textContent = '身分證號必須為 10 碼。';
                 showNotification('身分證號碼長度錯誤。', 'error');
@@ -273,17 +279,44 @@
             }
 
             if (!isValidTwId(idCard)) {
-                idError.textContent = '此證號驗證失敗! 請符合要求的格式!';
+                idError.textContent = '此證號格式不正確，請檢查輸入。';
                 showNotification('身分證格式驗證失敗。', 'error');
                 return;
             }
             
-            // 格式正確
-            idError.textContent = '✅ 格式正確 (重複檢查將於提交時進行)';
-            idError.classList.remove('text-vieshow-red');
-            idError.classList.add('text-success-green');
-            isIdChecked = true;
-            showNotification('格式驗證通過！', 'success');
+            // 2. 呼叫後端 API 檢查重複
+            checkBtn.disabled = true;
+            checkBtn.textContent = '檢查中...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/check-id`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idCard: idCard })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // 通過檢查
+                    idError.textContent = '✅ 驗證通過，此帳號可註冊';
+                    idError.classList.remove('text-vieshow-red');
+                    idError.classList.add('text-success-green');
+                    isIdChecked = true;
+                    showNotification('身分證驗證成功！', 'success');
+                } else {
+                    // 重複註冊
+                    idError.textContent = `❌ ${result.message}`;
+                    showNotification(result.message, 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                idError.textContent = '❌ 無法連線至伺服器檢查';
+                showNotification('伺服器連線錯誤', 'error');
+            } finally {
+                checkBtn.disabled = false;
+                checkBtn.textContent = '檢查格式';
+            }
         }
 
 
@@ -440,3 +473,4 @@
     </script>
 </body>
 </html>
+
