@@ -230,7 +230,7 @@
                 e.preventDefault(); 
                 localStorage.removeItem('auth_token'); 
                 window.location.reload();
-                // ★★★ 在登出時呼叫 Chatbot 的重置函式 ★★★
+                // 在登出時呼叫 Chatbot 的重置函式 
                 if (window.resetChatSession) window.resetChatSession(); 
                 alert('已登出', () => window.location.href = INDEX_PAGE_URL);
             });
@@ -240,6 +240,18 @@
             const token = localStorage.getItem('auth_token');
             if (token) renderLoggedInState(); else renderLoggedOutState();
         }
+        
+        // ★★★ 修正點：新增函式，以本地時間格式輸出 YYYY-MM-DD ★★★
+        function getLocalDateString() {
+            const d = new Date();
+            // 手動格式化，避免 .toISOString() 帶來的 UTC 轉換誤差
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        // ★★★ 修正點結束 ★★★
+
 
         // ------------------------
         // 核心載入邏輯
@@ -314,8 +326,6 @@
                     `<span class="flex items-center font-semibold text-vieshow-gold">★ ${movie.rating ? movie.rating.toFixed(1) : '0.0'}</span>` : 
                     `<span class="text-sm font-semibold text-gray-500">尚無評分</span>`;
                 
-                // 【修正】使用 encodeURIComponent 和 goToBooking 函式
-                // 這樣可以確保點擊時，資料正確存入 SessionStorage，並清除舊資料
                 const movieDataStr = encodeURIComponent(JSON.stringify(movie));
                 const bookingHtml = showRatingAndBooking ? 
                     `<div class="mt-3">
@@ -378,7 +388,9 @@
             renderUI();
             
             const dateInput = document.getElementById('date-input');
-            const today = new Date().toISOString().split('T')[0];
+            
+            // ★★★ 修正點：使用修正後的函式獲取本地日期字串 ★★★
+            const today = getLocalDateString(); 
             
             dateInput.min = today;
             dateInput.value = today;
@@ -416,6 +428,3 @@
     </script>
 </body>
 </html>
-
-
-
