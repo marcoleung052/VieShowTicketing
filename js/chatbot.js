@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
             history.push({ text, sender });
             sessionStorage.setItem(STORAGE_KEY, JSON.stringify(history));
         }
-     
+        
         // ★★★ 修正版 appendMessage：移除 flex-row-reverse，正確對齊 ★★★
         function appendMessage(text, sender, needSave = true) {
             const div = document.createElement('div');
@@ -224,7 +224,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 appendMessage('紀錄已清除。您可以重新開始提問！', 'bot', false);
             }
         }
-     
+         function resetChatSession() {
+            sessionStorage.removeItem(STORAGE_KEY); 
+            sessionStorage.removeItem(STATE_KEY); 
+            // 不需要重繪 UI，只需清除儲存即可，下次打開時會從 initChat 重新開始
+        }
+        window.resetChatSession = resetChatSession;
         // ================= 5. 綁定事件 =================
         toggleBtn.addEventListener('click', () => toggleChat());
         closeBtn.addEventListener('click', () => toggleChat(false));
