@@ -226,8 +226,12 @@
             heroSection.innerHTML = `
                 <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-2">🎬 Vieshow 線上訂票系統</h1>
                 <p class="text-lg text-gray-600 mb-6">您已登入！最新的熱門電影正在熱映中，立即訂票享優惠。</p>`;
-            document.getElementById('signOutLink').addEventListener('click', (e) => {
-                e.preventDefault(); localStorage.removeItem('auth_token'); window.location.reload();
+            document.getElementById('signOutLink')?.addEventListener('click', (e) => {
+                e.preventDefault(); 
+                localStorage.removeItem('auth_token'); 
+                // ★★★ 在登出時呼叫 Chatbot 的重置函式 ★★★
+                if (window.resetChatSession) window.resetChatSession(); 
+                alert('已登出', () => window.location.href = INDEX_PAGE_URL);
             });
         }
 
@@ -411,4 +415,5 @@
     </script>
 </body>
 </html>
+
 
