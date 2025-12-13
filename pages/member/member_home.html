@@ -319,12 +319,16 @@
         document.getElementById('signOutButton').addEventListener('click', function(e) {
             e.preventDefault(); 
             this.disabled = true; 
-            // 避免圖標消失，保留結構
-            this.innerHTML = `<span class="card-icon animate-spin">⏳</span><span>登出中...</span>`;
+            
+            // ... (Log, 變更按鈕狀態等) ...
             
             localStorage.removeItem('auth_token'); 
             localStorage.removeItem('user'); 
             sessionStorage.removeItem('memberDataCache'); 
+            
+            // ★★★ 新增：清除聊天機器人對話記錄 ★★★
+            sessionStorage.removeItem('vieshow_chat_history'); // 必須使用 js/chatbot.js 中定義的 STORAGE_KEY 
+            sessionStorage.removeItem('vieshow_chat_open');    // 清除聊天視窗的開啟狀態
             
             // 使用 alert 並在 callback 中跳轉
             alert('✅ 登出成功！即將導向首頁...', () => {
@@ -385,5 +389,6 @@
     </script>
 </body>
 </html>
+
 
 
