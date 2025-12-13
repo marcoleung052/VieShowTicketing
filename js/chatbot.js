@@ -1,4 +1,5 @@
 (function() {
+    
     // ================= 設定區 =================
     const API_URL = 'https://marcoleung052-vieshow-backend.hf.space/api/chatbot/ask'; 
     const STORAGE_KEY = 'vieshow_chat_history';
