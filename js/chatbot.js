@@ -1,4 +1,4 @@
-// 等待網頁內容完全載入後才執行 (解決 insertAdjacentHTML error)
+// 等待網頁內容完全載入後才執行
 document.addEventListener('DOMContentLoaded', function() {
 
     (function() {
@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 <div id="chat-window" class="hidden flex-col bg-white w-80 h-[480px] rounded-2xl shadow-2xl border border-gray-200 overflow-hidden mb-4 transition-all duration-300 origin-bottom-right transform scale-95 opacity-0">
                     
-                    <div class="bg-gray-800 p-4 flex justify-between items-center shadow-md shrink-0">
+                    <div class="bg-gray-800 p-4 flex justify-between items-center shadow-md shrink-0 z-10">
                         <div class="flex items-center space-x-2">
                             <div class="relative">
                                 <div class="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
@@ -34,10 +34,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
     
-                    <div id="chat-messages" class="flex-grow p-4 overflow-y-auto bg-gray-50 space-y-4 scroll-smooth">
+                    <div id="chat-messages" class="flex-grow p-4 overflow-y-auto min-h-0 bg-gray-50 space-y-4 scroll-smooth">
                         </div>
     
-                    <div class="p-3 bg-white border-t border-gray-100 shrink-0">
+                    <div class="p-3 bg-white border-t border-gray-100 shrink-0 z-10">
                         <div class="relative flex items-center">
                             <input type="text" id="chat-input" placeholder="輸入訊息..." 
                                    class="w-full bg-gray-100 text-gray-800 text-sm rounded-full pl-4 pr-12 py-3 focus:outline-none focus:ring-2 focus:ring-[#e50914] transition-all placeholder-gray-400">
@@ -61,7 +61,6 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
     
         // ================= 2. 注入頁面 =================
-        // 這裡現在安全了，因為我們在 DOMContentLoaded 裡面，body 一定存在
         if (!document.getElementById('chatbot-widget-container')) {
             document.body.insertAdjacentHTML('beforeend', chatbotHTML);
         }
@@ -76,6 +75,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const clearBtn = document.getElementById('clear-chat-btn');
     
         // ================= 4. 核心邏輯 =================
+
+        // ★★★ 輔助函式：強制捲動到底部 ★★★
+        function scrollToBottom() {
+            // 使用 setTimeout 確保畫面渲染完成後才捲動
+            setTimeout(() => {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 50);
+        }
     
         function initChat() {
             const history = JSON.parse(sessionStorage.getItem(STORAGE_KEY)) || [];
@@ -94,6 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => {
                     chatWindow.classList.remove('scale-95', 'opacity-0');
                     chatWindow.classList.add('scale-100', 'opacity-100');
+                    scrollToBottom(); // 打開時也要捲到底部
                 }, 10);
             }
         }
@@ -119,7 +127,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
             div.innerHTML = contentHTML;
             messagesContainer.appendChild(div);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // ★★★ 呼叫捲動函式 ★★★
+            scrollToBottom();
     
             if (needSave) saveHistory(text, sender);
         }
@@ -136,7 +146,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
                 </div>`;
             messagesContainer.appendChild(div);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // ★★★ 呼叫捲動函式 ★★★
+            scrollToBottom();
             return id;
         }
     
@@ -179,8 +191,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => {
                     chatWindow.classList.remove('scale-95', 'opacity-0');
                     chatWindow.classList.add('scale-100', 'opacity-100');
+                    // ★★★ 打開時也捲到底部 ★★★
+                    scrollToBottom();
+                    inputField.focus();
                 }, 10);
-                inputField.focus();
                 sessionStorage.setItem(STATE_KEY, 'true');
             } else {
                 chatWindow.classList.remove('scale-100', 'opacity-100');
