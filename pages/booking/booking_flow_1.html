@@ -87,12 +87,11 @@
         .group-ticket-title { font-weight: 600; color: #16a34a; margin-bottom: 0.5rem; }
         .group-ticket-list { list-style: none; padding-left: 0; font-size: 0.9rem; color: #16a34a; }
         
-        /* === 電影卡片新樣式 (優化版：固定高度) === */
+        /* === 電影卡片樣式 (固定高度) === */
         .movie-grid { 
             display: grid; 
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
             gap: 1.5rem; 
-            /* 讓 Grid Items 自動等高 */
             align-items: stretch; 
         }
         
@@ -105,7 +104,6 @@
             position: relative; 
             display: flex; 
             flex-direction: row; 
-            /* 確保卡片填滿 Grid Cell */
             height: 100%; 
         }
         
@@ -118,13 +116,12 @@
             flex-grow: 1; 
             display: flex; 
             flex-direction: column; 
-            justify-content: center; /* 內容垂直置中 */
+            justify-content: center; 
         }
         
         .movie-poster-container { 
             flex-shrink: 0; 
             width: 100px; 
-            /* 移除固定 height: 140px，讓它跟隨卡片高度，或設定 min-height 確保不跑版 */
             min-height: 140px;
             background-color: #eee;
         }
@@ -342,32 +339,39 @@
         
         loadingStatus.textContent = '初始化中...';
         try {
-            // 1. 載入影城 (這是必須的)
-            await loadCinemas();
-            
-            // 2. 設置票種選擇邏輯
-            setupTicketTypeSelection();
-
-            // 3. 檢查預選電影 (無論是來自介紹頁 還是 從 Flow 2 返回)
             const preSelectedMovieStr = sessionStorage.getItem('preSelectedMovie');
+            await loadCinemas();
 
             if (preSelectedMovieStr) {
                 console.log("⚡ 偵測到預選電影");
-                const preMovie = JSON.parse(preSelectedMovieStr);
+                let preMovie = JSON.parse(preSelectedMovieStr);
                 
-                // 渲染單一電影卡片
+                // 【關鍵修正】檢查是否有海報，如果沒有，自動從後端補齊資料
+                // 這解決了「上一步」或從首頁快搜進來時，電影卡片沒有圖片的問題
+                if (!preMovie.posterUrl) {
+                    try {
+                        console.log("正在補齊電影詳細資料...");
+                        const res = await fetch(`${API_BASE_URL}/movie/${preMovie.id}`);
+                        if (res.ok) {
+                            const detail = await res.json();
+                            preMovie = { ...preMovie, ...detail };
+                            // 更新 Session，以免下次還要抓
+                            sessionStorage.setItem('preSelectedMovie', JSON.stringify(preMovie));
+                        }
+                    } catch(e) { console.error("補抓電影資料失敗", e); }
+                }
+
                 renderSingleMovieCard(preMovie); 
                 
-                // 【關鍵】如果同時有返回資料 (票種/影城)，要先還原它們
+                // 檢查是否為「返回修改」狀態
                 const returnDataStr = sessionStorage.getItem('returnFromStep2Data');
                 if (returnDataStr) {
                      const returnData = JSON.parse(returnDataStr);
                      
-                     // A. 還原票種 UI
+                     // 還原票種 UI
                      if (returnData.ticketType) {
                          const typeCard = document.querySelector(`.ticket-type-card[data-type="${returnData.ticketType}"]`);
                          if (typeCard) {
-                             // 模擬點擊來觸發 UI 變更，但我們需要控制後續流程
                              typeCard.classList.add('selected');
                              currentSelections.ticketType = returnData.ticketType;
                              document.getElementById('groupTicketInfo').classList.toggle('hidden', currentSelections.ticketType !== 'group');
@@ -377,17 +381,12 @@
                          }
                      }
 
-                     // B. 還原影城並載入場次
+                     // 還原影城並載入場次
                      if (returnData.cinemaId) {
                          cinemaSelect.value = returnData.cinemaId;
                          // 注意：這裡直接呼叫 change 處理函式，因為我們已經在上面設定好 preMovie
-                         // 這樣 change 函式裡的 selectMovie 就會正確選中它
                          cinemaSelect.dispatchEvent(new Event('change'));
-                     } else {
-                         // 雖然有預選電影，但沒選影城 -> 等使用者選影城
-                     }
-                     
-                     // 清除返回標記
+                     } 
                      sessionStorage.removeItem('returnFromStep2Data');
 
                 } else {
@@ -398,10 +397,9 @@
                 isAllMoviesLoaded = false;
 
             } else {
-                // 4. 一般無預選進入：載入所有電影
+                // 一般無預選進入：載入所有電影
                 await prefetchAllMovies();
                 
-                // 檢查是否有返回資料 (無預選電影但有返回資料 - 少見但防呆)
                 const returnDataStr = sessionStorage.getItem('returnFromStep2Data');
                 if (returnDataStr) {
                     const returnData = JSON.parse(returnDataStr);
@@ -415,6 +413,7 @@
             }
 
             loadingStatus.textContent = '';
+            setupTicketTypeSelection();
             
         } catch (e) {
             console.error(e);
@@ -492,13 +491,12 @@
         movieSelection.appendChild(card);
     }
 
-    // 監聽影城變更
     cinemaSelect.addEventListener('change', async function() {
         const cinemaId = this.value;
         if (!cinemaId) return;
 
         currentSelections.cinema = { id: cinemaId, name: this.options[this.selectedIndex].text };
-        resetSelection(2); // 這裡會隱藏場次區塊，準備重新載入
+        resetSelection(2); 
         
         loadingStatus.textContent = '載入影城場次中...';
         try {
@@ -713,9 +711,9 @@
     function resetSelection(step) {
         if (step <= 1) { currentSelections.cinema = null; cinemaSelect.selectedIndex = 0; movieSelectionSection.classList.add('hidden'); }
         if (step <= 2) { 
-            // 這裡不強制清空電影選擇，因為我們希望「重新選擇場次」時電影是被選中的
-            // 只有當使用者「手動」去按票種或影城時，下面的邏輯才會觸發重置
-            // 這裡的 resetSelection 主要是為了隱藏場次區塊
+            // 只有在真的要切換電影時才隱藏，如果是切換影城但保留電影則不隱藏
+            // 這裡簡單處理：切換影城時會重置電影選擇
+            currentSelections.movie = null; 
             showtimeSelectionSection.classList.add('hidden'); 
             showtimeSelection.innerHTML = ''; 
             loadMoreContainer.innerHTML = ''; 
@@ -755,8 +753,7 @@
                 }
             }));
             
-            // 真正提交後才清除預選 (注意：這行是為了下次進入是全新的)
-            // 但如果使用者只是去下一步然後又回來，這裡清除沒關係，因為 returnFromStep2Data 會負責
+            // 真正提交後才清除預選
             sessionStorage.removeItem('preSelectedMovie');
             window.location.href = currentSelections.ticketType === 'group' ? 'booking_flow_group.html' : 'booking_flow_2.html';
     });
@@ -790,4 +787,3 @@
     </script>
 </body>
 </html>
-
