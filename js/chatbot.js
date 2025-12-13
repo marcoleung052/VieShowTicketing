@@ -9,9 +9,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
         // ================= 1. 定義 HTML 結構 =================
         const chatbotHTML = `
-            <div id="chatbot-widget-container" class="fixed bottom-6 right-6 z-[9999] font-sans flex flex-col items-end">                
-                <div id="chat-window" class="hidden flex flex-col bg-white w-80 h-[480px] rounded-2xl shadow-2xl border border-gray-200 overflow-hidden mb-4 transition-all duration-300 origin-bottom-right transform scale-95 opacity-0">                    
-                    <div class="bg-gray-800 p-4 flex justify-between items-center shadow-md shrink-0 z-10"></div>
+            <div id="chatbot-widget-container" class="fixed bottom-6 right-6 z-[9999] font-sans flex flex-col items-end">
+                
+                <div id="chat-window" class="hidden flex-col bg-white w-80 h-[480px] rounded-2xl shadow-2xl border border-gray-200 overflow-hidden mb-4 transition-all duration-300 origin-bottom-right transform scale-95 opacity-0">
+                    
+                    <div class="bg-gray-800 p-4 flex justify-between items-center shadow-md shrink-0 z-10">
                         <div class="flex items-center space-x-2">
                             <div class="relative">
                                 <div class="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
@@ -32,17 +34,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
     
-                        <div id="chat-messages" class="
-                            flex-grow 
-                            p-4 
-                            overflow-y-auto 
-                            min-h-0 
-                            bg-gray-50 
-                            space-y-4 
-                            scroll-smooth"></div>
+                    <div id="chat-messages" class="flex-grow p-4 overflow-y-auto min-h-0 bg-gray-50 space-y-4 scroll-smooth">
+                        </div>
     
-                        <div class="p-3 bg-white border-t border-gray-100 shrink-0 z-10">
-                            <div class="relative flex items-center">
+                    <div class="p-3 bg-white border-t border-gray-100 shrink-0 z-10">
+                        <div class="relative flex items-center">
                             <input type="text" id="chat-input" placeholder="輸入訊息..." 
                                    class="w-full bg-gray-100 text-gray-800 text-sm rounded-full pl-4 pr-12 py-3 focus:outline-none focus:ring-2 focus:ring-[#e50914] transition-all placeholder-gray-400">
                             <button id="send-chat-btn" 
