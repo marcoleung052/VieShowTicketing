@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
             messagesContainer.innerHTML = ''; 
      
             if (history.length === 0) {
-                appendMessage('嗨！我是 AI 小客服 🤖<br>您可以問我：「最近有什麼電影？」或「幫我查訂單」。', 'bot', false);
+                appendMessage('嗨！我是 AI 小客服 🤖<br>您可以問我：「有什麼電影場次」或「幫我查訂單」。', 'bot', false);
             } else {
                 history.forEach(msg => appendMessage(msg.text, msg.sender, false));
             }
