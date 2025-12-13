@@ -104,7 +104,11 @@
         function renderLoggedInState() {
             document.getElementById('headerNavRight').innerHTML = `<a href="#" id="signOutLink" class="hover:text-vieshow-gold transition duration-300">登出</a> <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold transition duration-300">會員中心</a>`;
             document.getElementById('signOutLink')?.addEventListener('click', (e) => {
-                e.preventDefault(); localStorage.removeItem('auth_token'); localStorage.removeItem('user'); alert('已登出', () => window.location.href = INDEX_PAGE_URL);
+                e.preventDefault(); 
+                localStorage.removeItem('auth_token'); 
+                // ★★★ 在登出時呼叫 Chatbot 的重置函式 ★★★
+                if (window.resetChatSession) window.resetChatSession(); 
+                alert('已登出', () => window.location.href = INDEX_PAGE_URL);
             });
         }
         function renderUI() {
@@ -242,4 +246,5 @@
     </script>
 </body>
 </html>
+
 
