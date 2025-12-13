@@ -142,15 +142,14 @@
                 <p class="text-lg text-gray-700">我們已將一組 4 位數字確認碼寄送至您的電子郵件信箱：</p>
                 <p id="sentEmailDisplay" class="text-vieshow-red font-bold text-xl"></p>
                 
-                <div id="simulatedCodeDisplay" class="text-2xl font-extrabold text-vieshow-gold bg-yellow-100/50 border border-vieshow-gold p-3 rounded-lg mx-auto w-fit tracking-widest">
-                    <span class="text-sm font-normal text-gray-500 mr-2">確認碼:</span> <span id="theCode">----</span>
-                </div>
                 <form id="activationForm" class="space-y-4">
                     <label for="activationCode" class="block text-sm font-medium text-gray-700 pt-4">輸入確認碼:</label>
                     <input type="text" id="activationCode" name="activationCode" required maxlength="4"
                         class="w-full max-w-xs mx-auto text-center p-3 border-2 border-vieshow-gold rounded-xl text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-vieshow-gold transition duration-200 shadow-md">
                     <span class="error text-vieshow-red text-xs mt-1 block" id="activationError"></span>
-                    
+                    <div id="simulatedCodeDisplay" class="text-2xl font-extrabold text-vieshow-gold bg-yellow-100/50 border border-vieshow-gold p-3 rounded-lg mx-auto w-fit tracking-widest">
+                        <span class="text-sm font-normal text-gray-500 mr-2">確認碼:</span> <span id="theCode">----</span>
+                    </div>
                     <div class="flex flex-col space-y-3 pt-6">
                         <button type="submit"
                             class="bg-success-green hover:bg-green-700 text-white font-bold py-3 rounded-xl transition duration-300 shadow-lg transform hover:-translate-y-0.5">
@@ -486,3 +485,4 @@
     </script>
 </body>
 </html>
+
