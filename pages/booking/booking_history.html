@@ -503,7 +503,6 @@
             currentBookingDetail = allOrders.find(o => o.id === orderId); if (!currentBookingDetail) return;
             const detailContainer = document.getElementById('orderDetailContent');
             const seatsHtml = (currentBookingDetail.seats && currentBookingDetail.seats.length > 0) ? currentBookingDetail.seats.map(s => `<span class="bg-[#e50914] text-white w-10 h-10 flex items-center justify-center rounded-md text-sm font-bold shadow-sm">${s}</span>`).join('') : '<span class="text-gray-400 italic">無劃位資訊</span>';
-            let seatsHtml = '<span class="text-gray-400 italic">無劃位資訊</span>';
             
             // ★★★ [新增/修改] 票種判斷邏輯 ★★★
             // 條件1: 票數 >= 10
@@ -530,7 +529,7 @@
 
             let actionButtonHtml = '';
             if (displayStatus === 'Upcoming') {
-                if (currentBookingDetail.ticketCount === 10 ) { 
+                if (isGroup) { 
                     actionButtonHtml = `<div class="w-full mt-8 bg-gray-300 text-white text-xl font-bold py-4 rounded-xl shadow-sm flex items-center justify-center cursor-not-allowed">
                         <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                         團體票不可退票/修改
@@ -560,9 +559,6 @@
     </script>
 </body>
 </html>
-
-
-
 
 
 
