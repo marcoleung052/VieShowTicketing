@@ -512,7 +512,7 @@
                 currentBookingDetail.seats.forEach((s, index) => {
                     seatsBuffer += `<span class="bg-[#e50914] text-white w-10 h-10 flex items-center justify-center rounded-md text-sm font-bold shadow-sm">${s}</span>`;
                     // 每 10 個座位插入一個換行 div (但不是最後一個)
-                    if ((index + 1) % 10 === 0 && index !== currentBookingDetail.seats.length - 1) {
+                    if ((index + 1) % 8 === 0 && index !== currentBookingDetail.seats.length - 1) {
                         seatsBuffer += '<div class="w-full h-2"></div>'; 
                     }
                 });
@@ -570,6 +570,7 @@
     </script>
 </body>
 </html>
+
 
 
 
