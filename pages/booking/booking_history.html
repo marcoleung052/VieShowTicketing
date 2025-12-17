@@ -398,14 +398,14 @@
             
             // [新增] 團體票檢查
             let actionBtn;
-            let displayType = order.ticketCount >= 10 ? '團體票' : '一般票'; // [新增] 票種判斷
+            let displayType = order.totalTicketQty >= 10 ? '團體票' : '一般票'; // [新增] 票種判斷
 
             // [新增] 顯示的金額邏輯
             // 如果是已取消，且為團體票，這裡可以特別標註 (或是後端已經傳回正確的 refundedAmount)
             // 這裡假設 order.total 已經是最終金額 (若為退票，即退款金額)
             let displayAmount = order.total.toLocaleString();
 
-            if (order.ticketCount >= 10) {
+            if (order.totalTicketQty >= 10) {
                  actionBtn = `<button onclick="openOrderDetailModal('${order.id}')" class="bg-gray-100 border border-gray-200 text-gray-500 px-5 py-2 rounded-lg text-sm font-bold transition shadow-sm flex items-center">查看詳情 (${displayType})</button>`;
             } else {
                  actionBtn = `<button onclick="openOrderDetailModal('${order.id}')" class="bg-white border border-gray-200 text-gray-600 hover:text-vieshow-red hover:border-vieshow-red px-5 py-2 rounded-lg text-sm font-bold transition shadow-sm flex items-center">查看詳情</button>`;
@@ -512,7 +512,7 @@
             const seatsHtml = (currentBookingDetail.seats && currentBookingDetail.seats.length > 0) ? currentBookingDetail.seats.map(s => `<span class="bg-[#e50914] text-white w-10 h-10 flex items-center justify-center rounded-md text-sm font-bold shadow-sm">${s}</span>`).join('') : '<span class="text-gray-400 italic">無劃位資訊</span>';
             
             // ★★★ [新增/修改] 票種與金額邏輯 ★★★
-            const isGroup = currentBookingDetail.ticketCount >= 10;
+            const isGroup = currentBookingDetail.totalTicketQty >= 10;
             const ticketTypeName = isGroup ? "團體票 (Group Ticket)" : "一般票 (General Ticket)";
             const displayTotalAmount = currentBookingDetail.total.toLocaleString();
 
@@ -559,11 +559,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
