@@ -153,7 +153,6 @@
                 <div id="cinemaNameDisplay">影城: 載入中...</div>
                 <div id="movieTitleDisplay">電影: 載入中...</div>
                 <div id="showtimeDetailDisplay" class="font-mono mt-1 text-gray-900 font-semibold">場次: 載入中...</div>
-                <div id="availableSeatsWarning" class="font-bold mt-2 text-green-600""></div>
                 <div id="loadError" class="text-red-600 font-semibold hidden mt-2">載入資料失敗，請回上一步。</div>
             </div>
 
@@ -332,7 +331,6 @@
         ];
 
         let comboList = []; // [動態取得] 儲存從 API 取得的餐點資料
-        let availableSeats = 0;
 
         // 取得 DOM 元素
         const cinemaNameDisplay = document.getElementById('cinemaNameDisplay');
@@ -354,76 +352,40 @@
         let currentBookingData = null; // 儲存步驟 1 的資料
 
         // 1. 載入步驟 1 的資料並顯示 (場次確認)
-        async function loadBookingData() {
+        function loadBookingData() {
             const data = localStorage.getItem('currentBooking');
             if (data) {
                 try {
                     currentBookingData = JSON.parse(data);
+                    cinemaNameDisplay.textContent = `影城: ${currentBookingData.cinema?.name || currentBookingData.cinemaName || '未選擇'}`;
+                    movieTitleDisplay.textContent = `電影: ${currentBookingData.movie?.title || currentBookingData.movieTitle || '未選擇'}`;
                     
-                    document.getElementById('cinemaNameDisplay').textContent = `影城: ${currentBookingData.cinema.name}`;
-                    document.getElementById('movieTitleDisplay').textContent = `電影: ${currentBookingData.movie.title}`;
-                    const st = currentBookingData.showtime;
-                    document.getElementById('showtimeDetailDisplay').textContent = `場次: ${st.date} ${st.time} ${st.theater} (${st.type})`;
-                    
-                    if (currentBookingData.showtime.availableSeats !== undefined) {
-                        availableSeats = currentBookingData.showtime.availableSeats;
-                        updateSeatWarning();
+                    if (currentBookingData.showtime) {
+                        const showtime = currentBookingData.showtime;
+                        showtimeDetailDisplay.textContent = `場次: ${showtime.date} ${showtime.time} ${showtime.theater} (${showtime.type})`;
                     } else {
-                        await fetchAvailableSeats(currentBookingData.showtime.id);
+                        showtimeDetailDisplay.textContent = `場次: ${currentBookingData.showtimeDetail || '未選擇'}`;
                     }
-
                 } catch (e) {
-                    console.error('資料解析失敗', e);
-                    window.location.href = 'booking_flow_1.html';
+                    console.error('解析步驟 1 資料失敗:', e);
+                    loadError.classList.remove('hidden');
                 }
             } else {
-                alert('無訂票資料，請重新選擇', () => window.location.href = 'booking_flow_1.html');
-            }
-        }
-        
-        async function fetchAvailableSeats(showingId) {
-            try {
-                const warningEl = document.getElementById('availableSeatsWarning');
-                warningEl.textContent = "正在確認剩餘座位...";
-                warningEl.className = "font-bold text-gray-500 mt-2 animate-pulse";
-
-                const res = await fetch(`${API_BASE_URL}/booking/seats?showingId=${showingId}`);
-                if (!res.ok) throw new Error("API Error");
-                
-                const seats = await res.json();
-                availableSeats = seats.filter(s => s.status === 1).length;
-                
-                currentBookingData.showtime.availableSeats = availableSeats;
-                localStorage.setItem('currentBooking', JSON.stringify(currentBookingData));
-                
-                updateSeatWarning();
-                if(ticketList.length > 0) renderTicketOptions();
-
-            } catch (e) {
-                console.error("無法取得座位資訊", e);
-                availableSeats = 0;
-                updateSeatWarning();
+                // 模擬資料 (若無 Step 1 資料)
+                console.warn('找不到訂票資料。使用預設值。');
+                cinemaNameDisplay.textContent = `影城: 威秀影城 (模擬)`;
+                movieTitleDisplay.textContent = `電影: 沙丘：第二部`;
+                showtimeDetailDisplay.textContent = `場次: 2025/11/17 (一) 19:30 - 數位 3 廳`;
+                currentBookingData = {
+                    cinema: { name: '威秀影城 (模擬)' },
+                    movie: { title: '沙丘：第二部' },
+                    showtime: { date: '2025/11/17 (一)', time: '19:30', theater: '數位 3 廳', type: '數位版' }
+                };
             }
         }
 
-        function updateSeatWarning() {
-            const warningEl = document.getElementById('availableSeatsWarning');
-            warningEl.className = "font-bold mt-2"; 
-            
-            if (availableSeats <= 0) {
-                warningEl.textContent = `此場次已無座位！`;
-                warningEl.classList.add('text-red-600');
-                document.getElementById('nextStepButton').disabled = true;
-            } else if (availableSeats <= 10) {
-                warningEl.textContent = `注意：此場次僅剩 ${availableSeats} 個座位！`;
-                warningEl.classList.add('text-red-500');
-            } else {
-                warningEl.textContent = `此場次有 ${availableSeats} 個座位可供選擇。`;
-                warningEl.classList.add('text-green-600');
-            }
-        }
         // 2. 渲染團體票種選擇 UI
-        async function renderTicketOptions() {
+        function renderTicketOptions() {
             const ticket = MOCK_TICKETS[0];
             
             // 如果 local storage 中有 groupSize，則使用它作為預設值
@@ -436,7 +398,7 @@
                 }
             }
             currentSelections.tickets[ticket.id] = initialQty;
-            const currentMax = availableSeats > 0 ? Math.min(MAX_TICKETS, availableSeats) : MAX_TICKETS;
+
             let html = `<label class="block text-2xl font-bold text-gray-800 mb-4 border-b pb-2 flex items-center">
                 <span class="mr-2">👥</span> 選擇團體人數 <span class="text-base font-normal text-red-500 ml-2">(${MIN_TICKETS} 到 ${MAX_TICKETS} 張)</span>
             </label>`;
@@ -548,17 +510,12 @@
             const isPlus = target.classList.contains('btn-plus');
 
             if (itemType === 'ticket') {
-                const currentMax = Math.min(MAX_TICKETS, availableSeats);
                 // 團體票限制: 10-20 張
                 if (isPlus) {
-                    if (currentValue < currentMax) {
+                    if (currentValue < MAX_TICKETS) {
                         newValue++;
                     } else {
-                        if (availableSeats < MAX_TICKETS && currentValue >= availableSeats) {
-                            alert(`此場次僅剩 ${availableSeats} 個座位，無法再增加`);
-                        } else {
-                            showToast(`團體票人數上限為 ${MAX_TICKETS} 人`, 'warning');
-                        }
+                        showToast(`團體票人數上限為 ${MAX_TICKETS} 人`, 'warning');
                         return;
                     }
                 } else {
@@ -621,11 +578,6 @@
         // 6. 檢查表單有效性 (至少選擇 MIN_TICKETS 張票)
         function checkFormValidity() {
             const totalTickets = updateTotal();
-            // [新增] 如果剩餘座位不足最低團體人數(10)，強制鎖住按鈕
-            if (availableSeats > 0 && availableSeats < MIN_TICKETS) {
-                nextStepButton.disabled = true;
-                return;
-            }
             // 團體票必須在 10-20 之間
             if (totalTickets >= MIN_TICKETS && totalTickets <= MAX_TICKETS) {
                 nextStepButton.disabled = false;
@@ -753,11 +705,10 @@
                 return;
             }
 
-            (async () => {
-                await loadBookingData(); // 等待座位資訊載入
-                fetchMeals(); 
-                checkFormValidity();
-            })();
+            loadBookingData();
+            renderTicketOptions();
+            fetchMeals(); // [新增] 呼叫 API 載入餐點
+            checkFormValidity(); // 初始化時檢查按鈕狀態 (預設 10 張，應為 enabled)
         };
     </script>
 
@@ -767,7 +718,4 @@
     
 </body>
 </html>
-
-
-
 
