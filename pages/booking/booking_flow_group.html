@@ -152,7 +152,7 @@
                 </h2>
                 <div id="cinemaNameDisplay">影城: 載入中...</div>
                 <div id="movieTitleDisplay">電影: 載入中...</div>
-                <<div id="showtimeDetailDisplay" class="font-mono mt-1 text-gray-900 font-semibold">場次: 載入中...</div>
+                <div id="showtimeDetailDisplay" class="font-mono mt-1 text-gray-900 font-semibold">場次: 載入中...</div>
                 <div id="availableSeatsWarning" class="font-bold text-red-500 mt-2"></div>
                 <div id="loadError" class="text-red-600 font-semibold hidden mt-2">載入資料失敗，請回上一步。</div>
             </div>
@@ -385,30 +385,25 @@
                 };
             }
         }
-        // [新增] 呼叫 API 取得座位數
+        
         async function fetchAvailableSeats(showingId) {
             try {
                 const warningEl = document.getElementById('availableSeatsWarning');
-                if(warningEl) {
-                    warningEl.textContent = "正在確認剩餘座位...";
-                    warningEl.className = "font-bold text-gray-500 mt-2 animate-pulse";
-                }
-        
+                warningEl.textContent = "正在確認剩餘座位...";
+                warningEl.className = "font-bold text-gray-500 mt-2 animate-pulse";
+
                 const res = await fetch(`${API_BASE_URL}/booking/seats?showingId=${showingId}`);
                 if (!res.ok) throw new Error("API Error");
                 
                 const seats = await res.json();
                 availableSeats = seats.filter(s => s.status === 1).length;
                 
-                // 更新 local storage
-                if (currentBookingData && currentBookingData.showtime) {
-                    currentBookingData.showtime.availableSeats = availableSeats;
-                    localStorage.setItem('currentBooking', JSON.stringify(currentBookingData));
-                }
+                currentBookingData.showtime.availableSeats = availableSeats;
+                localStorage.setItem('currentBooking', JSON.stringify(currentBookingData));
                 
                 updateSeatWarning();
-                renderTicketOptions(); // 重新渲染以更新 input max 值
-        
+                if(ticketList.length > 0) renderTicketOptions();
+
             } catch (e) {
                 console.error("無法取得座位資訊", e);
                 availableSeats = 0;
@@ -779,5 +774,6 @@
     
 </body>
 </html>
+
 
 
