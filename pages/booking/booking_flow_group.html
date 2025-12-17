@@ -153,7 +153,7 @@
                 <div id="cinemaNameDisplay">影城: 載入中...</div>
                 <div id="movieTitleDisplay">電影: 載入中...</div>
                 <div id="showtimeDetailDisplay" class="font-mono mt-1 text-gray-900 font-semibold">場次: 載入中...</div>
-                <div id="availableSeatsWarning" class="font-bold text-red-500 mt-2"></div>
+                <div id="availableSeatsWarning" class="font-bold mt-2 text-green-600""></div>
                 <div id="loadError" class="text-red-600 font-semibold hidden mt-2">載入資料失敗，請回上一步。</div>
             </div>
 
@@ -359,30 +359,25 @@
             if (data) {
                 try {
                     currentBookingData = JSON.parse(data);
-                    cinemaNameDisplay.textContent = `影城: ${currentBookingData.cinema?.name || currentBookingData.cinemaName || '未選擇'}`;
-                    movieTitleDisplay.textContent = `電影: ${currentBookingData.movie?.title || currentBookingData.movieTitle || '未選擇'}`;
                     
-                    if (currentBookingData.showtime) {
-                        const showtime = currentBookingData.showtime;
-                        showtimeDetailDisplay.textContent = `場次: ${showtime.date} ${showtime.time} ${showtime.theater} (${showtime.type})`;
+                    document.getElementById('cinemaNameDisplay').textContent = `影城: ${currentBookingData.cinema.name}`;
+                    document.getElementById('movieTitleDisplay').textContent = `電影: ${currentBookingData.movie.title}`;
+                    const st = currentBookingData.showtime;
+                    document.getElementById('showtimeDetailDisplay').textContent = `場次: ${st.date} ${st.time} ${st.theater} (${st.type})`;
+                    
+                    if (currentBookingData.showtime.availableSeats !== undefined) {
+                        availableSeats = currentBookingData.showtime.availableSeats;
+                        updateSeatWarning();
                     } else {
-                        showtimeDetailDisplay.textContent = `場次: ${currentBookingData.showtimeDetail || '未選擇'}`;
+                        await fetchAvailableSeats(currentBookingData.showtime.id);
                     }
+
                 } catch (e) {
-                    console.error('解析步驟 1 資料失敗:', e);
-                    loadError.classList.remove('hidden');
+                    console.error('資料解析失敗', e);
+                    window.location.href = 'booking_flow_1.html';
                 }
             } else {
-                // 模擬資料 (若無 Step 1 資料)
-                console.warn('找不到訂票資料。使用預設值。');
-                cinemaNameDisplay.textContent = `影城: 威秀影城 (模擬)`;
-                movieTitleDisplay.textContent = `電影: 沙丘：第二部`;
-                showtimeDetailDisplay.textContent = `場次: 2025/11/17 (一) 19:30 - 數位 3 廳`;
-                currentBookingData = {
-                    cinema: { name: '威秀影城 (模擬)' },
-                    movie: { title: '沙丘：第二部' },
-                    showtime: { date: '2025/11/17 (一)', time: '19:30', theater: '數位 3 廳', type: '數位版' }
-                };
+                alert('無訂票資料，請重新選擇', () => window.location.href = 'booking_flow_1.html');
             }
         }
         
@@ -410,27 +405,25 @@
                 updateSeatWarning();
             }
         }
-        
-        // [新增] 更新座位提示 UI
+
         function updateSeatWarning() {
             const warningEl = document.getElementById('availableSeatsWarning');
-            if (!warningEl) return;
-        
             warningEl.className = "font-bold mt-2"; 
             
-            // 團體票邏輯：若剩餘座位少於 10 (MIN_TICKETS)，無法成團
-            if (availableSeats < MIN_TICKETS) {
-                warningEl.textContent = `此場次僅剩 ${availableSeats} 個座位，不足以進行團體訂票 (需至少 ${MIN_TICKETS} 人)。`;
+            if (availableSeats <= 0) {
+                warningEl.textContent = `此場次已無座位！`;
                 warningEl.classList.add('text-red-600');
                 document.getElementById('nextStepButton').disabled = true;
+            } else if (availableSeats <= 10) {
+                warningEl.textContent = `注意：此場次僅剩 ${availableSeats} 個座位！`;
+                warningEl.classList.add('text-red-500');
             } else {
                 warningEl.textContent = `此場次有 ${availableSeats} 個座位可供選擇。`;
                 warningEl.classList.add('text-green-600');
-                checkFormValidity();
             }
-}
+        }
         // 2. 渲染團體票種選擇 UI
-        function renderTicketOptions() {
+        async function renderTicketOptions() {
             const ticket = MOCK_TICKETS[0];
             
             // 如果 local storage 中有 groupSize，則使用它作為預設值
@@ -774,6 +767,7 @@
     
 </body>
 </html>
+
 
 
 
