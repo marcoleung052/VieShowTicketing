@@ -504,18 +504,7 @@
             const detailContainer = document.getElementById('orderDetailContent');
             const seatsHtml = (currentBookingDetail.seats && currentBookingDetail.seats.length > 0) ? currentBookingDetail.seats.map(s => `<span class="bg-[#e50914] text-white w-10 h-10 flex items-center justify-center rounded-md text-sm font-bold shadow-sm">${s}</span>`).join('') : '<span class="text-gray-400 italic">無劃位資訊</span>';
             let seatsHtml = '<span class="text-gray-400 italic">無劃位資訊</span>';
-            // 座位顯示 (滿8個換行)
-            let seatsHtml = '<span class="text-gray-400 italic">無劃位資訊</span>';
-            if (currentBookingDetail.seats && currentBookingDetail.seats.length > 0) {
-                let seatsBuffer = '';
-                currentBookingDetail.seats.forEach((s, index) => {
-                    seatsBuffer += `<span class="bg-[#e50914] text-white w-10 h-10 flex items-center justify-center rounded-md text-sm font-bold shadow-sm">${s}</span>`;
-                    if ((index + 1) % 8 === 0 && index !== currentBookingDetail.seats.length - 1) {
-                        seatsBuffer += '<div class="w-full h-2"></div>'; 
-                    }
-                });
-                seatsHtml = seatsBuffer;
-            }
+            
             // ★★★ [新增/修改] 票種判斷邏輯 ★★★
             // 條件1: 票數 >= 10
             // 條件2: 單價為 256 或 240 (團體票優惠價)
@@ -571,6 +560,7 @@
     </script>
 </body>
 </html>
+
 
 
 
