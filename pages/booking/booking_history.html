@@ -502,19 +502,30 @@
         window.openOrderDetailModal = function(orderId) {
             currentBookingDetail = allOrders.find(o => o.id === orderId); if (!currentBookingDetail) return;
             const detailContainer = document.getElementById('orderDetailContent');
-            const seatsHtml = (currentBookingDetail.seats && currentBookingDetail.seats.length > 0) ? currentBookingDetail.seats.map(s => `<span class="bg-[#e50914] text-white w-10 h-10 flex items-center justify-center rounded-md text-sm font-bold shadow-sm">${s}</span>`).join('') : '<span class="text-gray-400 italic">無劃位資訊</span>';
             
-            // ★★★ [新增/修改] 票種判斷邏輯 ★★★
-            // 條件1: 票數 >= 10
-            // 條件2: 單價為 256 或 240 (團體票優惠價)
+            // ★★★ [修改] 座位顯示邏輯 (滿 10 個換行) ★★★
+            let seatsHtml = '<span class="text-gray-400 italic">無劃位資訊</span>';
+            if (currentBookingDetail.seats && currentBookingDetail.seats.length > 0) {
+                // 使用 reduce 來分組或直接在 map 中處理換行稍微複雜
+                // 這裡改用傳統迴圈來構建 HTML 以便插入換行元素
+                let seatsBuffer = '';
+                currentBookingDetail.seats.forEach((s, index) => {
+                    seatsBuffer += `<span class="bg-[#e50914] text-white w-10 h-10 flex items-center justify-center rounded-md text-sm font-bold shadow-sm">${s}</span>`;
+                    // 每 10 個座位插入一個換行 div (但不是最後一個)
+                    if ((index + 1) % 10 === 0 && index !== currentBookingDetail.seats.length - 1) {
+                        seatsBuffer += '<div class="w-full h-2"></div>'; 
+                    }
+                });
+                seatsHtml = seatsBuffer;
+            }
+
+            // 票種判斷 (維持原樣)
             const isGroup = currentBookingDetail.ticketCount >= 10 || 
                             currentBookingDetail.tickets.some(t => t.price === 256 || t.price === 240);
             
             const ticketTypeName = isGroup ? "團體票 (Group Ticket)" : "一般票 (General Ticket)";
 
             const ticketHtml = currentBookingDetail.tickets.map(t => {
-                // 如果符合團體票條件，名稱強制顯示為"團體票"，否則顯示原名稱
-                // 若單價是 256/240 也視為團體票
                 const isGroupPrice = t.price === 256 || t.price === 240;
                 const displayName = (isGroup || isGroupPrice) ? "團體票" : t.name;
                 return `<div class="flex flex-col mb-2"><span class="text-gray-800 font-bold text-lg">${displayName} x${t.qty} <span class="text-base font-normal text-gray-500">(NT$ ${t.price}/張)</span></span></div>`
@@ -529,10 +540,11 @@
 
             let actionButtonHtml = '';
             if (displayStatus === 'Upcoming') {
-                if (isGroup) { 
+                // ★★★ [修改] 按鈕禁用邏輯：只有當票數 "等於" 10 時才禁用 ★★★
+                if (currentBookingDetail.ticketCount === 10) { 
                     actionButtonHtml = `<div class="w-full mt-8 bg-gray-300 text-white text-xl font-bold py-4 rounded-xl shadow-sm flex items-center justify-center cursor-not-allowed">
                         <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                        團體票不可退票/修改
+                        團體票不可退票/修改 (滿10人限制)
                     </div>`;
                 } else {
                     actionButtonHtml = `<button onclick="openModificationModal('${orderId}')" class="w-full mt-8 bg-[#f7a83d] hover:bg-yellow-500 text-white text-xl font-bold py-4 rounded-xl shadow-md flex items-center justify-center transition-colors">
@@ -545,8 +557,7 @@
             const statusText = { 'Upcoming': '待觀影', 'Completed': '已完成', 'Cancelled': '已取消' }[displayStatus] || displayStatus;
             const statusBadge = displayStatus === 'Upcoming' ? `<span class="bg-[#f7a83d] text-white px-4 py-1.5 rounded-full text-sm font-bold tracking-wider shadow-sm">待觀影</span>` : `<span class="bg-gray-500 text-white px-4 py-1.5 rounded-full text-sm font-bold tracking-wider shadow-sm">${statusText}</span>`;
 
-            // ★★★ [修改] 使用 ticketTypeName 變數顯示票種 ★★★
-            detailContainer.innerHTML = `<div class="-m-6 bg-white rounded-2xl overflow-hidden font-sans"><div class="bg-[#1F2532] p-8 text-white relative"><div class="absolute top-8 right-16"> ${statusBadge} </div><h2 class="text-3xl font-bold mb-3 tracking-wide">${currentBookingDetail.title}</h2><div class="flex items-center text-gray-300 text-sm mb-4"><span>${currentBookingDetail.cinema}</span><span class="mx-3 text-gray-500">|</span><span class="text-[#f7a83d] font-bold text-base">${currentBookingDetail.theater || '一般廳'}</span></div><p class="text-gray-400 text-xs font-mono">訂單編號: ${currentBookingDetail.id}</p></div><div class="p-8"><div class="flex flex-col md:flex-row"><div class="flex-1"><div class="flex items-start mb-8 border-b border-gray-100 pb-6"><div class="mr-12"><p class="text-xs text-gray-400 mb-1 font-bold">總金額 AMOUNT</p><p class="text-4xl font-extrabold text-[#e50914]">NT$ ${currentBookingDetail.total.toLocaleString()}</p></div><div><p class="text-xs text-gray-400 mb-1 font-bold">場次 SHOWTIME</p><div class="font-extrabold text-2xl text-[#1F2532]">${currentBookingDetail.date} <br> ${currentBookingDetail.time}</div></div></div><div class="mb-8"><p class="text-xs text-gray-400 mb-2 font-bold">座位 SEATS</p><div class="flex gap-2">${seatsHtml}</div></div><div class="mb-6"><p class="text-xs text-gray-400 mb-2 font-bold">票種 TICKET</p><div class="pl-1 space-y-2">${ticketHtml}</div></div><div><p class="text-xs text-gray-400 mb-2 font-bold">加購餐點 FOOD & DRINKS</p><div class="pl-1 space-y-1 text-gray-600">${foodHtml}</div></div></div>${qrSectionHtml}</div>${actionButtonHtml}</div></div>`;
+            detailContainer.innerHTML = `<div class="-m-6 bg-white rounded-2xl overflow-hidden font-sans"><div class="bg-[#1F2532] p-8 text-white relative"><div class="absolute top-8 right-16"> ${statusBadge} </div><h2 class="text-3xl font-bold mb-3 tracking-wide">${currentBookingDetail.title}</h2><div class="flex items-center text-gray-300 text-sm mb-4"><span>${currentBookingDetail.cinema}</span><span class="mx-3 text-gray-500">|</span><span class="text-[#f7a83d] font-bold text-base">${currentBookingDetail.theater || '一般廳'}</span></div><p class="text-gray-400 text-xs font-mono">訂單編號: ${currentBookingDetail.id}</p></div><div class="p-8"><div class="flex flex-col md:flex-row"><div class="flex-1"><div class="flex items-start mb-8 border-b border-gray-100 pb-6"><div class="mr-12"><p class="text-xs text-gray-400 mb-1 font-bold">總金額 AMOUNT</p><p class="text-4xl font-extrabold text-[#e50914]">NT$ ${currentBookingDetail.total.toLocaleString()}</p></div><div><p class="text-xs text-gray-400 mb-1 font-bold">場次 SHOWTIME</p><div class="font-extrabold text-2xl text-[#1F2532]">${currentBookingDetail.date} <br> ${currentBookingDetail.time}</div></div></div><div class="mb-8"><p class="text-xs text-gray-400 mb-2 font-bold">座位 SEATS</p><div class="flex flex-wrap gap-2">${seatsHtml}</div></div><div class="mb-6"><p class="text-xs text-gray-400 mb-2 font-bold">票種 TICKET</p><div class="pl-1 space-y-2">${ticketHtml}</div></div><div><p class="text-xs text-gray-400 mb-2 font-bold">加購餐點 FOOD & DRINKS</p><div class="pl-1 space-y-1 text-gray-600">${foodHtml}</div></div></div>${qrSectionHtml}</div>${actionButtonHtml}</div></div>`;
             openModal('detailModal');
             if (displayStatus === 'Upcoming') { document.getElementById('modal-qrcode').innerHTML = ''; new QRCode(document.getElementById('modal-qrcode'), { text: currentBookingDetail.id, width: 150, height: 150, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H }); }
         }
@@ -559,6 +570,7 @@
     </script>
 </body>
 </html>
+
 
 
 
