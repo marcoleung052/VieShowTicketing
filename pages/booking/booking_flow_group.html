@@ -153,6 +153,7 @@
                 <div id="cinemaNameDisplay">影城: 載入中...</div>
                 <div id="movieTitleDisplay">電影: 載入中...</div>
                 <div id="showtimeDetailDisplay" class="font-mono mt-1 text-gray-900 font-semibold">場次: 載入中...</div>
+                <div id="availableSeatsWarning" class="font-bold text-red-500 mt-2"></div>
                 <div id="loadError" class="text-red-600 font-semibold hidden mt-2">載入資料失敗，請回上一步。</div>
             </div>
 
@@ -331,6 +332,7 @@
         ];
 
         let comboList = []; // [動態取得] 儲存從 API 取得的餐點資料
+        let availableSeats = 0; // [新增] 剩餘座位數
 
         // 取得 DOM 元素
         const cinemaNameDisplay = document.getElementById('cinemaNameDisplay');
@@ -363,6 +365,14 @@
                     if (currentBookingData.showtime) {
                         const showtime = currentBookingData.showtime;
                         showtimeDetailDisplay.textContent = `場次: ${showtime.date} ${showtime.time} ${showtime.theater} (${showtime.type})`;
+                        
+                        // [新增] 獲取或更新剩餘座位
+                        if (currentBookingData.showtime.availableSeats !== undefined) {
+                            availableSeats = currentBookingData.showtime.availableSeats;
+                            updateSeatWarning();
+                        } else {
+                            await fetchAvailableSeats(currentBookingData.showtime.id);
+                        }
                     } else {
                         showtimeDetailDisplay.textContent = `場次: ${currentBookingData.showtimeDetail || '未選擇'}`;
                     }
@@ -383,7 +393,51 @@
                 };
             }
         }
-
+        // [新增] 呼叫 API 取得座位數
+        async function fetchAvailableSeats(showingId) {
+            try {
+                const warningEl = document.getElementById('availableSeatsWarning');
+                warningEl.textContent = "正在確認剩餘座位...";
+                warningEl.className = "font-bold text-gray-500 mt-2 animate-pulse";
+        
+                const res = await fetch(`${API_BASE_URL}/booking/seats?showingId=${showingId}`);
+                if (!res.ok) throw new Error("API Error");
+                
+                const seats = await res.json();
+                availableSeats = seats.filter(s => s.status === 1).length;
+                
+                // 更新 local storage 以免重新整理後丟失
+                if (currentBookingData && currentBookingData.showtime) {
+                    currentBookingData.showtime.availableSeats = availableSeats;
+                    localStorage.setItem('currentBooking', JSON.stringify(currentBookingData));
+                }
+                
+                updateSeatWarning();
+                renderTicketOptions(); // [關鍵] 重新渲染以更新 input 的 max 屬性
+        
+            } catch (e) {
+                console.error("無法取得座位資訊", e);
+                availableSeats = 0;
+                updateSeatWarning();
+            }
+        }
+        
+        // [新增] 更新 UI 提示文字
+        function updateSeatWarning() {
+            const warningEl = document.getElementById('availableSeatsWarning');
+            warningEl.className = "font-bold mt-2"; 
+            
+            // 團體票特殊邏輯：若剩餘座位少於 10 (MIN_TICKETS)，則無法成團
+            if (availableSeats < MIN_TICKETS) {
+                warningEl.textContent = `此場次僅剩 ${availableSeats} 個座位，不足以進行團體訂票 (需至少 ${MIN_TICKETS} 人)。`;
+                warningEl.classList.add('text-red-600');
+                document.getElementById('nextStepButton').disabled = true; // 強制鎖定
+            } else {
+                warningEl.textContent = `此場次有 ${availableSeats} 個座位可供選擇。`;
+                warningEl.classList.add('text-green-600');
+                checkFormValidity(); // 重新檢查按鈕狀態
+            }
+        }
         // 2. 渲染團體票種選擇 UI
         function renderTicketOptions() {
             const ticket = MOCK_TICKETS[0];
@@ -402,7 +456,7 @@
             let html = `<label class="block text-2xl font-bold text-gray-800 mb-4 border-b pb-2 flex items-center">
                 <span class="mr-2">👥</span> 選擇團體人數 <span class="text-base font-normal text-red-500 ml-2">(${MIN_TICKETS} 到 ${MAX_TICKETS} 張)</span>
             </label>`;
-            
+            const currentMax = availableSeats > 0 ? Math.min(MAX_TICKETS, availableSeats) : MAX_TICKETS;
             html += `
                 <div class="selection-card flex justify-between items-center mb-4">
                     <div class="flex-1">
@@ -418,8 +472,8 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
                         </button>
                         <input type="number" id="ticket-${ticket.id}" name="ticket-${ticket.id}" 
-                               class="quantity-input" value="${initialQty}" min="${MIN_TICKETS}" max="${MAX_TICKETS}" readonly 
-                               data-id="${ticket.id}" data-type="ticket">
+                           class="quantity-input" value="${initialQty}" min="${MIN_TICKETS}" max="${currentMax}" readonly 
+                           data-id="${ticket.id}" data-type="ticket">
                         <button type="button" class="btn-plus bg-vieshow-red hover:bg-red-700 text-white p-2 rounded-full transition duration-150 active:scale-95" data-id="${ticket.id}" data-type="ticket">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                         </button>
@@ -510,12 +564,19 @@
             const isPlus = target.classList.contains('btn-plus');
 
             if (itemType === 'ticket') {
-                // 團體票限制: 10-20 張
+                // [修改] 限制最大值
+                const currentMax = Math.min(MAX_TICKETS, availableSeats);
+            
                 if (isPlus) {
-                    if (currentValue < MAX_TICKETS) {
+                    if (currentValue < currentMax) {
                         newValue++;
                     } else {
-                        showToast(`團體票人數上限為 ${MAX_TICKETS} 人`, 'warning');
+                        // [新增] 區分是超過團體上限還是超過剩餘座位
+                        if (availableSeats < MAX_TICKETS && currentValue >= availableSeats) {
+                            alert(`此場次僅剩 ${availableSeats} 個座位，無法再增加`);
+                        } else {
+                            showToast(`團體票人數上限為 ${MAX_TICKETS} 人`, 'warning');
+                        }
                         return;
                     }
                 } else {
@@ -578,7 +639,14 @@
         // 6. 檢查表單有效性 (至少選擇 MIN_TICKETS 張票)
         function checkFormValidity() {
             const totalTickets = updateTotal();
-            // 團體票必須在 10-20 之間
+            
+            // [新增] 如果剩餘座位不足最低團體人數，強制禁用
+            if (availableSeats > 0 && availableSeats < MIN_TICKETS) {
+                nextStepButton.disabled = true;
+                return;
+            }
+        
+            // 原本的邏輯
             if (totalTickets >= MIN_TICKETS && totalTickets <= MAX_TICKETS) {
                 nextStepButton.disabled = false;
             } else {
@@ -614,7 +682,10 @@
                 alert(`團體票人數必須介於 ${MIN_TICKETS} 到 ${MAX_TICKETS} 張之間！`);
                 return;
             }
-            
+            if (totalTickets > availableSeats) {
+                alert(`選擇的票數 (${totalTickets}) 超過剩餘座位數 (${availableSeats})！`);
+                return;
+            }
             const ticket = MOCK_TICKETS[0];
             const ticketPriceTotal = totalTickets * ticket.price; // 已是 8 折價
 
@@ -684,7 +755,8 @@
                 // ========== [新增] 補齊與 flow_2 一致的初始化欄位 ==========
                 selectedSeats: null, 
                 paymentMethod: null, 
-                remarks: '' 
+                remarks: '' ,
+                availableSeats: availableSeats
                 // ======================================================
             };
             localStorage.setItem('currentBooking', JSON.stringify(step2Data));
