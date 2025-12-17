@@ -356,7 +356,7 @@
         let currentBookingData = null; // 儲存步驟 1 的資料
 
         // 1. 載入步驟 1 的資料並顯示 (場次確認)
-        function loadBookingData() {
+        async function async function () {
             const data = localStorage.getItem('currentBooking');
             if (data) {
                 try {
@@ -778,11 +778,15 @@
                 // 如果未登入，後續流程會被阻止
                 return;
             }
-
-            loadBookingData();
-            renderTicketOptions();
-            fetchMeals(); // [新增] 呼叫 API 載入餐點
-            checkFormValidity(); // 初始化時檢查按鈕狀態 (預設 10 張，應為 enabled)
+            (async () => {
+                await loadBookingData(); // 等待資料載入完成
+                
+                // 資料載入後再執行渲染
+                // renderTicketOptions() 會在 loadBookingData -> fetchAvailableSeats 結束後自動被呼叫一次
+                // 這裡只要確保餐點載入即可
+                fetchMeals(); 
+                checkFormValidity();
+            })();
         };
     </script>
 
@@ -792,5 +796,6 @@
     
 </body>
 </html>
+
 
 
