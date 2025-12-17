@@ -254,7 +254,12 @@
         let selectedRefundSeats = [];
         let refundFoodMap = {}; 
         let isBackgroundLoading = false; // 是否正在背景載入中
-
+        // [新增] 安全日期解析 (解決時區問題)
+        function safeParseDate(dateStr, timeStr) {
+            const dateParts = dateStr.split(/[\/-]/).map(Number);
+            const timeParts = timeStr.split(':').map(Number);
+            return new Date(dateParts[0], dateParts[1] - 1, dateParts[2], timeParts[0], timeParts[1]);
+        }
         // 1. 第一階段：快速載入前 5 筆
         async function fetchOrders() {
             const user = JSON.parse(localStorage.getItem('user'));
@@ -362,8 +367,8 @@
 
         // --- 渲染卡片 (保持不變) ---
         function renderOrderCard(order) {
-            // 因為資料已經在 fetch 時更新了，這裡直接使用 order.status 即可
-            // (雖然這裡還是保留了計算邏輯作為保險，但主要是依賴已更新的 order.status)
+            const now = new Date();
+            const showtimeDate = safeParseDate(order.date, order.time);
             let displayStatus = order.status;
 
             let statusConfig = { 
@@ -487,5 +492,6 @@
     </script>
 </body>
 </html>
+
 
 
