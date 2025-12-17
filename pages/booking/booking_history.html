@@ -313,19 +313,18 @@
 
         function loadNextBatch() {
             const container = document.getElementById('ordersList');
-            
+            // 現在這裡過濾時，o.status 已經被 recalculateOrdersStatus 更新過了
             const filtered = allOrders.filter(o => currentFilter === 'all' || o.status === currentFilter);
             
             if (filtered.length === 0) {
                 document.getElementById('noOrdersMessage').classList.remove('hidden');
-                document.getElementById('pagination').innerHTML = ''; // 隱藏按鈕
+                document.getElementById('pagination').innerHTML = ''; 
                 return;
             } else {
                 document.getElementById('noOrdersMessage').classList.add('hidden');
             }
 
             const nextBatch = filtered.slice(currentIndex, currentIndex + BATCH_SIZE);
-            
             nextBatch.forEach(o => {
                 container.insertAdjacentHTML('beforeend', renderOrderCard(o));
             });
@@ -363,14 +362,9 @@
 
         // --- 渲染卡片 (保持不變) ---
         function renderOrderCard(order) {
-            const now = new Date();
-            const showtimeStr = `${order.date} ${order.time}`.replace(/\//g, '-');
-            const showtimeDate = new Date(showtimeStr);
-
+            // 因為資料已經在 fetch 時更新了，這裡直接使用 order.status 即可
+            // (雖然這裡還是保留了計算邏輯作為保險，但主要是依賴已更新的 order.status)
             let displayStatus = order.status;
-            if (displayStatus === 'Upcoming' && !isNaN(showtimeDate) && showtimeDate < now) {
-                displayStatus = 'Completed';
-            }
 
             let statusConfig = { 
                 'Upcoming': { text: '待觀影', class: 'bg-vieshow-gold text-white', icon: '🕒' }, 
@@ -493,4 +487,5 @@
     </script>
 </body>
 </html>
+
 
