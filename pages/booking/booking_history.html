@@ -228,13 +228,12 @@
         const MEMBER_HOME_URL = '../member/member_home.html';
         const INDEX_PAGE_URL = '../../index.html';
 
-        // ... (UI Helper Functions 保持不變) ...
+        // ... (UI Helper Functions) ...
         function renderLoggedOutState() { document.getElementById('headerNavRight').innerHTML = `<a href="${LOGIN_PAGE_URL}" class="hover:text-vieshow-gold">登入</a>`; }
         function renderLoggedInState() { document.getElementById('headerNavRight').innerHTML = `<a href="#" id="signOutLink" class="hover:text-vieshow-gold">登出</a> <a href="${MEMBER_HOME_URL}" class="hover:text-vieshow-gold ml-4">會員中心</a>`; 
                                         document.getElementById('signOutLink')?.addEventListener('click', (e) => {
                                         e.preventDefault(); 
                                         localStorage.removeItem('auth_token'); 
-                                        // ★★★ 在登出時呼叫 Chatbot 的重置函式 ★★★
                                         if (window.resetChatSession) window.resetChatSession(); 
                                         alert('已登出', () => window.location.href = INDEX_PAGE_URL);
                                     });}
@@ -244,18 +243,17 @@
         window.alert = customAlert;
 
         // 全域變數
-        let allOrders = [];       
+        let allOrders = [];        
         let currentFilter = 'all'; 
-        let currentIndex = 0;     
-        const INITIAL_LOAD_COUNT = 5; // 第一次只載入 5 筆
-        const BATCH_SIZE = 5;         // 每次按按鈕多顯示 5 筆
+        let currentIndex = 0;      
+        const INITIAL_LOAD_COUNT = 5; 
+        const BATCH_SIZE = 5;         
         
         let currentBookingDetail = null;
         let selectedRefundSeats = [];
         let refundFoodMap = {}; 
-        let isBackgroundLoading = false; // 是否正在背景載入中
+        let isBackgroundLoading = false;
 
-        // 1. 第一階段：快速載入前 5 筆
         async function fetchOrders() {
             const user = JSON.parse(localStorage.getItem('user'));
             if (!user) return alert('請先登入', () => window.location.href = LOGIN_PAGE_URL);
@@ -263,18 +261,13 @@
             document.getElementById('loadingMessage').classList.remove('hidden');
             
             try {
-                // 只抓前 5 筆
                 const res = await fetch(`${API_BASE_URL}/booking/history?memberId=${user.id}&limit=${INITIAL_LOAD_COUNT}`);
                 const initialData = await res.json();
                 
-                allOrders = initialData; // 先放入前 5 筆
+                allOrders = initialData; 
                 
                 document.getElementById('loadingMessage').classList.add('hidden');
-                
-                // 顯示這 5 筆
                 resetDisplay();
-
-                // 2. 第二階段：背景載入剩餘資料
                 fetchRemainingOrders(user.id);
 
             } catch (e) {
@@ -283,25 +276,23 @@
             }
         }
 
-        // 背景載入剩餘資料 (不擋 UI)
         async function fetchRemainingOrders(memberId) {
             isBackgroundLoading = true;
-            updateLoadMoreButtonState(); // 更新按鈕狀態顯示 "背景載入中..."
+            updateLoadMoreButtonState();
 
             try {
-                // 從第 6 筆開始抓所有剩下的
                 const res = await fetch(`${API_BASE_URL}/booking/history?memberId=${memberId}&offset=${INITIAL_LOAD_COUNT}`);
                 const remainingData = await res.json();
                 
                 if (remainingData.length > 0) {
-                    allOrders = allOrders.concat(remainingData); // 合併資料
+                    allOrders = allOrders.concat(remainingData); 
                     console.log(`背景載入完成：新增 ${remainingData.length} 筆資料`);
                 }
             } catch (e) {
                 console.error("背景載入失敗", e);
             } finally {
                 isBackgroundLoading = false;
-                updateLoadMoreButtonState(); // 載入完成，更新按鈕狀態
+                updateLoadMoreButtonState(); 
             }
         }
 
@@ -313,19 +304,17 @@
 
         function loadNextBatch() {
             const container = document.getElementById('ordersList');
-            
             const filtered = allOrders.filter(o => currentFilter === 'all' || o.status === currentFilter);
             
             if (filtered.length === 0) {
                 document.getElementById('noOrdersMessage').classList.remove('hidden');
-                document.getElementById('pagination').innerHTML = ''; // 隱藏按鈕
+                document.getElementById('pagination').innerHTML = ''; 
                 return;
             } else {
                 document.getElementById('noOrdersMessage').classList.add('hidden');
             }
 
             const nextBatch = filtered.slice(currentIndex, currentIndex + BATCH_SIZE);
-            
             nextBatch.forEach(o => {
                 container.insertAdjacentHTML('beforeend', renderOrderCard(o));
             });
@@ -334,12 +323,10 @@
             updateLoadMoreButtonState();
         }
 
-        // 更新「載入更多」按鈕的狀態
         function updateLoadMoreButtonState() {
             const container = document.getElementById('pagination');
             const filteredTotal = allOrders.filter(o => currentFilter === 'all' || o.status === currentFilter).length;
             
-            // 如果目前顯示的數量 < 總數量，才顯示按鈕
             if (currentIndex < filteredTotal) {
                 container.innerHTML = `
                     <button onclick="loadNextBatch()" class="w-full sm:w-auto bg-white border border-gray-300 text-gray-600 font-bold py-3 px-8 rounded-full shadow-sm hover:bg-gray-50 hover:text-vieshow-red hover:border-vieshow-red transition-all duration-300 transform hover:-translate-y-1 mt-6 flex items-center justify-center mx-auto">
@@ -348,7 +335,6 @@
                     </button>
                 `;
             } else if (isBackgroundLoading) {
-                // 如果背景還在載入，顯示 Loading
                 container.innerHTML = `
                     <div class="text-center text-gray-400 text-sm py-4 flex items-center justify-center">
                         <svg class="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -356,16 +342,26 @@
                     </div>
                 `;
             } else {
-                // 全部顯示完畢
                 container.innerHTML = '<p class="text-gray-400 text-sm py-4">已顯示所有紀錄</p>';
             }
         }
 
-        // --- 渲染卡片 (保持不變) ---
+        // --- ★★★ 核心修正：安全日期比較 ★★★ ---
+        function safeParseDate(dateStr, timeStr) {
+            // 支援 "2025/12/17" 或 "2025-12-17" 格式
+            const dateParts = dateStr.split(/[\/-]/).map(Number);
+            const timeParts = timeStr.split(':').map(Number);
+            
+            // 使用 new Date(year, monthIndex, day, hour, minute)
+            // 這會強制建立 "本地時間" 的 Date 物件，避免 UTC 解析誤差
+            // monthIndex 是 0-11，所以要減 1
+            return new Date(dateParts[0], dateParts[1] - 1, dateParts[2], timeParts[0], timeParts[1]);
+        }
+
         function renderOrderCard(order) {
             const now = new Date();
-            const showtimeStr = `${order.date} ${order.time}`.replace(/\//g, '-');
-            const showtimeDate = new Date(showtimeStr);
+            // ★★★ 修正點：使用安全解析函數 ★★★
+            const showtimeDate = safeParseDate(order.date, order.time);
 
             let displayStatus = order.status;
             if (displayStatus === 'Upcoming' && !isNaN(showtimeDate) && showtimeDate < now) {
@@ -454,7 +450,6 @@
                 const result = await response.json();
                 if (response.ok) {
                     document.getElementById('finalRefundAmount').textContent = document.getElementById('expectedRefundAmount').textContent; document.getElementById('step2').classList.add('hidden'); document.getElementById('step3').classList.remove('hidden'); document.getElementById('step2Buttons').classList.add('hidden'); document.getElementById('step3Buttons').classList.remove('hidden');
-                    // 重新載入資料 (這會觸發重置流程)
                     fetchOrders();
                 } else { alert(`失敗: ${result.message}`); }
             } catch (e) { console.error(e); alert('連線錯誤'); } finally { btn.disabled = false; btn.textContent = "確認送出申請"; }
@@ -468,10 +463,10 @@
             const ticketHtml = currentBookingDetail.tickets.map(t => `<div class="flex flex-col mb-2"><span class="text-gray-800 font-bold text-lg">${t.name} x${t.qty} <span class="text-base font-normal text-gray-500">(NT$ ${t.price}/張)</span></span></div>`).join('');
             const foodHtml = currentBookingDetail.food.length > 0 ? currentBookingDetail.food.map(f => `<div class="flex flex-col mb-1"><span class="text-gray-600">${f.name} x${f.qty} (NT$ ${f.price}/份)</span></div>`).join('') : '<div class="text-gray-400 text-sm italic">無加購餐點</div>';
             
-            // 重新計算狀態 (因為 allOrders 裡的可能是舊的，但 renderOrderCard 有即時運算)
-            // 這裡也需要即時運算狀態給 modal 使用
+            // ★★★ 修正點：使用安全解析函數 ★★★
             const now = new Date();
-            const showtimeDate = new Date(`${currentBookingDetail.date} ${currentBookingDetail.time}`.replace(/\//g, '-'));
+            const showtimeDate = safeParseDate(currentBookingDetail.date, currentBookingDetail.time);
+            
             let displayStatus = currentBookingDetail.status;
             if (displayStatus === 'Upcoming' && !isNaN(showtimeDate) && showtimeDate < now) { displayStatus = 'Completed'; }
 
@@ -493,5 +488,3 @@
     </script>
 </body>
 </html>
-
-
