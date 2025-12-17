@@ -396,7 +396,13 @@
                 'Cancelled': { text: '已取消', class: 'bg-gray-400 text-white', icon: '🚫' } 
             }[displayStatus] || { text: displayStatus, class: 'bg-gray-500 text-white', icon: '?' };
             
-            let actionBtn = `<button onclick="openOrderDetailModal('${order.id}')" class="bg-white border border-gray-200 text-gray-600 hover:text-vieshow-red hover:border-vieshow-red px-5 py-2 rounded-lg text-sm font-bold transition shadow-sm flex items-center">查看詳情</button>`;
+            // [新增] 團體票檢查
+            let actionBtn;
+            if (order.ticketCount >= 10) {
+                 actionBtn = `<button onclick="openOrderDetailModal('${order.id}')" class="bg-gray-100 border border-gray-200 text-gray-500 px-5 py-2 rounded-lg text-sm font-bold transition shadow-sm flex items-center">查看詳情 (團體票)</button>`;
+            } else {
+                 actionBtn = `<button onclick="openOrderDetailModal('${order.id}')" class="bg-white border border-gray-200 text-gray-600 hover:text-vieshow-red hover:border-vieshow-red px-5 py-2 rounded-lg text-sm font-bold transition shadow-sm flex items-center">查看詳情</button>`;
+            }
 
             let foodSummary = '';
             if (order.food && order.food.length > 0) {
@@ -507,7 +513,20 @@
             let displayStatus = currentBookingDetail.status;
             if (displayStatus === 'Upcoming' && !isNaN(showtimeDate) && showtimeDate < now) { displayStatus = 'Completed'; }
 
-            const actionButtonHtml = displayStatus === 'Upcoming' ? `<button onclick="openModificationModal('${orderId}')" class="w-full mt-8 bg-[#f7a83d] hover:bg-yellow-500 text-white text-xl font-bold py-4 rounded-xl shadow-md flex items-center justify-center transition-colors"><svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>修改/退票申請</button>` : '';
+            let actionButtonHtml = '';
+            if (displayStatus === 'Upcoming') {
+                if (currentBookingDetail.ticketCount >= 10) {
+                    actionButtonHtml = `<div class="w-full mt-8 bg-gray-300 text-white text-xl font-bold py-4 rounded-xl shadow-sm flex items-center justify-center cursor-not-allowed">
+                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        團體票不可退票/修改
+                    </div>`;
+                } else {
+                    actionButtonHtml = `<button onclick="openModificationModal('${orderId}')" class="w-full mt-8 bg-[#f7a83d] hover:bg-yellow-500 text-white text-xl font-bold py-4 rounded-xl shadow-md flex items-center justify-center transition-colors">
+                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                        修改/退票申請
+                    </button>`;
+                }
+            }
             const qrSectionHtml = displayStatus === 'Upcoming' ? `<div class="md:w-1/3 flex flex-col items-center justify-center mt-6 md:mt-0 md:pl-8 md:border-l border-gray-100"><div class="border border-gray-200 p-2 rounded-xl"><div id="modal-qrcode"></div></div><p class="text-gray-400 text-xs mt-3">入場條碼</p></div>` : '';
             const statusText = { 'Upcoming': '待觀影', 'Completed': '已完成', 'Cancelled': '已取消' }[displayStatus] || displayStatus;
             const statusBadge = displayStatus === 'Upcoming' ? `<span class="bg-[#f7a83d] text-white px-4 py-1.5 rounded-full text-sm font-bold tracking-wider shadow-sm">待觀影</span>` : `<span class="bg-gray-500 text-white px-4 py-1.5 rounded-full text-sm font-bold tracking-wider shadow-sm">${statusText}</span>`;
@@ -525,6 +544,7 @@
     </script>
 </body>
 </html>
+
 
 
 
