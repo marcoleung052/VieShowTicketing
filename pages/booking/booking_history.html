@@ -260,6 +260,19 @@
             const timeParts = timeStr.split(':').map(Number);
             return new Date(dateParts[0], dateParts[1] - 1, dateParts[2], timeParts[0], timeParts[1]);
         }
+        function recalculateOrdersStatus(orders) {
+            const now = new Date();
+            orders.forEach(order => {
+                // 只檢查 "Upcoming" 的訂單
+                if (order.status === 'Upcoming') {
+                    const showtimeDate = safeParseDate(order.date, order.time);
+                    // 如果時間已過，強制更新資料狀態為 Completed
+                    if (!isNaN(showtimeDate) && showtimeDate < now) {
+                        order.status = 'Completed';
+                    }
+                }
+            });
+        }
         // 1. 第一階段：快速載入前 5 筆
         async function fetchOrders() {
             const user = JSON.parse(localStorage.getItem('user'));
@@ -271,7 +284,7 @@
                 // 只抓前 5 筆
                 const res = await fetch(`${API_BASE_URL}/booking/history?memberId=${user.id}&limit=${INITIAL_LOAD_COUNT}`);
                 const initialData = await res.json();
-                
+                recalculateOrdersStatus(initialData);
                 allOrders = initialData; // 先放入前 5 筆
                 
                 document.getElementById('loadingMessage').classList.add('hidden');
@@ -299,6 +312,7 @@
                 const remainingData = await res.json();
                 
                 if (remainingData.length > 0) {
+                    recalculateOrdersStatus(remainingData);
                     allOrders = allOrders.concat(remainingData); // 合併資料
                     console.log(`背景載入完成：新增 ${remainingData.length} 筆資料`);
                 }
@@ -492,6 +506,7 @@
     </script>
 </body>
 </html>
+
 
 
 
