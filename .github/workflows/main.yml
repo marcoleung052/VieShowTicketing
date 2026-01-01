@@ -1,0 +1,15 @@
+name: Weekly Schedule Generator
+
+on:
+  schedule:
+    - cron: "0 0 * * 1"   # 每週一 00:00 UTC 執行
+  workflow_dispatch:      # 允許你手動按下去執行
+
+jobs:
+  call-space-api:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Call HuggingFace Space /api/schedule/auto
+        run: |
+          curl -X GET "https://marcoleung052-vieshow-backend.hf.space/api/schedule/auto"
