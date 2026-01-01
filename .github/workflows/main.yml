@@ -1,4 +1,4 @@
-name: Weekly Schedule Generator
+name: daily Schedule Generator
 
 on:
   schedule:
